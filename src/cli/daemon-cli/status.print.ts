@@ -317,5 +317,5 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
   }
 
   defaultRuntime.log(`${label("Troubles:")} run ${formatCliCommand("special-agent status")}`);
-  defaultRuntime.log(`${label("Troubleshooting:")} https://docs.special-agent.ai/troubleshooting`);
+  defaultRuntime.log(`${label("Troubleshooting:")} https://docs.openclaw.ai/troubleshooting`);
 }

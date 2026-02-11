@@ -63,7 +63,7 @@ special-agent browser --browser-profile work tabs
 
 ```bash
 special-agent browser tabs
-special-agent browser open https://docs.special-agent.ai
+special-agent browser open https://docs.openclaw.ai
 special-agent browser focus <targetId>
 special-agent browser close <targetId>
 ```

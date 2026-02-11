@@ -9,8 +9,8 @@ Providers:
 - **Plivo** (Voice API + XML transfer + GetInput speech)
 - **Mock** (dev/no network)
 
-Docs: `https://docs.special-agent.ai/plugins/voice-call`
-Plugin system: `https://docs.special-agent.ai/plugin`
+Docs: `https://docs.openclaw.ai/plugins/voice-call`
+Plugin system: `https://docs.openclaw.ai/plugin`
 
 ## Install (local dev)
 

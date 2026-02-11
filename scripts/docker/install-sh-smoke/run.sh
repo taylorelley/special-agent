@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_URL="${SPECIAL_AGENT_INSTALL_URL:-https://special-agent.bot/install.sh}"
+INSTALL_URL="${SPECIAL_AGENT_INSTALL_URL:-https://openclaw.bot/install.sh}"
 SMOKE_PREVIOUS_VERSION="${SPECIAL_AGENT_INSTALL_SMOKE_PREVIOUS:-}"
 SKIP_PREVIOUS="${SPECIAL_AGENT_INSTALL_SMOKE_SKIP_PREVIOUS:-0}"
-DEFAULT_PACKAGE="special-agent"
+DEFAULT_PACKAGE="openclaw"
 PACKAGE_NAME="${SPECIAL_AGENT_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
 
 echo "==> Resolve npm versions"

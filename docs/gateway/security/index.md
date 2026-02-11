@@ -830,7 +830,7 @@ flowchart TB
 
 Found a vulnerability in Special Agent? Please report responsibly:
 
-1. Email: [security@special-agent.ai](mailto:security@special-agent.ai)
+1. Email: [security@openclaw.ai](mailto:security@openclaw.ai)
 2. Don't post publicly until fixed
 3. We'll credit you (unless you prefer anonymity)
 

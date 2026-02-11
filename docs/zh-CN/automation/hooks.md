@@ -134,7 +134,7 @@ Hook 包可以附带依赖；它们将安装在 `~/.special-agent/hooks/<id>` �
 ---
 name: my-hook
 description: "Short description of what this hook does"
-homepage: https://docs.special-agent.ai/hooks#my-hook
+homepage: https://docs.openclaw.ai/hooks#my-hook
 metadata:
   {
     "special-agent": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } },

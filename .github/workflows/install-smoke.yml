@@ -52,8 +52,8 @@ jobs:
 
       - name: Run installer docker tests
         env:
-          SPECIAL_AGENT_INSTALL_URL: https://special-agent.ai/install.sh
-          SPECIAL_AGENT_INSTALL_CLI_URL: https://special-agent.ai/install-cli.sh
+          SPECIAL_AGENT_INSTALL_URL: https://openclaw.ai/install.sh
+          SPECIAL_AGENT_INSTALL_CLI_URL: https://openclaw.ai/install-cli.sh
           SPECIAL_AGENT_NO_ONBOARD: "1"
           SPECIAL_AGENT_INSTALL_SMOKE_SKIP_CLI: "1"
           SPECIAL_AGENT_INSTALL_SMOKE_SKIP_NONROOT: ${{ github.event_name == 'pull_request' && '1' || '0' }}

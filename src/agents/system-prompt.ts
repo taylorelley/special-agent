@@ -151,7 +151,7 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
   return [
     "## Documentation",
     `SpecialAgent docs: ${docsPath}`,
-    "Mirror: https://docs.special-agent.ai",
+    "Mirror: https://docs.openclaw.ai",
     "Source: https://github.com/special-agent/special-agent",
     "Community: https://discord.com/invite/clawd",
     "Find new skills: https://clawhub.com",

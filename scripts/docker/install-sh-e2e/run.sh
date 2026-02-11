@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_URL="${SPECIAL_AGENT_INSTALL_URL:-${SPECIAL_AGENT_INSTALL_URL:-https://special-agent.bot/install.sh}}"
+INSTALL_URL="${SPECIAL_AGENT_INSTALL_URL:-${SPECIAL_AGENT_INSTALL_URL:-https://openclaw.bot/install.sh}}"
 MODELS_MODE="${SPECIAL_AGENT_E2E_MODELS:-${SPECIAL_AGENT_E2E_MODELS:-both}}" # both|openai|anthropic
 INSTALL_TAG="${SPECIAL_AGENT_INSTALL_TAG:-${SPECIAL_AGENT_INSTALL_TAG:-latest}}"
 E2E_PREVIOUS_VERSION="${SPECIAL_AGENT_INSTALL_E2E_PREVIOUS:-${SPECIAL_AGENT_INSTALL_E2E_PREVIOUS:-}}"
@@ -33,9 +33,9 @@ elif [[ "$MODELS_MODE" == "anthropic" && -z "$ANTHROPIC_API_TOKEN" && -z "$ANTHR
 fi
 
 echo "==> Resolve npm versions"
-EXPECTED_VERSION="$(npm view "special-agent@${INSTALL_TAG}" version)"
+EXPECTED_VERSION="$(npm view "openclaw@${INSTALL_TAG}" version)"
 if [[ -z "$EXPECTED_VERSION" || "$EXPECTED_VERSION" == "undefined" || "$EXPECTED_VERSION" == "null" ]]; then
-  echo "ERROR: unable to resolve special-agent@${INSTALL_TAG} version" >&2
+  echo "ERROR: unable to resolve openclaw@${INSTALL_TAG} version" >&2
   exit 2
 fi
 if [[ -n "$E2E_PREVIOUS_VERSION" ]]; then
@@ -43,7 +43,7 @@ if [[ -n "$E2E_PREVIOUS_VERSION" ]]; then
 else
   PREVIOUS_VERSION="$(node - <<'NODE'
 const { execSync } = require("node:child_process");
-const versions = JSON.parse(execSync("npm view special-agent versions --json", { encoding: "utf8" }));
+const versions = JSON.parse(execSync("npm view openclaw versions --json", { encoding: "utf8" }));
 if (!Array.isArray(versions) || versions.length === 0) process.exit(1);
 process.stdout.write(versions.length >= 2 ? versions[versions.length - 2] : versions[0]);
 NODE
@@ -55,7 +55,7 @@ if [[ "$SKIP_PREVIOUS" == "1" ]]; then
   echo "==> Skip preinstall previous (SPECIAL_AGENT_INSTALL_E2E_SKIP_PREVIOUS=1)"
 else
   echo "==> Preinstall previous (forces installer upgrade path; avoids read() prompt)"
-  npm install -g "special-agent@${PREVIOUS_VERSION}"
+  npm install -g "openclaw@${PREVIOUS_VERSION}"
 fi
 
 echo "==> Run official installer one-liner"

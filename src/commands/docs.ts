@@ -5,7 +5,7 @@ import { runCommandWithTimeout } from "../process/exec.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { isRich, theme } from "../terminal/theme.js";
 
-const SEARCH_TOOL = "https://docs.special-agent.ai/mcp.SearchSpecialAgent";
+const SEARCH_TOOL = "https://docs.openclaw.ai/mcp.SearchSpecialAgent";
 const SEARCH_TIMEOUT_MS = 30_000;
 const DEFAULT_SNIPPET_MAX = 220;
 
@@ -160,14 +160,14 @@ async function renderMarkdown(markdown: string, runtime: RuntimeEnv) {
 export async function docsSearchCommand(queryParts: string[], runtime: RuntimeEnv) {
   const query = queryParts.join(" ").trim();
   if (!query) {
-    const docs = formatDocsLink("/", "docs.special-agent.ai");
+    const docs = formatDocsLink("/", "docs.openclaw.ai");
     if (isRich()) {
       runtime.log(`${theme.muted("Docs:")} ${docs}`);
       runtime.log(
         `${theme.muted("Search:")} ${formatCliCommand('special-agent docs "your query"')}`,
       );
     } else {
-      runtime.log("Docs: https://docs.special-agent.ai/");
+      runtime.log("Docs: https://docs.openclaw.ai/");
       runtime.log(`Search: ${formatCliCommand('special-agent docs "your query"')}`);
     }
     return;

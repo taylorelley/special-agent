@@ -13,9 +13,9 @@ Report vulnerabilities directly to the repository where the issue lives:
 - **ClawHub** — [special-agent/clawhub](https://github.com/special-agent/clawhub)
 - **Trust and threat model** — [special-agent/trust](https://github.com/special-agent/trust)
 
-For issues that don't fit a specific repo, or if you're unsure, email **security@special-agent.ai** and we'll route it.
+For issues that don't fit a specific repo, or if you're unsure, email **security@openclaw.ai** and we'll route it.
 
-For full reporting instructions see our [Trust page](https://trust.special-agent.ai).
+For full reporting instructions see our [Trust page](https://trust.openclaw.ai).
 
 ### Required in Reports
 
@@ -49,7 +49,7 @@ The best way to help the project right now is by sending PRs.
 
 For threat model + hardening guidance (including `special-agent security audit --deep` and `--fix`), see:
 
-- `https://docs.special-agent.ai/gateway/security`
+- `https://docs.openclaw.ai/gateway/security`
 
 ### Web Interface Safety
 

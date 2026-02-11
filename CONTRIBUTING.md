@@ -95,7 +95,7 @@ We take security reports seriously. Report vulnerabilities directly to the repos
 - **ClawHub** — [special-agent/clawhub](https://github.com/special-agent/clawhub)
 - **Trust and threat model** — [special-agent/trust](https://github.com/special-agent/trust)
 
-For issues that don't fit a specific repo, or if you're unsure, email **security@special-agent.ai** and we'll route it.
+For issues that don't fit a specific repo, or if you're unsure, email **security@openclaw.ai** and we'll route it.
 
 ### Required in Reports
 

@@ -1,6 +1,6 @@
 # Special Agent Security & Trust
 
-**Live:** [trust.special-agent.ai](https://trust.special-agent.ai)
+**Live:** [trust.openclaw.ai](https://trust.openclaw.ai)
 
 ## Documents
 
@@ -9,7 +9,7 @@
 
 ## Reporting Vulnerabilities
 
-See the [Trust page](https://trust.special-agent.ai) for full reporting instructions covering all repos.
+See the [Trust page](https://trust.openclaw.ai) for full reporting instructions covering all repos.
 
 ## Contact
 

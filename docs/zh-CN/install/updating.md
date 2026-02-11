@@ -22,7 +22,7 @@ Special Agent 发展迅速（尚未到"1.0"）。将更新视为发布基础设�
 **首选**的更新路径是重新运行网站上的安装程序。它会检测现有安装、原地升级，并在需要时运行 `special-agent doctor`。
 
 ```bash
-curl -fsSL https://special-agent.ai/install.sh | bash
+curl -fsSL https://openclaw.ai/install.sh | bash
 ```
 
 说明：
@@ -30,7 +30,7 @@ curl -fsSL https://special-agent.ai/install.sh | bash
 - 如果你不想再次运行新手引导向导，添加 `--no-onboard`。
 - 对于**源码安装**，使用：
   ```bash
-  curl -fsSL https://special-agent.ai/install.sh | bash -s -- --install-method git --no-onboard
+  curl -fsSL https://openclaw.ai/install.sh | bash -s -- --install-method git --no-onboard
   ```
   安装程序**仅**在仓库干净时才会执行 `git pull --rebase`。
 - 对于**全局安装**，脚本底层使用 `npm install -g special-agent@latest`。

@@ -106,7 +106,7 @@ tailscale status
 ## 5) 安装 Special Agent
 
 ```bash
-curl -fsSL https://special-agent.ai/install.sh | bash
+curl -fsSL https://openclaw.ai/install.sh | bash
 source ~/.bashrc
 ```
 

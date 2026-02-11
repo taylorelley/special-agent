@@ -766,7 +766,7 @@ AI（Clawd）
 
 在 Special Agent 中发现漏洞？请负责任地报告：
 
-1. 电子邮件：security@special-agent.ai
+1. 电子邮件：security@openclaw.ai
 2. 在修复之前不要公开发布
 3. 我们会感谢你（除非你希望匿名）
 

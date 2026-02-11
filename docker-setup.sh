@@ -202,7 +202,7 @@ echo "Telegram (bot token):"
 echo "  ${COMPOSE_HINT} run --rm special-agent-cli channels add --channel telegram --token <token>"
 echo "Discord (bot token):"
 echo "  ${COMPOSE_HINT} run --rm special-agent-cli channels add --channel discord --token <token>"
-echo "Docs: https://docs.special-agent.ai/channels"
+echo "Docs: https://docs.openclaw.ai/channels"
 
 echo ""
 echo "==> Starting gateway"

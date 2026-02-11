@@ -116,7 +116,7 @@ If you used a profile, delete the matching task name and `~\.special-agent-<prof
 
 ### Normal install (install.sh / npm / pnpm / bun)
 
-If you used `https://special-agent.ai/install.sh` or `install.ps1`, the CLI was installed with `npm install -g special-agent@latest`.
+If you used `https://openclaw.ai/install.sh` or `install.ps1`, the CLI was installed with `npm install -g special-agent@latest`.
 Remove it with `npm rm -g special-agent` (or `pnpm remove -g` / `bun remove -g` if you installed that way).
 
 ### Source checkout (git clone)

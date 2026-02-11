@@ -2,7 +2,7 @@
 
 Small persona swap hook for Special Agent.
 
-Docs: https://docs.special-agent.ai/hooks/soul-evil
+Docs: https://docs.openclaw.ai/hooks/soul-evil
 
 ## Setup
 

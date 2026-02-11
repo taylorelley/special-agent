@@ -73,7 +73,7 @@ async function requireRiskAcknowledgement(params: {
       "special-agent security audit --deep",
       "special-agent security audit --fix",
       "",
-      "Must read: https://docs.special-agent.ai/gateway/security",
+      "Must read: https://docs.openclaw.ai/gateway/security",
     ].join("\n"),
     "Security",
   );
@@ -106,7 +106,7 @@ export async function runOnboardingWizard(
         [
           ...snapshot.issues.map((iss) => `- ${iss.path}: ${iss.message}`),
           "",
-          "Docs: https://docs.special-agent.ai/gateway/configuration",
+          "Docs: https://docs.openclaw.ai/gateway/configuration",
         ].join("\n"),
         "Config issues",
       );

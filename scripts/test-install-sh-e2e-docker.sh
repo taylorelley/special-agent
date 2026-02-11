@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IMAGE_NAME="${SPECIAL_AGENT_INSTALL_E2E_IMAGE:-${SPECIAL_AGENT_INSTALL_E2E_IMAGE:-special-agent-install-e2e:local}}"
-INSTALL_URL="${SPECIAL_AGENT_INSTALL_URL:-${SPECIAL_AGENT_INSTALL_URL:-https://special-agent.bot/install.sh}}"
+INSTALL_URL="${SPECIAL_AGENT_INSTALL_URL:-${SPECIAL_AGENT_INSTALL_URL:-https://openclaw.bot/install.sh}}"
 
 OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"

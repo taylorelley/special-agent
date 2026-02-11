@@ -67,7 +67,7 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 
 # Install Special Agent
-curl -fsSL https://special-agent.ai/install.sh | bash
+curl -fsSL https://openclaw.ai/install.sh | bash
 
 # Verify
 special-agent --version

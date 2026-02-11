@@ -119,7 +119,7 @@ In just 3 hours:
 - GitHub renamed: `github.com/special-agent/special-agent` ✅
 - X handle `@special-agent` secured with GOLD CHECKMARK 💰
 - npm packages released under new name
-- Docs migrated to `docs.special-agent.ai`
+- Docs migrated to `docs.openclaw.ai`
 - 200K+ views on announcement in 90 minutes
 
 **The Heroes:**

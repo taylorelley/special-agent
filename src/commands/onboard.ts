@@ -44,7 +44,7 @@ export async function onboardCommand(opts: OnboardOptions, runtime: RuntimeEnv =
     runtime.error(
       [
         "Non-interactive onboarding requires explicit risk acknowledgement.",
-        "Read: https://docs.special-agent.ai/security",
+        "Read: https://docs.openclaw.ai/security",
         `Re-run with: ${formatCliCommand("special-agent onboard --non-interactive --accept-risk ...")}`,
       ].join("\n"),
     );
@@ -66,7 +66,7 @@ export async function onboardCommand(opts: OnboardOptions, runtime: RuntimeEnv =
         "Windows detected — SpecialAgent runs great on WSL2!",
         "Native Windows might be trickier.",
         "Quick setup: wsl --install (one command, one reboot)",
-        "Guide: https://docs.special-agent.ai/windows",
+        "Guide: https://docs.openclaw.ai/windows",
       ].join("\n"),
     );
   }

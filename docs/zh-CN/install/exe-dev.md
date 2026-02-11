@@ -37,7 +37,7 @@ x-i18n:
 Shelley，[exe.dev](https://exe.dev) 的智能体，可以使用我们的提示立即安装 Special Agent。使用的提示如下：
 
 ```
-Set up Special Agent (https://docs.special-agent.ai/install) on this VM. Use the non-interactive and accept-risk flags for special-agent onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "special-agent devices list" and "special-agent device approve <request id>". Make sure the dashboard shows that Special Agent's health is OK. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
+Set up Special Agent (https://docs.openclaw.ai/install) on this VM. Use the non-interactive and accept-risk flags for special-agent onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "special-agent devices list" and "special-agent device approve <request id>". Make sure the dashboard shows that Special Agent's health is OK. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
 ```
 
 ## 手动安装
@@ -70,7 +70,7 @@ sudo apt-get install -y git curl jq ca-certificates openssl
 运行 Special Agent 安装脚本：
 
 ```bash
-curl -fsSL https://special-agent.ai/install.sh | bash
+curl -fsSL https://openclaw.ai/install.sh | bash
 ```
 
 ## 4) 设置 nginx 将 Special Agent 代理到端口 8000

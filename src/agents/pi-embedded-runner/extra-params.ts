@@ -5,7 +5,7 @@ import type { SpecialAgentConfig } from "../../config/config.js";
 import { log } from "./logger.js";
 
 const OPENROUTER_APP_HEADERS: Record<string, string> = {
-  "HTTP-Referer": "https://special-agent.ai",
+  "HTTP-Referer": "https://openclaw.ai",
   "X-Title": "SpecialAgent",
 };
 

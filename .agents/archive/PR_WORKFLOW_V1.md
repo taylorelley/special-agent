@@ -79,7 +79,7 @@ Before any substantive review or prep work, **always rebase the PR branch onto c
 - Before starting a review when a GH Issue/PR is pasted: use an isolated `.worktrees/pr-<PR>` checkout from `origin/main`. Do not require a clean main checkout, and do not run `git pull` in a dirty main checkout.
 - PR review calls: prefer a single `gh pr view --json ...` to batch metadata/comments; run `gh pr diff` only when needed.
 - PRs should summarize scope, note testing performed, and mention any user-facing changes or new flags.
-- Read `docs/help/submitting-a-pr.md` ([Submitting a PR](https://docs.special-agent.ai/help/submitting-a-pr)) for what we expect from contributors.
+- Read `docs/help/submitting-a-pr.md` ([Submitting a PR](https://docs.openclaw.ai/help/submitting-a-pr)) for what we expect from contributors.
 
 ## Unified workflow
 

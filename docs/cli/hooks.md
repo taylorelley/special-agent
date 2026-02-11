@@ -90,7 +90,7 @@ Details:
   Source: special-agent-bundled
   Path: /path/to/special-agent/hooks/bundled/session-memory/HOOK.md
   Handler: /path/to/special-agent/hooks/bundled/session-memory/handler.ts
-  Homepage: https://docs.special-agent.ai/hooks#session-memory
+  Homepage: https://docs.openclaw.ai/hooks#session-memory
   Events: command:new
 
 Requirements:

@@ -43,7 +43,7 @@ Special Agent 通过将出站 Markdown 转换为共享的中间表示（IR），
 输入 Markdown：
 
 ```markdown
-Hello **world** — see [docs](https://docs.special-agent.ai).
+Hello **world** — see [docs](https://docs.openclaw.ai).
 ```
 
 IR（示意）：
@@ -52,7 +52,7 @@ IR（示意）：
 {
   "text": "Hello world — see docs.",
   "styles": [{ "start": 6, "end": 11, "style": "bold" }],
-  "links": [{ "start": 19, "end": 23, "href": "https://docs.special-agent.ai" }]
+  "links": [{ "start": 19, "end": 23, "href": "https://docs.openclaw.ai" }]
 }
 ```
 
