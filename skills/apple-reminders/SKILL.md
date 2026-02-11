@@ -4,7 +4,7 @@ description: Manage Apple Reminders via the `remindctl` CLI on macOS (list, add,
 homepage: https://github.com/steipete/remindctl
 metadata:
   {
-    "openclaw":
+    "special-agent":
       {
         "emoji": "⏰",
         "os": ["darwin"],

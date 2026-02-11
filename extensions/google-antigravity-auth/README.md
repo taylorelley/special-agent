@@ -1,4 +1,4 @@
-# Google Antigravity Auth (OpenClaw plugin)
+# Google Antigravity Auth (Special Agent plugin)
 
 OAuth provider plugin for **Google Antigravity** (Cloud Code Assist).
 
@@ -7,7 +7,7 @@ OAuth provider plugin for **Google Antigravity** (Cloud Code Assist).
 Bundled plugins are disabled by default. Enable this one:
 
 ```bash
-openclaw plugins enable google-antigravity-auth
+special-agent plugins enable google-antigravity-auth
 ```
 
 Restart the Gateway after enabling.
@@ -15,7 +15,7 @@ Restart the Gateway after enabling.
 ## Authenticate
 
 ```bash
-openclaw models auth login --provider google-antigravity --set-default
+special-agent models auth login --provider google-antigravity --set-default
 ```
 
 ## Notes

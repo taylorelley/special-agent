@@ -1,10 +1,10 @@
-# OpenClaw Security & Trust
+# Special Agent Security & Trust
 
 **Live:** [trust.openclaw.ai](https://trust.openclaw.ai)
 
 ## Documents
 
-- [Threat Model](./THREAT-MODEL-ATLAS.md) - MITRE ATLAS-based threat model for the OpenClaw ecosystem
+- [Threat Model](./THREAT-MODEL-ATLAS.md) - MITRE ATLAS-based threat model for the Special Agent ecosystem
 - [Contributing to the Threat Model](./CONTRIBUTING-THREAT-MODEL.md) - How to add threats, mitigations, and attack chains
 
 ## Reporting Vulnerabilities

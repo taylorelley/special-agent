@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/mattermost",
+  "name": "@special-agent/mattermost",
   "version": "2026.2.10",
   "private": true,
-  "description": "OpenClaw Mattermost channel plugin",
+  "description": "Special Agent Mattermost channel plugin",
   "type": "module",
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ],
@@ -21,7 +21,7 @@
       "order": 65
     },
     "install": {
-      "npmSpec": "@openclaw/mattermost",
+      "npmSpec": "@special-agent/mattermost",
       "localPath": "extensions/mattermost",
       "defaultChoice": "npm"
     }

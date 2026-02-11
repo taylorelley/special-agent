@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>Special Agent</string>
+    <key>CFBundleIdentifier</key>
+    <string>ai.special-agent.mac</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Special Agent</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>2026.2.10</string>
+    <key>CFBundleVersion</key>
+    <string>202602020</string>
+    <key>CFBundleIconFile</key>
+    <string>Special Agent</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>ai.special-agent.mac.deeplink</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>special-agent</string>
+            </array>
+        </dict>
+    </array>
+    <key>LSMinimumSystemVersion</key>
+    <string>15.0</string>
+    <key>LSUIElement</key>
+    <true/>
+
+    <key>Special AgentBuildTimestamp</key>
+    <string></string>
+    <key>Special AgentGitCommit</key>
+    <string></string>
+
+    <key>NSUserNotificationUsageDescription</key>
+    <string>Special Agent needs notification permission to show alerts for agent actions.</string>
+    <key>NSScreenCaptureDescription</key>
+    <string>Special Agent captures the screen when the agent needs screenshots for context.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Special Agent can capture photos or short video clips when requested by the agent.</string>
+	<key>NSLocationUsageDescription</key>
+	<string>Special Agent can share your location when requested by the agent.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Special Agent can share your location when requested by the agent.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Special Agent can share your location when requested by the agent.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Special Agent needs the mic for Voice Wake tests and agent audio capture.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Special Agent uses speech recognition to detect your Voice Wake trigger phrase.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Special Agent needs Automation (AppleScript) permission to drive Terminal and other apps for agent actions.</string>
+
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoadsInWebContent</key>
+        <true/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>100.100.100.100</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+            </dict>
+        </dict>
+    </dict>
+</dict>
+</plist>

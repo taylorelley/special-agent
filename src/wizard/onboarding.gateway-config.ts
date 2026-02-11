@@ -1,5 +1,9 @@
 import type { GatewayAuthChoice } from "../commands/onboard-types.js";
-import type { GatewayBindMode, GatewayTailscaleMode, OpenClawConfig } from "../config/config.js";
+import type {
+  GatewayBindMode,
+  GatewayTailscaleMode,
+  SpecialAgentConfig,
+} from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type {
   GatewayWizardSettings,
@@ -26,8 +30,8 @@ const DEFAULT_DANGEROUS_NODE_DENY_COMMANDS = [
 
 type ConfigureGatewayOptions = {
   flow: WizardFlow;
-  baseConfig: OpenClawConfig;
-  nextConfig: OpenClawConfig;
+  baseConfig: SpecialAgentConfig;
+  nextConfig: SpecialAgentConfig;
   localPort: number;
   quickstartGateway: QuickstartGatewayDefaults;
   prompter: WizardPrompter;
@@ -35,7 +39,7 @@ type ConfigureGatewayOptions = {
 };
 
 type ConfigureGatewayResult = {
-  nextConfig: OpenClawConfig;
+  nextConfig: SpecialAgentConfig;
   settings: GatewayWizardSettings;
 };
 

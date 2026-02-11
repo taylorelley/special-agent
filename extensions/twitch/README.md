@@ -1,17 +1,17 @@
-# @openclaw/twitch
+# @special-agent/twitch
 
-Twitch channel plugin for OpenClaw.
+Twitch channel plugin for Special Agent.
 
 ## Install (local checkout)
 
 ```bash
-openclaw plugins install ./extensions/twitch
+special-agent plugins install ./extensions/twitch
 ```
 
 ## Install (npm)
 
 ```bash
-openclaw plugins install @openclaw/twitch
+special-agent plugins install @special-agent/twitch
 ```
 
 Onboarding: select Twitch and confirm the install prompt to fetch the plugin automatically.
@@ -27,7 +27,7 @@ Minimal config (simplified single-account):
   channels: {
     twitch: {
       enabled: true,
-      username: "openclaw",
+      username: "special-agent",
       accessToken: "oauth:abc123...", // OAuth Access Token (add oauth: prefix)
       clientId: "xyz789...", // Client ID from Token Generator
       channel: "vevisk", // Channel to join (required)
@@ -52,13 +52,13 @@ Multi-account config (advanced):
       enabled: true,
       accounts: {
         default: {
-          username: "openclaw",
+          username: "special-agent",
           accessToken: "oauth:abc123...",
           clientId: "xyz789...",
           channel: "vevisk",
         },
         channel2: {
-          username: "openclaw",
+          username: "special-agent",
           accessToken: "oauth:def456...",
           clientId: "uvw012...",
           channel: "secondchannel",

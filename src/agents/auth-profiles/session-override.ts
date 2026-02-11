@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../config/config.js";
+import type { SpecialAgentConfig } from "../../config/config.js";
 import { updateSessionStore, type SessionEntry } from "../../config/sessions.js";
 import {
   ensureAuthProfileStore,
@@ -39,7 +39,7 @@ export async function clearSessionAuthProfileOverride(params: {
 }
 
 export async function resolveSessionAuthProfileOverride(params: {
-  cfg: OpenClawConfig;
+  cfg: SpecialAgentConfig;
   provider: string;
   agentDir: string;
   sessionEntry?: SessionEntry;

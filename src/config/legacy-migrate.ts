@@ -1,9 +1,9 @@
-import type { OpenClawConfig } from "./types.js";
+import type { SpecialAgentConfig } from "./types.js";
 import { applyLegacyMigrations } from "./legacy.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
 
 export function migrateLegacyConfig(raw: unknown): {
-  config: OpenClawConfig | null;
+  config: SpecialAgentConfig | null;
   changes: string[];
 } {
   const { next, changes } = applyLegacyMigrations(raw);

@@ -2,7 +2,7 @@
 read_when:
   - ゼロからの初回セットアップ
   - 動作するチャットへの最短ルートを知りたい
-summary: OpenClawをインストールし、数分で最初のチャットを実行しましょう。
+summary: Special Agentをインストールし、数分で最初のチャットを実行しましょう。
 title: はじめに
 x-i18n:
   generated_at: "2026-02-08T17:15:16Z"
@@ -18,7 +18,7 @@ x-i18n:
 目標：ゼロから最小限のセットアップで最初の動作するチャットを実現する。
 
 <Info>
-最速のチャット方法：Control UIを開く（チャンネル設定は不要）。`openclaw dashboard`を実行してブラウザでチャットするか、<Tooltip headline="Gatewayホスト" tip="OpenClaw Gatewayサービスを実行しているマシン。">Gatewayホスト</Tooltip>で`http://127.0.0.1:18789/`を開きます。
+最速のチャット方法：Control UIを開く（チャンネル設定は不要）。`special-agent dashboard`を実行してブラウザでチャットするか、<Tooltip headline="Gatewayホスト" tip="Special Agent Gatewayサービスを実行しているマシン。">Gatewayホスト</Tooltip>で`http://127.0.0.1:18789/`を開きます。
 ドキュメント：[Dashboard](/web/dashboard)と[Control UI](/web/control-ui)。
 </Info>
 
@@ -33,7 +33,7 @@ x-i18n:
 ## クイックセットアップ（CLI）
 
 <Steps>
-  <Step title="OpenClawをインストール（推奨）">
+  <Step title="Special Agentをインストール（推奨）">
     <Tabs>
       <Tab title="macOS/Linux">
         ```bash
@@ -54,7 +54,7 @@ x-i18n:
   </Step>
   <Step title="オンボーディングウィザードを実行">
     ```bash
-    openclaw onboard --install-daemon
+    special-agent onboard --install-daemon
     ```
 
     ウィザードは認証、Gateway設定、およびオプションのチャンネルを構成します。
@@ -65,13 +65,13 @@ x-i18n:
     サービスをインストールした場合、すでに実行されているはずです：
 
     ```bash
-    openclaw gateway status
+    special-agent gateway status
     ```
 
   </Step>
   <Step title="Control UIを開く">
     ```bash
-    openclaw dashboard
+    special-agent dashboard
     ```
   </Step>
 </Steps>
@@ -87,7 +87,7 @@ Control UIが読み込まれれば、Gatewayは使用可能な状態です。
     クイックテストやトラブルシューティングに便利です。
 
     ```bash
-    openclaw gateway --port 18789
+    special-agent gateway --port 18789
     ```
 
   </Accordion>
@@ -95,7 +95,7 @@ Control UIが読み込まれれば、Gatewayは使用可能な状態です。
     構成済みのチャンネルが必要です。
 
     ```bash
-    openclaw message send --target +15555550123 --message "Hello from OpenClaw"
+    special-agent message send --target +15555550123 --message "Hello from Special Agent"
     ```
 
   </Accordion>

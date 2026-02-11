@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: openclaw
+    name: special-agent
     runtime: docker
     plan: starter
     healthCheckPath: /health
@@ -9,13 +9,13 @@ services:
         value: "8080"
       - key: SETUP_PASSWORD
         sync: false
-      - key: OPENCLAW_STATE_DIR
-        value: /data/.openclaw
-      - key: OPENCLAW_WORKSPACE_DIR
+      - key: SPECIAL_AGENT_STATE_DIR
+        value: /data/.special-agent
+      - key: SPECIAL_AGENT_WORKSPACE_DIR
         value: /data/workspace
-      - key: OPENCLAW_GATEWAY_TOKEN
+      - key: SPECIAL_AGENT_GATEWAY_TOKEN
         generateValue: true
     disk:
-      name: openclaw-data
+      name: special-agent-data
       mountPath: /data
       sizeGB: 1

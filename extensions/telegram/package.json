@@ -1,13 +1,13 @@
 {
-  "name": "@openclaw/telegram",
+  "name": "@special-agent/telegram",
   "version": "2026.2.10",
   "private": true,
-  "description": "OpenClaw Telegram channel plugin",
+  "description": "Special Agent Telegram channel plugin",
   "type": "module",
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ]

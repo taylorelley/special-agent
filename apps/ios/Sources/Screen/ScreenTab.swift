@@ -1,4 +1,4 @@
-import OpenClawKit
+import SpecialAgentKit
 import SwiftUI
 
 struct ScreenTab: View {

@@ -1,16 +1,16 @@
 import type {
   ChannelOnboardingAdapter,
   ChannelOnboardingDmPolicy,
-  OpenClawConfig,
+  SpecialAgentConfig,
   WizardPrompter,
-} from "openclaw/plugin-sdk";
+} from "special-agent/plugin-sdk";
 import {
   addWildcardAllowFrom,
   DEFAULT_ACCOUNT_ID,
   normalizeAccountId,
   promptAccountId,
   promptChannelAccessConfig,
-} from "openclaw/plugin-sdk";
+} from "special-agent/plugin-sdk";
 import type { ZcaFriend, ZcaGroup } from "./types.js";
 import {
   listZalouserAccountIds,
@@ -23,9 +23,9 @@ import { runZca, runZcaInteractive, checkZcaInstalled, parseJsonOutput } from ".
 const channel = "zalouser" as const;
 
 function setZalouserDmPolicy(
-  cfg: OpenClawConfig,
+  cfg: SpecialAgentConfig,
   dmPolicy: "pairing" | "allowlist" | "open" | "disabled",
-): OpenClawConfig {
+): SpecialAgentConfig {
   const allowFrom =
     dmPolicy === "open" ? addWildcardAllowFrom(cfg.channels?.zalouser?.allowFrom) : undefined;
   return {
@@ -38,7 +38,7 @@ function setZalouserDmPolicy(
         ...(allowFrom ? { allowFrom } : {}),
       },
     },
-  } as OpenClawConfig;
+  } as SpecialAgentConfig;
 }
 
 async function noteZalouserHelp(prompter: WizardPrompter): Promise<void> {
@@ -57,10 +57,10 @@ async function noteZalouserHelp(prompter: WizardPrompter): Promise<void> {
 }
 
 async function promptZalouserAllowFrom(params: {
-  cfg: OpenClawConfig;
+  cfg: SpecialAgentConfig;
   prompter: WizardPrompter;
   accountId: string;
-}): Promise<OpenClawConfig> {
+}): Promise<SpecialAgentConfig> {
   const { cfg, prompter, accountId } = params;
   const resolved = resolveZalouserAccountSync({ cfg, accountId });
   const existingAllowFrom = resolved.config.allowFrom ?? [];
@@ -138,7 +138,7 @@ async function promptZalouserAllowFrom(params: {
             allowFrom: unique,
           },
         },
-      } as OpenClawConfig;
+      } as SpecialAgentConfig;
     }
 
     return {
@@ -159,15 +159,15 @@ async function promptZalouserAllowFrom(params: {
           },
         },
       },
-    } as OpenClawConfig;
+    } as SpecialAgentConfig;
   }
 }
 
 function setZalouserGroupPolicy(
-  cfg: OpenClawConfig,
+  cfg: SpecialAgentConfig,
   accountId: string,
   groupPolicy: "open" | "allowlist" | "disabled",
-): OpenClawConfig {
+): SpecialAgentConfig {
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return {
       ...cfg,
@@ -179,7 +179,7 @@ function setZalouserGroupPolicy(
           groupPolicy,
         },
       },
-    } as OpenClawConfig;
+    } as SpecialAgentConfig;
   }
   return {
     ...cfg,
@@ -198,14 +198,14 @@ function setZalouserGroupPolicy(
         },
       },
     },
-  } as OpenClawConfig;
+  } as SpecialAgentConfig;
 }
 
 function setZalouserGroupAllowlist(
-  cfg: OpenClawConfig,
+  cfg: SpecialAgentConfig,
   accountId: string,
   groupKeys: string[],
-): OpenClawConfig {
+): SpecialAgentConfig {
   const groups = Object.fromEntries(groupKeys.map((key) => [key, { allow: true }]));
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return {
@@ -218,7 +218,7 @@ function setZalouserGroupAllowlist(
           groups,
         },
       },
-    } as OpenClawConfig;
+    } as SpecialAgentConfig;
   }
   return {
     ...cfg,
@@ -237,11 +237,11 @@ function setZalouserGroupAllowlist(
         },
       },
     },
-  } as OpenClawConfig;
+  } as SpecialAgentConfig;
 }
 
 async function resolveZalouserGroups(params: {
-  cfg: OpenClawConfig;
+  cfg: SpecialAgentConfig;
   accountId: string;
   entries: string[];
 }): Promise<Array<{ input: string; resolved: boolean; id?: string }>> {
@@ -417,7 +417,7 @@ export const zalouserOnboardingAdapter: ChannelOnboardingAdapter = {
             profile: account.profile !== "default" ? account.profile : undefined,
           },
         },
-      } as OpenClawConfig;
+      } as SpecialAgentConfig;
     } else {
       next = {
         ...next,
@@ -436,7 +436,7 @@ export const zalouserOnboardingAdapter: ChannelOnboardingAdapter = {
             },
           },
         },
-      } as OpenClawConfig;
+      } as SpecialAgentConfig;
     }
 
     if (forceAllowFrom) {

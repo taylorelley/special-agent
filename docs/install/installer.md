@@ -9,13 +9,13 @@ title: "Installer Internals"
 
 # Installer internals
 
-OpenClaw ships three installer scripts, served from `openclaw.ai`.
+Special Agent ships three installer scripts, served from `openclaw.ai`.
 
-| Script                             | Platform             | What it does                                                                                 |
-| ---------------------------------- | -------------------- | -------------------------------------------------------------------------------------------- |
-| [`install.sh`](#installsh)         | macOS / Linux / WSL  | Installs Node if needed, installs OpenClaw via npm (default) or git, and can run onboarding. |
-| [`install-cli.sh`](#install-clish) | macOS / Linux / WSL  | Installs Node + OpenClaw into a local prefix (`~/.openclaw`). No root required.              |
-| [`install.ps1`](#installps1)       | Windows (PowerShell) | Installs Node if needed, installs OpenClaw via npm (default) or git, and can run onboarding. |
+| Script                             | Platform             | What it does                                                                                      |
+| ---------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------- |
+| [`install.sh`](#installsh)         | macOS / Linux / WSL  | Installs Node if needed, installs Special Agent via npm (default) or git, and can run onboarding. |
+| [`install-cli.sh`](#install-clish) | macOS / Linux / WSL  | Installs Node + Special Agent into a local prefix (`~/.special-agent`). No root required.         |
+| [`install.ps1`](#installps1)       | Windows (PowerShell) | Installs Node if needed, installs Special Agent via npm (default) or git, and can run onboarding. |
 
 ## Quick commands
 
@@ -53,7 +53,7 @@ OpenClaw ships three installer scripts, served from `openclaw.ai`.
 </Tabs>
 
 <Note>
-If install succeeds but `openclaw` is not found in a new terminal, see [Node.js troubleshooting](/install/node#troubleshooting).
+If install succeeds but `special-agent` is not found in a new terminal, see [Node.js troubleshooting](/install/node#troubleshooting).
 </Note>
 
 ---
@@ -76,12 +76,12 @@ Recommended for most interactive installs on macOS/Linux/WSL.
   <Step title="Ensure Git">
     Installs Git if missing.
   </Step>
-  <Step title="Install OpenClaw">
+  <Step title="Install Special Agent">
     - `npm` method (default): global npm install
-    - `git` method: clone/update repo, install deps with pnpm, build, then install wrapper at `~/.local/bin/openclaw`
+    - `git` method: clone/update repo, install deps with pnpm, build, then install wrapper at `~/.local/bin/special-agent`
   </Step>
   <Step title="Post-install tasks">
-    - Runs `openclaw doctor --non-interactive` on upgrades and git installs (best effort)
+    - Runs `special-agent doctor --non-interactive` on upgrades and git installs (best effort)
     - Attempts onboarding when appropriate (TTY available, onboarding not disabled, and bootstrap/config checks pass)
     - Defaults `SHARP_IGNORE_GLOBAL_LIBVIPS=1`
   </Step>
@@ -89,7 +89,7 @@ Recommended for most interactive installs on macOS/Linux/WSL.
 
 ### Source checkout detection
 
-If run inside an OpenClaw checkout (`package.json` + `pnpm-workspace.yaml`), the script offers:
+If run inside an Special Agent checkout (`package.json` + `pnpm-workspace.yaml`), the script offers:
 
 - use checkout (`git`), or
 - use global install (`npm`)
@@ -126,39 +126,39 @@ The script exits with code `2` for invalid method selection or invalid `--instal
 <AccordionGroup>
   <Accordion title="Flags reference">
 
-| Flag                            | Description                                                |
-| ------------------------------- | ---------------------------------------------------------- |
-| `--install-method npm\|git`     | Choose install method (default: `npm`). Alias: `--method`  |
-| `--npm`                         | Shortcut for npm method                                    |
-| `--git`                         | Shortcut for git method. Alias: `--github`                 |
-| `--version <version\|dist-tag>` | npm version or dist-tag (default: `latest`)                |
-| `--beta`                        | Use beta dist-tag if available, else fallback to `latest`  |
-| `--git-dir <path>`              | Checkout directory (default: `~/openclaw`). Alias: `--dir` |
-| `--no-git-update`               | Skip `git pull` for existing checkout                      |
-| `--no-prompt`                   | Disable prompts                                            |
-| `--no-onboard`                  | Skip onboarding                                            |
-| `--onboard`                     | Enable onboarding                                          |
-| `--dry-run`                     | Print actions without applying changes                     |
-| `--verbose`                     | Enable debug output (`set -x`, npm notice-level logs)      |
-| `--help`                        | Show usage (`-h`)                                          |
+| Flag                            | Description                                                     |
+| ------------------------------- | --------------------------------------------------------------- |
+| `--install-method npm\|git`     | Choose install method (default: `npm`). Alias: `--method`       |
+| `--npm`                         | Shortcut for npm method                                         |
+| `--git`                         | Shortcut for git method. Alias: `--github`                      |
+| `--version <version\|dist-tag>` | npm version or dist-tag (default: `latest`)                     |
+| `--beta`                        | Use beta dist-tag if available, else fallback to `latest`       |
+| `--git-dir <path>`              | Checkout directory (default: `~/special-agent`). Alias: `--dir` |
+| `--no-git-update`               | Skip `git pull` for existing checkout                           |
+| `--no-prompt`                   | Disable prompts                                                 |
+| `--no-onboard`                  | Skip onboarding                                                 |
+| `--onboard`                     | Enable onboarding                                               |
+| `--dry-run`                     | Print actions without applying changes                          |
+| `--verbose`                     | Enable debug output (`set -x`, npm notice-level logs)           |
+| `--help`                        | Show usage (`-h`)                                               |
 
   </Accordion>
 
   <Accordion title="Environment variables reference">
 
-| Variable                                    | Description                                   |
-| ------------------------------------------- | --------------------------------------------- |
-| `OPENCLAW_INSTALL_METHOD=git\|npm`          | Install method                                |
-| `OPENCLAW_VERSION=latest\|next\|<semver>`   | npm version or dist-tag                       |
-| `OPENCLAW_BETA=0\|1`                        | Use beta if available                         |
-| `OPENCLAW_GIT_DIR=<path>`                   | Checkout directory                            |
-| `OPENCLAW_GIT_UPDATE=0\|1`                  | Toggle git updates                            |
-| `OPENCLAW_NO_PROMPT=1`                      | Disable prompts                               |
-| `OPENCLAW_NO_ONBOARD=1`                     | Skip onboarding                               |
-| `OPENCLAW_DRY_RUN=1`                        | Dry run mode                                  |
-| `OPENCLAW_VERBOSE=1`                        | Debug mode                                    |
-| `OPENCLAW_NPM_LOGLEVEL=error\|warn\|notice` | npm log level                                 |
-| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`          | Control sharp/libvips behavior (default: `1`) |
+| Variable                                         | Description                                   |
+| ------------------------------------------------ | --------------------------------------------- |
+| `SPECIAL_AGENT_INSTALL_METHOD=git\|npm`          | Install method                                |
+| `SPECIAL_AGENT_VERSION=latest\|next\|<semver>`   | npm version or dist-tag                       |
+| `SPECIAL_AGENT_BETA=0\|1`                        | Use beta if available                         |
+| `SPECIAL_AGENT_GIT_DIR=<path>`                   | Checkout directory                            |
+| `SPECIAL_AGENT_GIT_UPDATE=0\|1`                  | Toggle git updates                            |
+| `SPECIAL_AGENT_NO_PROMPT=1`                      | Disable prompts                               |
+| `SPECIAL_AGENT_NO_ONBOARD=1`                     | Skip onboarding                               |
+| `SPECIAL_AGENT_DRY_RUN=1`                        | Dry run mode                                  |
+| `SPECIAL_AGENT_VERBOSE=1`                        | Debug mode                                    |
+| `SPECIAL_AGENT_NPM_LOGLEVEL=error\|warn\|notice` | npm log level                                 |
+| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`               | Control sharp/libvips behavior (default: `1`) |
 
   </Accordion>
 </AccordionGroup>
@@ -168,7 +168,7 @@ The script exits with code `2` for invalid method selection or invalid `--instal
 ## install-cli.sh
 
 <Info>
-Designed for environments where you want everything under a local prefix (default `~/.openclaw`) and no system Node dependency.
+Designed for environments where you want everything under a local prefix (default `~/.special-agent`) and no system Node dependency.
 </Info>
 
 ### Flow (install-cli.sh)
@@ -180,8 +180,8 @@ Designed for environments where you want everything under a local prefix (defaul
   <Step title="Ensure Git">
     If Git is missing, attempts install via apt/dnf/yum on Linux or Homebrew on macOS.
   </Step>
-  <Step title="Install OpenClaw under prefix">
-    Installs with npm using `--prefix <prefix>`, then writes wrapper to `<prefix>/bin/openclaw`.
+  <Step title="Install Special Agent under prefix">
+    Installs with npm using `--prefix <prefix>`, then writes wrapper to `<prefix>/bin/special-agent`.
   </Step>
 </Steps>
 
@@ -195,12 +195,12 @@ Designed for environments where you want everything under a local prefix (defaul
   </Tab>
   <Tab title="Custom prefix + version">
     ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --prefix /opt/openclaw --version latest
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --prefix /opt/special-agent --version latest
     ```
   </Tab>
   <Tab title="Automation JSON output">
     ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --json --prefix /opt/openclaw
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --json --prefix /opt/special-agent
     ```
   </Tab>
   <Tab title="Run onboarding">
@@ -215,11 +215,11 @@ Designed for environments where you want everything under a local prefix (defaul
 
 | Flag                   | Description                                                                     |
 | ---------------------- | ------------------------------------------------------------------------------- |
-| `--prefix <path>`      | Install prefix (default: `~/.openclaw`)                                         |
-| `--version <ver>`      | OpenClaw version or dist-tag (default: `latest`)                                |
+| `--prefix <path>`      | Install prefix (default: `~/.special-agent`)                                    |
+| `--version <ver>`      | Special Agent version or dist-tag (default: `latest`)                           |
 | `--node-version <ver>` | Node version (default: `22.22.0`)                                               |
 | `--json`               | Emit NDJSON events                                                              |
-| `--onboard`            | Run `openclaw onboard` after install                                            |
+| `--onboard`            | Run `special-agent onboard` after install                                       |
 | `--no-onboard`         | Skip onboarding (default)                                                       |
 | `--set-npm-prefix`     | On Linux, force npm prefix to `~/.npm-global` if current prefix is not writable |
 | `--help`               | Show usage (`-h`)                                                               |
@@ -228,15 +228,15 @@ Designed for environments where you want everything under a local prefix (defaul
 
   <Accordion title="Environment variables reference">
 
-| Variable                                    | Description                                                                       |
-| ------------------------------------------- | --------------------------------------------------------------------------------- |
-| `OPENCLAW_PREFIX=<path>`                    | Install prefix                                                                    |
-| `OPENCLAW_VERSION=<ver>`                    | OpenClaw version or dist-tag                                                      |
-| `OPENCLAW_NODE_VERSION=<ver>`               | Node version                                                                      |
-| `OPENCLAW_NO_ONBOARD=1`                     | Skip onboarding                                                                   |
-| `OPENCLAW_NPM_LOGLEVEL=error\|warn\|notice` | npm log level                                                                     |
-| `OPENCLAW_GIT_DIR=<path>`                   | Legacy cleanup lookup path (used when removing old `Peekaboo` submodule checkout) |
-| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`          | Control sharp/libvips behavior (default: `1`)                                     |
+| Variable                                         | Description                                                                       |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `SPECIAL_AGENT_PREFIX=<path>`                    | Install prefix                                                                    |
+| `SPECIAL_AGENT_VERSION=<ver>`                    | Special Agent version or dist-tag                                                 |
+| `SPECIAL_AGENT_NODE_VERSION=<ver>`               | Node version                                                                      |
+| `SPECIAL_AGENT_NO_ONBOARD=1`                     | Skip onboarding                                                                   |
+| `SPECIAL_AGENT_NPM_LOGLEVEL=error\|warn\|notice` | npm log level                                                                     |
+| `SPECIAL_AGENT_GIT_DIR=<path>`                   | Legacy cleanup lookup path (used when removing old `Peekaboo` submodule checkout) |
+| `SHARP_IGNORE_GLOBAL_LIBVIPS=0\|1`               | Control sharp/libvips behavior (default: `1`)                                     |
 
   </Accordion>
 </AccordionGroup>
@@ -254,12 +254,12 @@ Designed for environments where you want everything under a local prefix (defaul
   <Step title="Ensure Node.js 22+">
     If missing, attempts install via winget, then Chocolatey, then Scoop.
   </Step>
-  <Step title="Install OpenClaw">
+  <Step title="Install Special Agent">
     - `npm` method (default): global npm install using selected `-Tag`
-    - `git` method: clone/update repo, install/build with pnpm, and install wrapper at `%USERPROFILE%\.local\bin\openclaw.cmd`
+    - `git` method: clone/update repo, install/build with pnpm, and install wrapper at `%USERPROFILE%\.local\bin\special-agent.cmd`
   </Step>
   <Step title="Post-install tasks">
-    Adds needed bin directory to user PATH when possible, then runs `openclaw doctor --non-interactive` on upgrades and git installs (best effort).
+    Adds needed bin directory to user PATH when possible, then runs `special-agent doctor --non-interactive` on upgrades and git installs (best effort).
   </Step>
 </Steps>
 
@@ -278,7 +278,7 @@ Designed for environments where you want everything under a local prefix (defaul
   </Tab>
   <Tab title="Custom git directory">
     ```powershell
-    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -InstallMethod git -GitDir "C:\openclaw"
+    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -InstallMethod git -GitDir "C:\special-agent"
     ```
   </Tab>
   <Tab title="Dry run">
@@ -291,26 +291,26 @@ Designed for environments where you want everything under a local prefix (defaul
 <AccordionGroup>
   <Accordion title="Flags reference">
 
-| Flag                      | Description                                            |
-| ------------------------- | ------------------------------------------------------ |
-| `-InstallMethod npm\|git` | Install method (default: `npm`)                        |
-| `-Tag <tag>`              | npm dist-tag (default: `latest`)                       |
-| `-GitDir <path>`          | Checkout directory (default: `%USERPROFILE%\openclaw`) |
-| `-NoOnboard`              | Skip onboarding                                        |
-| `-NoGitUpdate`            | Skip `git pull`                                        |
-| `-DryRun`                 | Print actions only                                     |
+| Flag                      | Description                                                 |
+| ------------------------- | ----------------------------------------------------------- |
+| `-InstallMethod npm\|git` | Install method (default: `npm`)                             |
+| `-Tag <tag>`              | npm dist-tag (default: `latest`)                            |
+| `-GitDir <path>`          | Checkout directory (default: `%USERPROFILE%\special-agent`) |
+| `-NoOnboard`              | Skip onboarding                                             |
+| `-NoGitUpdate`            | Skip `git pull`                                             |
+| `-DryRun`                 | Print actions only                                          |
 
   </Accordion>
 
   <Accordion title="Environment variables reference">
 
-| Variable                           | Description        |
-| ---------------------------------- | ------------------ |
-| `OPENCLAW_INSTALL_METHOD=git\|npm` | Install method     |
-| `OPENCLAW_GIT_DIR=<path>`          | Checkout directory |
-| `OPENCLAW_NO_ONBOARD=1`            | Skip onboarding    |
-| `OPENCLAW_GIT_UPDATE=0`            | Disable git pull   |
-| `OPENCLAW_DRY_RUN=1`               | Dry run mode       |
+| Variable                                | Description        |
+| --------------------------------------- | ------------------ |
+| `SPECIAL_AGENT_INSTALL_METHOD=git\|npm` | Install method     |
+| `SPECIAL_AGENT_GIT_DIR=<path>`          | Checkout directory |
+| `SPECIAL_AGENT_NO_ONBOARD=1`            | Skip onboarding    |
+| `SPECIAL_AGENT_GIT_UPDATE=0`            | Disable git pull   |
+| `SPECIAL_AGENT_DRY_RUN=1`               | Dry run mode       |
 
   </Accordion>
 </AccordionGroup>
@@ -333,13 +333,13 @@ Use non-interactive flags/env vars for predictable runs.
   </Tab>
   <Tab title="install.sh (non-interactive git)">
     ```bash
-    OPENCLAW_INSTALL_METHOD=git OPENCLAW_NO_PROMPT=1 \
+    SPECIAL_AGENT_INSTALL_METHOD=git SPECIAL_AGENT_NO_PROMPT=1 \
       curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
     ```
   </Tab>
   <Tab title="install-cli.sh (JSON)">
     ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --json --prefix /opt/openclaw
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install-cli.sh | bash -s -- --json --prefix /opt/special-agent
     ```
   </Tab>
   <Tab title="install.ps1 (skip onboarding)">
@@ -375,11 +375,11 @@ Use non-interactive flags/env vars for predictable runs.
     Install Git for Windows, reopen PowerShell, rerun installer.
   </Accordion>
 
-  <Accordion title='Windows: "openclaw is not recognized"'>
+  <Accordion title='Windows: "special-agent is not recognized"'>
     Run `npm config get prefix`, append `\bin`, add that directory to user PATH, then reopen PowerShell.
   </Accordion>
 
-  <Accordion title="openclaw not found after install">
+  <Accordion title="special-agent not found after install">
     Usually a PATH issue. See [Node.js troubleshooting](/install/node#troubleshooting).
   </Accordion>
 </AccordionGroup>

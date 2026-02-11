@@ -190,11 +190,14 @@ export function resolveGatewayAuth(params: {
   const authConfig = params.authConfig ?? {};
   const env = params.env ?? process.env;
   const token =
-    authConfig.token ?? env.OPENCLAW_GATEWAY_TOKEN ?? env.CLAWDBOT_GATEWAY_TOKEN ?? undefined;
+    authConfig.token ??
+    env.SPECIAL_AGENT_GATEWAY_TOKEN ??
+    env.SPECIAL_AGENT_GATEWAY_TOKEN ??
+    undefined;
   const password =
     authConfig.password ??
-    env.OPENCLAW_GATEWAY_PASSWORD ??
-    env.CLAWDBOT_GATEWAY_PASSWORD ??
+    env.SPECIAL_AGENT_GATEWAY_PASSWORD ??
+    env.SPECIAL_AGENT_GATEWAY_PASSWORD ??
     undefined;
   const mode: ResolvedGatewayAuth["mode"] = authConfig.mode ?? (password ? "password" : "token");
   const allowTailscale =
@@ -213,7 +216,7 @@ export function assertGatewayAuthConfigured(auth: ResolvedGatewayAuth): void {
       return;
     }
     throw new Error(
-      "gateway auth mode is token, but no token was configured (set gateway.auth.token or OPENCLAW_GATEWAY_TOKEN)",
+      "gateway auth mode is token, but no token was configured (set gateway.auth.token or SPECIAL_AGENT_GATEWAY_TOKEN)",
     );
   }
   if (auth.mode === "password" && !auth.password) {

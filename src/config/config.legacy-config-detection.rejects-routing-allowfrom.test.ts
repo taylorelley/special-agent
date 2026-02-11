@@ -89,12 +89,12 @@ describe("legacy config detection", () => {
     vi.resetModules();
     const { migrateLegacyConfig } = await import("./config.js");
     const res = migrateLegacyConfig({
-      routing: { groupChat: { mentionPatterns: ["@openclaw"] } },
+      routing: { groupChat: { mentionPatterns: ["@special-agent"] } },
     });
     expect(res.changes).toContain(
       "Moved routing.groupChat.mentionPatterns → messages.groupChat.mentionPatterns.",
     );
-    expect(res.config?.messages?.groupChat?.mentionPatterns).toEqual(["@openclaw"]);
+    expect(res.config?.messages?.groupChat?.mentionPatterns).toEqual(["@special-agent"]);
     expect(res.config?.routing?.groupChat?.mentionPatterns).toBeUndefined();
   });
   it("migrates routing agentToAgent/queue/transcribeAudio to tools/messages/media", async () => {
@@ -275,7 +275,7 @@ describe("legacy config detection", () => {
         list: [
           {
             id: "work",
-            workspace: "~/openclaw-work",
+            workspace: "~/special-agent-work",
             tools: {
               elevated: {
                 enabled: false,
