@@ -17,9 +17,9 @@ import {
 import { readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { formatDurationPrecise } from "../infra/format-time/format-duration.ts";
-import { resolveSpecialAgentPackageRoot } from "../infra/special-agent-root.js";
 import { trimLogTail } from "../infra/restart-sentinel.js";
 import { parseSemver } from "../infra/runtime-guard.js";
+import { resolveSpecialAgentPackageRoot } from "../infra/special-agent-root.js";
 import {
   channelToNpmTag,
   DEFAULT_GIT_CHANNEL,

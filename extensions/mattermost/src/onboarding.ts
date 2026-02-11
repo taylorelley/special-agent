@@ -1,4 +1,8 @@
-import type { ChannelOnboardingAdapter, SpecialAgentConfig, WizardPrompter } from "special-agent/plugin-sdk";
+import type {
+  ChannelOnboardingAdapter,
+  SpecialAgentConfig,
+  WizardPrompter,
+} from "special-agent/plugin-sdk";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "special-agent/plugin-sdk";
 import {
   listMattermostAccountIds,

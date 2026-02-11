@@ -2,10 +2,16 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { SpecialAgentPluginApi, SpecialAgentPluginToolContext } from "../../../src/plugins/types.js";
+import type {
+  SpecialAgentPluginApi,
+  SpecialAgentPluginToolContext,
+} from "../../../src/plugins/types.js";
 import { createLobsterTool } from "./lobster-tool.js";
 
-async function writeFakeLobsterScript(scriptBody: string, prefix = "special-agent-lobster-plugin-") {
+async function writeFakeLobsterScript(
+  scriptBody: string,
+  prefix = "special-agent-lobster-plugin-",
+) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
   const isWindows = process.platform === "win32";
 
@@ -57,7 +63,9 @@ function fakeApi(overrides: Partial<SpecialAgentPluginApi> = {}): SpecialAgentPl
   };
 }
 
-function fakeCtx(overrides: Partial<SpecialAgentPluginToolContext> = {}): SpecialAgentPluginToolContext {
+function fakeCtx(
+  overrides: Partial<SpecialAgentPluginToolContext> = {},
+): SpecialAgentPluginToolContext {
   return {
     config: {},
     workspaceDir: "/tmp",

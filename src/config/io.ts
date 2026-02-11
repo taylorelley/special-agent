@@ -147,7 +147,10 @@ function stampConfigVersion(cfg: SpecialAgentConfig): SpecialAgentConfig {
   };
 }
 
-function warnIfConfigFromFuture(cfg: SpecialAgentConfig, logger: Pick<typeof console, "warn">): void {
+function warnIfConfigFromFuture(
+  cfg: SpecialAgentConfig,
+  logger: Pick<typeof console, "warn">,
+): void {
   const touched = cfg.meta?.lastTouchedVersion;
   if (!touched) {
     return;

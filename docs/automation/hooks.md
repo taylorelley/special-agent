@@ -130,7 +130,9 @@ name: my-hook
 description: "Short description of what this hook does"
 homepage: https://docs.special-agent.ai/hooks#my-hook
 metadata:
-  { "special-agent": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
+  {
+    "special-agent": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } },
+  }
 ---
 
 # My Hook

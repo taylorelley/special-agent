@@ -25,7 +25,7 @@ describe("channel plugin catalog", () => {
         entries: [
           {
             name: "@special-agent/demo-channel",
-            special-agent: {
+            "special-agent": {
               channel: {
                 id: "demo-channel",
                 label: "Demo Channel",

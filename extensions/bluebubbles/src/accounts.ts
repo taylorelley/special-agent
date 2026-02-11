@@ -81,7 +81,9 @@ export function resolveBlueBubblesAccount(params: {
   };
 }
 
-export function listEnabledBlueBubblesAccounts(cfg: SpecialAgentConfig): ResolvedBlueBubblesAccount[] {
+export function listEnabledBlueBubblesAccounts(
+  cfg: SpecialAgentConfig,
+): ResolvedBlueBubblesAccount[] {
   return listBlueBubblesAccountIds(cfg)
     .map((accountId) => resolveBlueBubblesAccount({ cfg, accountId }))
     .filter((account) => account.enabled);

@@ -1,4 +1,8 @@
-import type { ChannelAccountSnapshot, ChannelPlugin, SpecialAgentConfig } from "special-agent/plugin-sdk";
+import type {
+  ChannelAccountSnapshot,
+  ChannelPlugin,
+  SpecialAgentConfig,
+} from "special-agent/plugin-sdk";
 import {
   applyAccountNameToChannelSection,
   buildChannelConfigSchema,

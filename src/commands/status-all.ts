@@ -11,11 +11,11 @@ import { buildGatewayConnectionDetails, callGateway } from "../gateway/call.js";
 import { normalizeControlUiBasePath } from "../gateway/control-ui-shared.js";
 import { probeGateway } from "../gateway/probe.js";
 import { collectChannelStatusIssues } from "../infra/channels-status-issues.js";
-import { resolveSpecialAgentPackageRoot } from "../infra/special-agent-root.js";
 import { resolveOsSummary } from "../infra/os-summary.js";
 import { inspectPortUsage } from "../infra/ports.js";
 import { readRestartSentinel } from "../infra/restart-sentinel.js";
 import { getRemoteSkillEligibility } from "../infra/skills-remote.js";
+import { resolveSpecialAgentPackageRoot } from "../infra/special-agent-root.js";
 import { readTailscaleStatusJson } from "../infra/tailscale.js";
 import {
   formatUpdateChannelLabel,
@@ -403,7 +403,10 @@ export async function statusAllCommand(
         Item: "Gateway",
         Value: `${gatewayMode}${remoteUrlMissing ? " (remote.url missing)" : ""} · ${gatewayTarget} (${connection.urlSource}) · ${gatewayStatus}${gatewayAuth}`,
       },
-      { Item: "Security", Value: `Run: ${formatCliCommand("special-agent security audit --deep")}` },
+      {
+        Item: "Security",
+        Value: `Run: ${formatCliCommand("special-agent security audit --deep")}`,
+      },
       gatewaySelfLine
         ? { Item: "Gateway self", Value: gatewaySelfLine }
         : { Item: "Gateway self", Value: "unknown" },

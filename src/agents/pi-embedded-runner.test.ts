@@ -136,7 +136,8 @@ const makeOpenAiConfig = (modelIds: string[]) =>
     },
   }) satisfies SpecialAgentConfig;
 
-const ensureModels = (cfg: SpecialAgentConfig) => ensureSpecialAgentModelsJson(cfg, agentDir) as unknown;
+const ensureModels = (cfg: SpecialAgentConfig) =>
+  ensureSpecialAgentModelsJson(cfg, agentDir) as unknown;
 
 const nextSessionFile = () => {
   sessionCounter += 1;

@@ -85,7 +85,9 @@ export function buildGatewayRuntimeHints(
     hints.push(`Then reinstall: ${formatCliCommand("special-agent gateway install", env)}`);
   }
   if (runtime.missingUnit) {
-    hints.push(`Service not installed. Run: ${formatCliCommand("special-agent gateway install", env)}`);
+    hints.push(
+      `Service not installed. Run: ${formatCliCommand("special-agent gateway install", env)}`,
+    );
     if (fileLog) {
       hints.push(`File logs: ${fileLog}`);
     }

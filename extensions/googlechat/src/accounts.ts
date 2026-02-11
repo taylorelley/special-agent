@@ -140,7 +140,9 @@ export function resolveGoogleChatAccount(params: {
   };
 }
 
-export function listEnabledGoogleChatAccounts(cfg: SpecialAgentConfig): ResolvedGoogleChatAccount[] {
+export function listEnabledGoogleChatAccounts(
+  cfg: SpecialAgentConfig,
+): ResolvedGoogleChatAccount[] {
   return listGoogleChatAccountIds(cfg)
     .map((accountId) => resolveGoogleChatAccount({ cfg, accountId }))
     .filter((account) => account.enabled);

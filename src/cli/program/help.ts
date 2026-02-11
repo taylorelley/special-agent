@@ -17,8 +17,14 @@ const EXAMPLES = [
     "Send via your web session and print JSON result.",
   ],
   ["special-agent gateway --port 18789", "Run the WebSocket Gateway locally."],
-  ["special-agent --dev gateway", "Run a dev Gateway (isolated state/config) on ws://127.0.0.1:19001."],
-  ["special-agent gateway --force", "Kill anything bound to the default gateway port, then start it."],
+  [
+    "special-agent --dev gateway",
+    "Run a dev Gateway (isolated state/config) on ws://127.0.0.1:19001.",
+  ],
+  [
+    "special-agent gateway --force",
+    "Kill anything bound to the default gateway port, then start it.",
+  ],
   ["special-agent gateway ...", "Gateway control via WebSocket."],
   [
     'special-agent agent --to +15555550123 --message "Run summary" --deliver',

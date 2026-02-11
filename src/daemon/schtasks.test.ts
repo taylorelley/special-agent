@@ -88,7 +88,9 @@ describe("resolveTaskScriptPath", () => {
 
   it("falls back to HOME when USERPROFILE is not set", () => {
     const env = { HOME: "/home/test", SPECIAL_AGENT_PROFILE: "default" };
-    expect(resolveTaskScriptPath(env)).toBe(path.join("/home/test", ".special-agent", "gateway.cmd"));
+    expect(resolveTaskScriptPath(env)).toBe(
+      path.join("/home/test", ".special-agent", "gateway.cmd"),
+    );
   });
 });
 

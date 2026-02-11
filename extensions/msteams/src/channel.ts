@@ -1,4 +1,8 @@
-import type { ChannelMessageActionName, ChannelPlugin, SpecialAgentConfig } from "special-agent/plugin-sdk";
+import type {
+  ChannelMessageActionName,
+  ChannelPlugin,
+  SpecialAgentConfig,
+} from "special-agent/plugin-sdk";
 import {
   buildChannelConfigSchema,
   DEFAULT_ACCOUNT_ID,

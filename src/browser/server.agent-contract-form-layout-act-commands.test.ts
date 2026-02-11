@@ -97,7 +97,7 @@ vi.mock("../config/config.js", async (importOriginal) => {
         headless: true,
         defaultProfile: "special-agent",
         profiles: {
-          special-agent: { cdpPort: testPort + 1, color: "#FF4500" },
+          "special-agent": { cdpPort: testPort + 1, color: "#FF4500" },
         },
       },
     }),

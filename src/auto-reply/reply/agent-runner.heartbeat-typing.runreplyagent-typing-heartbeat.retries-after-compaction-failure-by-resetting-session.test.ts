@@ -127,7 +127,9 @@ describe("runReplyAgent typing (heartbeat)", () => {
 
   it("retries after compaction failure by resetting the session", async () => {
     const prevStateDir = process.env.SPECIAL_AGENT_STATE_DIR;
-    const stateDir = await fs.mkdtemp(path.join(tmpdir(), "special-agent-session-compaction-reset-"));
+    const stateDir = await fs.mkdtemp(
+      path.join(tmpdir(), "special-agent-session-compaction-reset-"),
+    );
     process.env.SPECIAL_AGENT_STATE_DIR = stateDir;
     try {
       const sessionId = "session";

@@ -206,7 +206,9 @@ export type SpecialAgentPluginCliContext = {
   logger: PluginLogger;
 };
 
-export type SpecialAgentPluginCliRegistrar = (ctx: SpecialAgentPluginCliContext) => void | Promise<void>;
+export type SpecialAgentPluginCliRegistrar = (
+  ctx: SpecialAgentPluginCliContext,
+) => void | Promise<void>;
 
 export type SpecialAgentPluginServiceContext = {
   config: SpecialAgentConfig;
@@ -261,7 +263,10 @@ export type SpecialAgentPluginApi = {
     opts?: SpecialAgentPluginHookOptions,
   ) => void;
   registerHttpHandler: (handler: SpecialAgentPluginHttpHandler) => void;
-  registerHttpRoute: (params: { path: string; handler: SpecialAgentPluginHttpRouteHandler }) => void;
+  registerHttpRoute: (params: {
+    path: string;
+    handler: SpecialAgentPluginHttpRouteHandler;
+  }) => void;
   registerChannel: (registration: SpecialAgentPluginChannelRegistration | ChannelPlugin) => void;
   registerGatewayMethod: (method: string, handler: GatewayRequestHandler) => void;
   registerCli: (registrar: SpecialAgentPluginCliRegistrar, opts?: { commands?: string[] }) => void;

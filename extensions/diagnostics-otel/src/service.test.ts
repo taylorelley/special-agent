@@ -97,7 +97,9 @@ vi.mock("@opentelemetry/semantic-conventions", () => ({
 }));
 
 vi.mock("special-agent/plugin-sdk", async () => {
-  const actual = await vi.importActual<typeof import("special-agent/plugin-sdk")>("special-agent/plugin-sdk");
+  const actual = await vi.importActual<typeof import("special-agent/plugin-sdk")>(
+    "special-agent/plugin-sdk",
+  );
   return {
     ...actual,
     registerLogTransport: registerLogTransportMock,

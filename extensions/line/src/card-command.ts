@@ -1,4 +1,8 @@
-import type { LineChannelData, SpecialAgentPluginApi, ReplyPayload } from "special-agent/plugin-sdk";
+import type {
+  LineChannelData,
+  SpecialAgentPluginApi,
+  ReplyPayload,
+} from "special-agent/plugin-sdk";
 import {
   createActionCard,
   createImageCard,

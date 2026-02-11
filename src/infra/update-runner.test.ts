@@ -505,7 +505,8 @@ describe("runGatewayUpdate", () => {
         return { stdout: "", stderr: "", code: 0 };
       }
       if (
-        key === `${process.execPath} ${path.join(tempDir, "special-agent.mjs")} doctor --non-interactive`
+        key ===
+        `${process.execPath} ${path.join(tempDir, "special-agent.mjs")} doctor --non-interactive`
       ) {
         await fs.rm(path.join(tempDir, "dist", "control-ui"), { recursive: true, force: true });
         return { stdout: "", stderr: "", code: 0 };
@@ -576,7 +577,8 @@ describe("runGatewayUpdate", () => {
         return { stdout: "", stderr: "", code: 0 };
       }
       if (
-        key === `${process.execPath} ${path.join(tempDir, "special-agent.mjs")} doctor --non-interactive`
+        key ===
+        `${process.execPath} ${path.join(tempDir, "special-agent.mjs")} doctor --non-interactive`
       ) {
         await fs.rm(path.join(tempDir, "dist", "control-ui"), { recursive: true, force: true });
         return { stdout: "", stderr: "", code: 0 };

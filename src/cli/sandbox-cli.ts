@@ -29,7 +29,10 @@ const SANDBOX_EXAMPLES = {
   recreate: [
     ["special-agent sandbox recreate --all", "Recreate all containers."],
     ["special-agent sandbox recreate --session main", "Recreate a specific session."],
-    ["special-agent sandbox recreate --agent mybot", "Recreate a specific agent (includes sub-agents)."],
+    [
+      "special-agent sandbox recreate --agent mybot",
+      "Recreate a specific agent (includes sub-agents).",
+    ],
     ["special-agent sandbox recreate --browser --all", "Recreate only browser containers."],
     ["special-agent sandbox recreate --all --force", "Skip confirmation."],
   ],

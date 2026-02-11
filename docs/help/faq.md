@@ -1256,9 +1256,9 @@ Related: [Agent workspace](/concepts/agent-workspace), [Memory](/concepts/memory
 
 Everything lives under `$SPECIAL_AGENT_STATE_DIR` (default: `~/.special-agent`):
 
-| Path                                                            | Purpose                                                      |
-| --------------------------------------------------------------- | ------------------------------------------------------------ |
-| `$SPECIAL_AGENT_STATE_DIR/special-agent.json`                             | Main config (JSON5)                                          |
+| Path                                                                 | Purpose                                                      |
+| -------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `$SPECIAL_AGENT_STATE_DIR/special-agent.json`                        | Main config (JSON5)                                          |
 | `$SPECIAL_AGENT_STATE_DIR/credentials/oauth.json`                    | Legacy OAuth import (copied into auth profiles on first use) |
 | `$SPECIAL_AGENT_STATE_DIR/agents/<agentId>/agent/auth-profiles.json` | Auth profiles (OAuth + API keys)                             |
 | `$SPECIAL_AGENT_STATE_DIR/agents/<agentId>/agent/auth.json`          | Runtime auth cache (managed automatically)                   |

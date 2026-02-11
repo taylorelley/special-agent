@@ -45,7 +45,10 @@ function resolveAccountConfig(
   return accounts[accountId] as IMessageAccountConfig | undefined;
 }
 
-function mergeIMessageAccountConfig(cfg: SpecialAgentConfig, accountId: string): IMessageAccountConfig {
+function mergeIMessageAccountConfig(
+  cfg: SpecialAgentConfig,
+  accountId: string,
+): IMessageAccountConfig {
   const { accounts: _ignored, ...base } = (cfg.channels?.imessage ??
     {}) as IMessageAccountConfig & { accounts?: unknown };
   const account = resolveAccountConfig(cfg, accountId) ?? {};

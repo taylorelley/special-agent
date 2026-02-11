@@ -501,7 +501,9 @@ describe("security audit", () => {
 
   it("flags Discord slash commands when access-group enforcement is disabled and no users allowlist exists", async () => {
     const prevStateDir = process.env.SPECIAL_AGENT_STATE_DIR;
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-security-audit-discord-open-"));
+    const tmp = await fs.mkdtemp(
+      path.join(os.tmpdir(), "special-agent-security-audit-discord-open-"),
+    );
     process.env.SPECIAL_AGENT_STATE_DIR = tmp;
     await fs.mkdir(path.join(tmp, "credentials"), { recursive: true, mode: 0o700 });
     try {
@@ -591,7 +593,9 @@ describe("security audit", () => {
 
   it("flags Slack slash commands when access-group enforcement is disabled", async () => {
     const prevStateDir = process.env.SPECIAL_AGENT_STATE_DIR;
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-security-audit-slack-open-"));
+    const tmp = await fs.mkdtemp(
+      path.join(os.tmpdir(), "special-agent-security-audit-slack-open-"),
+    );
     process.env.SPECIAL_AGENT_STATE_DIR = tmp;
     await fs.mkdir(path.join(tmp, "credentials"), { recursive: true, mode: 0o700 });
     try {
@@ -1011,7 +1015,7 @@ describe("security audit", () => {
       path.join(pluginDir, "package.json"),
       JSON.stringify({
         name: "evil-plugin",
-        special-agent: { extensions: [".hidden/index.js"] },
+        "special-agent": { extensions: [".hidden/index.js"] },
       }),
     );
     await fs.writeFile(
@@ -1058,7 +1062,7 @@ describe("security audit", () => {
       path.join(pluginDir, "package.json"),
       JSON.stringify({
         name: "evil-plugin",
-        special-agent: { extensions: [".hidden/index.js"] },
+        "special-agent": { extensions: [".hidden/index.js"] },
       }),
     );
     await fs.writeFile(
@@ -1118,7 +1122,7 @@ description: test skill
       path.join(pluginDir, "package.json"),
       JSON.stringify({
         name: "escape-plugin",
-        special-agent: { extensions: ["../outside.js"] },
+        "special-agent": { extensions: ["../outside.js"] },
       }),
     );
     await fs.writeFile(path.join(pluginDir, "index.js"), "export {};");
@@ -1158,7 +1162,7 @@ description: test skill
         path.join(pluginDir, "package.json"),
         JSON.stringify({
           name: "scanfail-plugin",
-          special-agent: { extensions: ["index.js"] },
+          "special-agent": { extensions: ["index.js"] },
         }),
       );
       await fs.writeFile(path.join(pluginDir, "index.js"), "export {};");

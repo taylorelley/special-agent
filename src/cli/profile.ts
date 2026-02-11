@@ -94,7 +94,10 @@ function resolveProfileStateDir(
   homedir: () => string,
 ): string {
   const suffix = profile.toLowerCase() === "default" ? "" : `-${profile}`;
-  return path.join(resolveRequiredHomeDir(env as NodeJS.ProcessEnv, homedir), `.special-agent${suffix}`);
+  return path.join(
+    resolveRequiredHomeDir(env as NodeJS.ProcessEnv, homedir),
+    `.special-agent${suffix}`,
+  );
 }
 
 export function applyCliProfileEnv(params: {
@@ -112,7 +115,8 @@ export function applyCliProfileEnv(params: {
   // Convenience only: fill defaults, never override explicit env values.
   env.SPECIAL_AGENT_PROFILE = profile;
 
-  const stateDir = env.SPECIAL_AGENT_STATE_DIR?.trim() || resolveProfileStateDir(profile, env, homedir);
+  const stateDir =
+    env.SPECIAL_AGENT_STATE_DIR?.trim() || resolveProfileStateDir(profile, env, homedir);
   if (!env.SPECIAL_AGENT_STATE_DIR?.trim()) {
     env.SPECIAL_AGENT_STATE_DIR = stateDir;
   }

@@ -108,7 +108,7 @@ describe("getUsedPorts", () => {
 
   it("extracts ports from profile configs", () => {
     const profiles = {
-      special-agent: { cdpPort: 18792 },
+      "special-agent": { cdpPort: 18792 },
       work: { cdpPort: 18793 },
       personal: { cdpPort: 18795 },
     };
@@ -233,7 +233,7 @@ describe("getUsedColors", () => {
 
   it("extracts and uppercases colors from profile configs", () => {
     const profiles = {
-      special-agent: { color: "#ff4500" },
+      "special-agent": { color: "#ff4500" },
       work: { color: "#0066CC" },
     };
     const used = getUsedColors(profiles);

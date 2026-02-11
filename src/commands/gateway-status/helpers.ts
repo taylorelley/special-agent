@@ -87,7 +87,10 @@ function normalizeWsUrl(value: string): string | null {
   return trimmed;
 }
 
-export function resolveTargets(cfg: SpecialAgentConfig, explicitUrl?: string): GatewayStatusTarget[] {
+export function resolveTargets(
+  cfg: SpecialAgentConfig,
+  explicitUrl?: string,
+): GatewayStatusTarget[] {
   const targets: GatewayStatusTarget[] = [];
   const add = (t: GatewayStatusTarget) => {
     if (!targets.some((x) => x.url === t.url)) {

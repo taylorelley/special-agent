@@ -82,8 +82,6 @@ describe("config env vars", () => {
       await withEnvOverride(
         {
           SPECIAL_AGENT_STATE_DIR: path.join(home, ".special-agent"),
-          SPECIAL_AGENT_STATE_DIR: undefined,
-          SPECIAL_AGENT_HOME: undefined,
           SPECIAL_AGENT_HOME: undefined,
           BRAVE_API_KEY: undefined,
           SPECIAL_AGENT_DISABLE_CONFIG_CACHE: "1",

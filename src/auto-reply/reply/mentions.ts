@@ -52,7 +52,10 @@ function resolveMentionPatterns(cfg: SpecialAgentConfig | undefined, agentId?: s
   return derived.length > 0 ? derived : [];
 }
 
-export function buildMentionRegexes(cfg: SpecialAgentConfig | undefined, agentId?: string): RegExp[] {
+export function buildMentionRegexes(
+  cfg: SpecialAgentConfig | undefined,
+  agentId?: string,
+): RegExp[] {
   const patterns = normalizeMentionPatterns(resolveMentionPatterns(cfg, agentId));
   return patterns
     .map((pattern) => {

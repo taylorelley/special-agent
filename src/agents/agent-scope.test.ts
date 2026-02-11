@@ -223,6 +223,8 @@ describe("resolveAgentConfig", () => {
     vi.stubEnv("SPECIAL_AGENT_STATE_DIR", "");
 
     const agentDir = resolveAgentDir({} as SpecialAgentConfig, "main");
-    expect(agentDir).toBe(path.join(path.resolve(home), ".special-agent", "agents", "main", "agent"));
+    expect(agentDir).toBe(
+      path.join(path.resolve(home), ".special-agent", "agents", "main", "agent"),
+    );
   });
 });

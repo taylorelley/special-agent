@@ -58,8 +58,8 @@ metadata:
 
     // Verify the metadata is valid JSON
     const parsed = JSON.parse(result.metadata);
-    expect(parsed.special-agent.emoji).toBe("💾");
-    expect(parsed.special-agent.events).toEqual(["command:new"]);
+    expect(parsed.special - agent.emoji).toBe("💾");
+    expect(parsed.special - agent.events).toEqual(["command:new"]);
   });
 
   it("parses multi-line metadata with complex nested structure", () => {
@@ -83,10 +83,10 @@ metadata:
     expect(result.metadata).toBeDefined();
 
     const parsed = JSON.parse(result.metadata);
-    expect(parsed.special-agent.emoji).toBe("📝");
-    expect(parsed.special-agent.events).toEqual(["command"]);
-    expect(parsed.special-agent.requires.config).toEqual(["workspace.dir"]);
-    expect(parsed.special-agent.install[0].kind).toBe("bundled");
+    expect(parsed.special - agent.emoji).toBe("📝");
+    expect(parsed.special - agent.events).toEqual(["command"]);
+    expect(parsed.special - agent.requires.config).toEqual(["workspace.dir"]);
+    expect(parsed.special - agent.install[0].kind).toBe("bundled");
   });
 
   it("handles single-line metadata (inline JSON)", () => {
@@ -153,7 +153,7 @@ describe("resolveSpecialAgentMetadata", () => {
     const frontmatter = {
       name: "test-hook",
       metadata: JSON.stringify({
-        special-agent: {
+        "special-agent": {
           emoji: "🔥",
           events: ["command:new", "command:reset"],
           requires: {
@@ -197,7 +197,7 @@ describe("resolveSpecialAgentMetadata", () => {
   it("handles install specs", () => {
     const frontmatter = {
       metadata: JSON.stringify({
-        special-agent: {
+        "special-agent": {
           events: ["command"],
           install: [
             { id: "bundled", kind: "bundled", label: "Bundled with SpecialAgent" },
@@ -217,7 +217,7 @@ describe("resolveSpecialAgentMetadata", () => {
   it("handles os restrictions", () => {
     const frontmatter = {
       metadata: JSON.stringify({
-        special-agent: {
+        "special-agent": {
           events: ["command"],
           os: ["darwin", "linux"],
         },
@@ -253,28 +253,28 @@ metadata:
     expect(frontmatter.name).toBe("session-memory");
     expect(frontmatter.metadata).toBeDefined();
 
-    const special-agent = resolveSpecialAgentMetadata(frontmatter);
-    expect(special-agent).toBeDefined();
-    expect(special-agent?.emoji).toBe("💾");
-    expect(special-agent?.events).toEqual(["command:new"]);
-    expect(special-agent?.requires?.config).toEqual(["workspace.dir"]);
-    expect(special-agent?.install?.[0].kind).toBe("bundled");
+    const specialAgent = resolveSpecialAgentMetadata(frontmatter);
+    expect(specialAgent).toBeDefined();
+    expect(specialAgent?.emoji).toBe("💾");
+    expect(specialAgent?.events).toEqual(["command:new"]);
+    expect(specialAgent?.requires?.config).toEqual(["workspace.dir"]);
+    expect(specialAgent?.install?.[0].kind).toBe("bundled");
   });
 
   it("parses YAML metadata map", () => {
     const content = `---
 name: yaml-metadata
 metadata:
-  special-agent:
+  "special-agent":
     emoji: disk
     events:
       - command:new
 ---
 `;
     const frontmatter = parseFrontmatter(content);
-    const special-agent = resolveSpecialAgentMetadata(frontmatter);
-    expect(special-agent?.emoji).toBe("disk");
-    expect(special-agent?.events).toEqual(["command:new"]);
+    const specialAgent = resolveSpecialAgentMetadata(frontmatter);
+    expect(specialAgent?.emoji).toBe("disk");
+    expect(specialAgent?.events).toEqual(["command:new"]);
   });
 });
 

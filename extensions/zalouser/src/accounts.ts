@@ -42,7 +42,10 @@ function resolveAccountConfig(
   return accounts[accountId] as ZalouserAccountConfig | undefined;
 }
 
-function mergeZalouserAccountConfig(cfg: SpecialAgentConfig, accountId: string): ZalouserAccountConfig {
+function mergeZalouserAccountConfig(
+  cfg: SpecialAgentConfig,
+  accountId: string,
+): ZalouserAccountConfig {
   const raw = (cfg.channels?.zalouser ?? {}) as ZalouserConfig;
   const { accounts: _ignored, defaultAccount: _ignored2, ...base } = raw;
   const account = resolveAccountConfig(cfg, accountId) ?? {};

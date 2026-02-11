@@ -405,7 +405,10 @@ function canonicalizeSpawnedByForAgent(agentId: string, spawnedBy?: string): str
   return `agent:${normalizeAgentId(agentId)}:${raw}`;
 }
 
-export function resolveGatewaySessionStoreTarget(params: { cfg: SpecialAgentConfig; key: string }): {
+export function resolveGatewaySessionStoreTarget(params: {
+  cfg: SpecialAgentConfig;
+  key: string;
+}): {
   agentId: string;
   storePath: string;
   canonicalKey: string;

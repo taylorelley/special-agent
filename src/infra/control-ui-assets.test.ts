@@ -137,7 +137,10 @@ describe("control UI assets helpers", () => {
       await fs.mkdir(binDir, { recursive: true });
       await fs.mkdir(path.join(pkgRoot, "dist", "control-ui"), { recursive: true });
       await fs.writeFile(path.join(binDir, "special-agent"), "#!/usr/bin/env node\n");
-      await fs.writeFile(path.join(pkgRoot, "package.json"), JSON.stringify({ name: "special-agent" }));
+      await fs.writeFile(
+        path.join(pkgRoot, "package.json"),
+        JSON.stringify({ name: "special-agent" }),
+      );
       await fs.writeFile(path.join(pkgRoot, "dist", "control-ui", "index.html"), "<html></html>\n");
 
       expect(await resolveControlUiDistIndexPath(path.join(binDir, "special-agent"))).toBe(

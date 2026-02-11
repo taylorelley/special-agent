@@ -155,8 +155,14 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.special-agent.ai/cl
         `
 ${theme.heading("Examples:")}
 ${formatHelpExamples([
-  ['special-agent agents set-identity --agent main --name "SpecialAgent" --emoji "🦞"', "Set name + emoji."],
-  ["special-agent agents set-identity --agent main --avatar avatars/special-agent.png", "Set avatar path."],
+  [
+    'special-agent agents set-identity --agent main --name "SpecialAgent" --emoji "🦞"',
+    "Set name + emoji.",
+  ],
+  [
+    "special-agent agents set-identity --agent main --avatar avatars/special-agent.png",
+    "Set avatar path.",
+  ],
   [
     "special-agent agents set-identity --workspace ~/.special-agent/workspace --from-identity",
     "Load from IDENTITY.md.",

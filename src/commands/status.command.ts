@@ -460,7 +460,9 @@ export async function statusCommand(
     }
   }
   runtime.log(theme.muted(`Full report: ${formatCliCommand("special-agent security audit")}`));
-  runtime.log(theme.muted(`Deep probe: ${formatCliCommand("special-agent security audit --deep")}`));
+  runtime.log(
+    theme.muted(`Deep probe: ${formatCliCommand("special-agent security audit --deep")}`),
+  );
 
   runtime.log("");
   runtime.log(theme.heading("Channels"));

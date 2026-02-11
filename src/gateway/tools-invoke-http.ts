@@ -1,11 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createSpecialAgentTools } from "../agents/special-agent-tools.js";
 import {
   filterToolsByPolicy,
   resolveEffectiveToolPolicy,
   resolveGroupToolPolicy,
   resolveSubagentToolPolicy,
 } from "../agents/pi-tools.policy.js";
+import { createSpecialAgentTools } from "../agents/special-agent-tools.js";
 import {
   buildPluginToolGroups,
   collectExplicitAllowlist,

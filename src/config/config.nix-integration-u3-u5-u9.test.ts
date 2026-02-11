@@ -88,18 +88,24 @@ describe("Nix integration (U3, U5, U9)", () => {
     });
 
     it("CONFIG_PATH respects SPECIAL_AGENT_CONFIG_PATH override", async () => {
-      await withEnvOverride({ SPECIAL_AGENT_CONFIG_PATH: "/nix/store/abc/special-agent.json" }, async () => {
-        const { CONFIG_PATH } = await import("./config.js");
-        expect(CONFIG_PATH).toBe(path.resolve("/nix/store/abc/special-agent.json"));
-      });
+      await withEnvOverride(
+        { SPECIAL_AGENT_CONFIG_PATH: "/nix/store/abc/special-agent.json" },
+        async () => {
+          const { CONFIG_PATH } = await import("./config.js");
+          expect(CONFIG_PATH).toBe(path.resolve("/nix/store/abc/special-agent.json"));
+        },
+      );
     });
 
     it("CONFIG_PATH expands ~ in SPECIAL_AGENT_CONFIG_PATH override", async () => {
       await withTempHome(async (home) => {
-        await withEnvOverride({ SPECIAL_AGENT_CONFIG_PATH: "~/.special-agent/custom.json" }, async () => {
-          const { CONFIG_PATH } = await import("./config.js");
-          expect(CONFIG_PATH).toBe(path.join(home, ".special-agent", "custom.json"));
-        });
+        await withEnvOverride(
+          { SPECIAL_AGENT_CONFIG_PATH: "~/.special-agent/custom.json" },
+          async () => {
+            const { CONFIG_PATH } = await import("./config.js");
+            expect(CONFIG_PATH).toBe(path.join(home, ".special-agent", "custom.json"));
+          },
+        );
       });
     });
 

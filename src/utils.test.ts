@@ -153,9 +153,11 @@ describe("shortenHomePath", () => {
     vi.stubEnv("SPECIAL_AGENT_HOME", "/srv/special-agent-home");
     vi.stubEnv("HOME", "/home/other");
 
-    expect(shortenHomePath(`${path.resolve("/srv/special-agent-home")}/.special-agent/special-agent.json`)).toBe(
-      "$SPECIAL_AGENT_HOME/.special-agent/special-agent.json",
-    );
+    expect(
+      shortenHomePath(
+        `${path.resolve("/srv/special-agent-home")}/.special-agent/special-agent.json`,
+      ),
+    ).toBe("$SPECIAL_AGENT_HOME/.special-agent/special-agent.json");
 
     vi.unstubAllEnvs();
   });
@@ -167,7 +169,9 @@ describe("shortenHomeInString", () => {
     vi.stubEnv("HOME", "/home/other");
 
     expect(
-      shortenHomeInString(`config: ${path.resolve("/srv/special-agent-home")}/.special-agent/special-agent.json`),
+      shortenHomeInString(
+        `config: ${path.resolve("/srv/special-agent-home")}/.special-agent/special-agent.json`,
+      ),
     ).toBe("config: $SPECIAL_AGENT_HOME/.special-agent/special-agent.json");
 
     vi.unstubAllEnvs();
@@ -209,7 +213,9 @@ describe("resolveUserPath", () => {
     vi.stubEnv("SPECIAL_AGENT_HOME", "/srv/special-agent-home");
     vi.stubEnv("HOME", "/home/other");
 
-    expect(resolveUserPath("~/special-agent")).toBe(path.resolve("/srv/special-agent-home", "special-agent"));
+    expect(resolveUserPath("~/special-agent")).toBe(
+      path.resolve("/srv/special-agent-home", "special-agent"),
+    );
 
     vi.unstubAllEnvs();
   });

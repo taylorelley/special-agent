@@ -121,7 +121,10 @@ function setFeishuGroupPolicy(
   };
 }
 
-function setFeishuGroupAllowFrom(cfg: SpecialAgentConfig, groupAllowFrom: string[]): SpecialAgentConfig {
+function setFeishuGroupAllowFrom(
+  cfg: SpecialAgentConfig,
+  groupAllowFrom: string[],
+): SpecialAgentConfig {
   return {
     ...cfg,
     channels: {

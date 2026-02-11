@@ -381,13 +381,13 @@ describe("readSessionMessages", () => {
     const marker = out[1] as {
       role: string;
       content?: Array<{ text?: string }>;
-      __special-agent?: { kind?: string; id?: string };
+      "__special-agent"?: { kind?: string; id?: string };
       timestamp?: number;
     };
     expect(marker.role).toBe("system");
     expect(marker.content?.[0]?.text).toBe("Compaction");
-    expect(marker.__special-agent?.kind).toBe("compaction");
-    expect(marker.__special-agent?.id).toBe("comp-1");
+    expect(marker["__special-agent"]?.kind).toBe("compaction");
+    expect(marker["__special-agent"]?.id).toBe("comp-1");
     expect(typeof marker.timestamp).toBe("number");
   });
 });
@@ -503,7 +503,12 @@ describe("resolveSessionTranscriptCandidates", () => {
     const candidates = resolveSessionTranscriptCandidates("sess-1", undefined);
     const fallback = candidates[candidates.length - 1];
     expect(fallback).toBe(
-      path.join(path.resolve("/srv/special-agent-home"), ".special-agent", "sessions", "sess-1.jsonl"),
+      path.join(
+        path.resolve("/srv/special-agent-home"),
+        ".special-agent",
+        "sessions",
+        "sess-1.jsonl",
+      ),
     );
   });
 });

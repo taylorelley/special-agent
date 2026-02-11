@@ -198,7 +198,9 @@ async function main() {
   });
 
   if (isCancel(shouldInstall) || !shouldInstall) {
-    console.log(theme.muted(`Skipped. Run \`special-agent completion --install\` later to enable.`));
+    console.log(
+      theme.muted(`Skipped. Run \`special-agent completion --install\` later to enable.`),
+    );
     return;
   }
 

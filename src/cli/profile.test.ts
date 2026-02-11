@@ -43,12 +43,26 @@ describe("parseCliProfileArgs", () => {
   });
 
   it("rejects combining --dev with --profile (dev first)", () => {
-    const res = parseCliProfileArgs(["node", "special-agent", "--dev", "--profile", "work", "status"]);
+    const res = parseCliProfileArgs([
+      "node",
+      "special-agent",
+      "--dev",
+      "--profile",
+      "work",
+      "status",
+    ]);
     expect(res.ok).toBe(false);
   });
 
   it("rejects combining --dev with --profile (profile first)", () => {
-    const res = parseCliProfileArgs(["node", "special-agent", "--profile", "work", "--dev", "status"]);
+    const res = parseCliProfileArgs([
+      "node",
+      "special-agent",
+      "--profile",
+      "work",
+      "--dev",
+      "status",
+    ]);
     expect(res.ok).toBe(false);
   });
 });
@@ -108,26 +122,28 @@ describe("formatCliCommand", () => {
   });
 
   it("returns command unchanged when profile is default", () => {
-    expect(formatCliCommand("special-agent doctor --fix", { SPECIAL_AGENT_PROFILE: "default" })).toBe(
-      "special-agent doctor --fix",
-    );
+    expect(
+      formatCliCommand("special-agent doctor --fix", { SPECIAL_AGENT_PROFILE: "default" }),
+    ).toBe("special-agent doctor --fix");
   });
 
   it("returns command unchanged when profile is Default (case-insensitive)", () => {
-    expect(formatCliCommand("special-agent doctor --fix", { SPECIAL_AGENT_PROFILE: "Default" })).toBe(
-      "special-agent doctor --fix",
-    );
+    expect(
+      formatCliCommand("special-agent doctor --fix", { SPECIAL_AGENT_PROFILE: "Default" }),
+    ).toBe("special-agent doctor --fix");
   });
 
   it("returns command unchanged when profile is invalid", () => {
-    expect(formatCliCommand("special-agent doctor --fix", { SPECIAL_AGENT_PROFILE: "bad profile" })).toBe(
-      "special-agent doctor --fix",
-    );
+    expect(
+      formatCliCommand("special-agent doctor --fix", { SPECIAL_AGENT_PROFILE: "bad profile" }),
+    ).toBe("special-agent doctor --fix");
   });
 
   it("returns command unchanged when --profile is already present", () => {
     expect(
-      formatCliCommand("special-agent --profile work doctor --fix", { SPECIAL_AGENT_PROFILE: "work" }),
+      formatCliCommand("special-agent --profile work doctor --fix", {
+        SPECIAL_AGENT_PROFILE: "work",
+      }),
     ).toBe("special-agent --profile work doctor --fix");
   });
 
@@ -144,9 +160,11 @@ describe("formatCliCommand", () => {
   });
 
   it("trims whitespace from profile", () => {
-    expect(formatCliCommand("special-agent doctor --fix", { SPECIAL_AGENT_PROFILE: "  jbspecial-agent  " })).toBe(
-      "special-agent --profile jbspecial-agent doctor --fix",
-    );
+    expect(
+      formatCliCommand("special-agent doctor --fix", {
+        SPECIAL_AGENT_PROFILE: "  jbspecial-agent  ",
+      }),
+    ).toBe("special-agent --profile jbspecial-agent doctor --fix");
   });
 
   it("handles command with no args after special-agent", () => {

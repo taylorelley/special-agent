@@ -374,8 +374,8 @@ special-agent pairing list feishu
 
 ## Gateway management commands
 
-| Command                    | Description                   |
-| -------------------------- | ----------------------------- |
+| Command                         | Description                   |
+| ------------------------------- | ----------------------------- |
 | `special-agent gateway status`  | Show gateway status           |
 | `special-agent gateway install` | Install/start gateway service |
 | `special-agent gateway stop`    | Stop gateway service          |

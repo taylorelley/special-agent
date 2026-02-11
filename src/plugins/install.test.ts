@@ -106,7 +106,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "@special-agent/voice-call",
         version: "0.0.1",
-        special-agent: { extensions: ["./dist/index.js"] },
+        "special-agent": { extensions: ["./dist/index.js"] },
       }),
       "utf-8",
     );
@@ -144,7 +144,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "@special-agent/voice-call",
         version: "0.0.1",
-        special-agent: { extensions: ["./dist/index.js"] },
+        "special-agent": { extensions: ["./dist/index.js"] },
       }),
       "utf-8",
     );
@@ -186,7 +186,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "@special-agent/zipper",
         version: "0.0.1",
-        special-agent: { extensions: ["./dist/index.js"] },
+        "special-agent": { extensions: ["./dist/index.js"] },
       }),
     );
     zip.file("package/dist/index.js", "export {};");
@@ -220,7 +220,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "@special-agent/voice-call",
         version: "0.0.1",
-        special-agent: { extensions: ["./dist/index.js"] },
+        "special-agent": { extensions: ["./dist/index.js"] },
       }),
       "utf-8",
     );
@@ -238,7 +238,7 @@ describe("installPluginFromArchive", () => {
         JSON.stringify({
           name: "@special-agent/voice-call",
           version: "0.0.2",
-          special-agent: { extensions: ["./dist/index.js"] },
+          "special-agent": { extensions: ["./dist/index.js"] },
         }),
         "utf-8",
       );
@@ -282,7 +282,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "@evil/..",
         version: "0.0.1",
-        special-agent: { extensions: ["./dist/index.js"] },
+        "special-agent": { extensions: ["./dist/index.js"] },
       }),
       "utf-8",
     );
@@ -318,7 +318,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "@evil/.",
         version: "0.0.1",
-        special-agent: { extensions: ["./dist/index.js"] },
+        "special-agent": { extensions: ["./dist/index.js"] },
       }),
       "utf-8",
     );
@@ -384,7 +384,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "dangerous-plugin",
         version: "1.0.0",
-        special-agent: { extensions: ["index.js"] },
+        "special-agent": { extensions: ["index.js"] },
       }),
     );
     fs.writeFileSync(
@@ -421,7 +421,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "hidden-entry-plugin",
         version: "1.0.0",
-        special-agent: { extensions: [".hidden/index.js"] },
+        "special-agent": { extensions: [".hidden/index.js"] },
       }),
     );
     fs.writeFileSync(
@@ -471,7 +471,7 @@ describe("installPluginFromArchive", () => {
       JSON.stringify({
         name: "scan-fail-plugin",
         version: "1.0.0",
-        special-agent: { extensions: ["index.js"] },
+        "special-agent": { extensions: ["index.js"] },
       }),
     );
     fs.writeFileSync(path.join(pluginDir, "index.js"), "export {};");
@@ -509,7 +509,7 @@ describe("installPluginFromDir", () => {
       JSON.stringify({
         name: "@special-agent/test-plugin",
         version: "0.0.1",
-        special-agent: { extensions: ["./dist/index.js"] },
+        "special-agent": { extensions: ["./dist/index.js"] },
         dependencies: { "left-pad": "1.3.0" },
       }),
       "utf-8",

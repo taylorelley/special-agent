@@ -291,7 +291,9 @@ function listGroupPolicyOpen(cfg: SpecialAgentConfig): string[] {
 // Exported collectors
 // --------------------------------------------------------------------------
 
-export function collectAttackSurfaceSummaryFindings(cfg: SpecialAgentConfig): SecurityAuditFinding[] {
+export function collectAttackSurfaceSummaryFindings(
+  cfg: SpecialAgentConfig,
+): SecurityAuditFinding[] {
   const group = summarizeGroupPolicy(cfg);
   const elevated = cfg.tools?.elevated?.enabled !== false;
   const hooksEnabled = cfg.hooks?.enabled === true;

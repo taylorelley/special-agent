@@ -26,7 +26,9 @@ describe("msteams conversation store (fs)", () => {
   });
 
   it("filters and prunes expired entries (but keeps legacy ones)", async () => {
-    const stateDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "special-agent-msteams-store-"));
+    const stateDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), "special-agent-msteams-store-"),
+    );
 
     const env: NodeJS.ProcessEnv = {
       ...process.env,

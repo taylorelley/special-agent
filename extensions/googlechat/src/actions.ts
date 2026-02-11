@@ -29,7 +29,10 @@ function listEnabledAccounts(cfg: SpecialAgentConfig) {
   );
 }
 
-function isReactionsEnabled(accounts: ReturnType<typeof listEnabledAccounts>, cfg: SpecialAgentConfig) {
+function isReactionsEnabled(
+  accounts: ReturnType<typeof listEnabledAccounts>,
+  cfg: SpecialAgentConfig,
+) {
   for (const account of accounts) {
     const gate = createActionGate(
       (account.config.actions ??

@@ -30,7 +30,8 @@ import { GatewayClient } from "./client.js";
 import { renderCatNoncePngBase64 } from "./live-image-probe.js";
 import { startGatewayServer } from "./server.js";
 
-const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.SPECIAL_AGENT_LIVE_TEST);
+const LIVE =
+  isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.SPECIAL_AGENT_LIVE_TEST);
 const GATEWAY_LIVE = isTruthyEnvValue(process.env.SPECIAL_AGENT_LIVE_GATEWAY);
 const ZAI_FALLBACK = isTruthyEnvValue(process.env.SPECIAL_AGENT_LIVE_GATEWAY_ZAI_FALLBACK);
 const PROVIDERS = parseFilter(process.env.SPECIAL_AGENT_LIVE_GATEWAY_PROVIDERS);

@@ -7,7 +7,9 @@ export type SpecialAgentVersion = {
 
 const VERSION_RE = /^v?(\d+)\.(\d+)\.(\d+)(?:-(\d+))?/;
 
-export function parseSpecialAgentVersion(raw: string | null | undefined): SpecialAgentVersion | null {
+export function parseSpecialAgentVersion(
+  raw: string | null | undefined,
+): SpecialAgentVersion | null {
   if (!raw) {
     return null;
   }

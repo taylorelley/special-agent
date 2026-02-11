@@ -55,7 +55,9 @@ describe("config io paths", () => {
         env: { SPECIAL_AGENT_HOME: path.join(home, "svc-home") } as NodeJS.ProcessEnv,
         homedir: () => path.join(home, "ignored-home"),
       });
-      expect(io.configPath).toBe(path.join(home, "svc-home", ".special-agent", "special-agent.json"));
+      expect(io.configPath).toBe(
+        path.join(home, "svc-home", ".special-agent", "special-agent.json"),
+      );
     });
   });
 

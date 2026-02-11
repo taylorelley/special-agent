@@ -190,7 +190,10 @@ export function resolveGatewayAuth(params: {
   const authConfig = params.authConfig ?? {};
   const env = params.env ?? process.env;
   const token =
-    authConfig.token ?? env.SPECIAL_AGENT_GATEWAY_TOKEN ?? env.SPECIAL_AGENT_GATEWAY_TOKEN ?? undefined;
+    authConfig.token ??
+    env.SPECIAL_AGENT_GATEWAY_TOKEN ??
+    env.SPECIAL_AGENT_GATEWAY_TOKEN ??
+    undefined;
   const password =
     authConfig.password ??
     env.SPECIAL_AGENT_GATEWAY_PASSWORD ??

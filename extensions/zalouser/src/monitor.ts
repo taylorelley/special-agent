@@ -1,6 +1,10 @@
 import type { ChildProcess } from "node:child_process";
 import type { SpecialAgentConfig, MarkdownTableMode, RuntimeEnv } from "special-agent/plugin-sdk";
-import { createReplyPrefixOptions, mergeAllowlist, summarizeMapping } from "special-agent/plugin-sdk";
+import {
+  createReplyPrefixOptions,
+  mergeAllowlist,
+  summarizeMapping,
+} from "special-agent/plugin-sdk";
 import type { ResolvedZalouserAccount, ZcaFriend, ZcaGroup, ZcaMessage } from "./types.js";
 import { getZalouserRuntime } from "./runtime.js";
 import { sendMessageZalouser } from "./send.js";

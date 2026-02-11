@@ -144,9 +144,11 @@ export async function promptGatewayConfig(
   let tailscaleResetOnExit = false;
   if (tailscaleMode !== "off") {
     note(
-      ["Docs:", "https://docs.special-agent.ai/gateway/tailscale", "https://docs.special-agent.ai/web"].join(
-        "\n",
-      ),
+      [
+        "Docs:",
+        "https://docs.special-agent.ai/gateway/tailscale",
+        "https://docs.special-agent.ai/web",
+      ].join("\n"),
       "Tailscale",
     );
     tailscaleResetOnExit = Boolean(

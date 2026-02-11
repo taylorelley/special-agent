@@ -78,7 +78,7 @@ describe("discoverSpecialAgentPlugins", () => {
       path.join(globalExt, "package.json"),
       JSON.stringify({
         name: "pack",
-        special-agent: { extensions: ["./src/one.ts", "./src/two.ts"] },
+        "special-agent": { extensions: ["./src/one.ts", "./src/two.ts"] },
       }),
       "utf-8",
     );
@@ -112,7 +112,7 @@ describe("discoverSpecialAgentPlugins", () => {
       path.join(globalExt, "package.json"),
       JSON.stringify({
         name: "@special-agent/voice-call",
-        special-agent: { extensions: ["./src/index.ts"] },
+        "special-agent": { extensions: ["./src/index.ts"] },
       }),
       "utf-8",
     );
@@ -140,7 +140,7 @@ describe("discoverSpecialAgentPlugins", () => {
       path.join(packDir, "package.json"),
       JSON.stringify({
         name: "@special-agent/demo-plugin-dir",
-        special-agent: { extensions: ["./index.js"] },
+        "special-agent": { extensions: ["./index.js"] },
       }),
       "utf-8",
     );

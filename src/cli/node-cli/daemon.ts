@@ -47,7 +47,10 @@ type NodeDaemonStatusOptions = {
 };
 
 function renderNodeServiceStartHints(): string[] {
-  const base = [formatCliCommand("special-agent node install"), formatCliCommand("special-agent node start")];
+  const base = [
+    formatCliCommand("special-agent node install"),
+    formatCliCommand("special-agent node start"),
+  ];
   switch (process.platform) {
     case "darwin":
       return [
@@ -173,7 +176,9 @@ export async function runNodeDaemonInstall(opts: NodeDaemonInstallOptions) {
     });
     if (!json) {
       defaultRuntime.log(`Node service already ${service.loadedText}.`);
-      defaultRuntime.log(`Reinstall with: ${formatCliCommand("special-agent node install --force")}`);
+      defaultRuntime.log(
+        `Reinstall with: ${formatCliCommand("special-agent node install --force")}`,
+      );
     }
     return;
   }

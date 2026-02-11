@@ -83,7 +83,9 @@ export async function ensureSpecialAgentModelsJson(
   agentDirOverride?: string,
 ): Promise<{ agentDir: string; wrote: boolean }> {
   const cfg = config ?? loadConfig();
-  const agentDir = agentDirOverride?.trim() ? agentDirOverride.trim() : resolveSpecialAgentAgentDir();
+  const agentDir = agentDirOverride?.trim()
+    ? agentDirOverride.trim()
+    : resolveSpecialAgentAgentDir();
 
   const explicitProviders = cfg.models?.providers ?? {};
   const implicitProviders = await resolveImplicitProviders({ agentDir, explicitProviders });

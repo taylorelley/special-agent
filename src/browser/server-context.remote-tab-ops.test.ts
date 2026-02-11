@@ -37,7 +37,7 @@ function makeState(
           cdpPort: 443,
           color: "#00AA00",
         },
-        special-agent: { cdpPort: 18800, color: "#FF4500" },
+        "special-agent": { cdpPort: 18800, color: "#FF4500" },
       },
     },
     profiles: new Map(),
@@ -279,9 +279,9 @@ describe("browser server-context tab selection state", () => {
     const { createBrowserRouteContext } = await import("./server-context.js");
     const state = makeState("special-agent");
     const ctx = createBrowserRouteContext({ getState: () => state });
-    const special-agent = ctx.forProfile("special-agent");
+    const specialAgent = ctx.forProfile("special-agent");
 
-    const opened = await special-agent.openTab("https://created.example");
+    const opened = await specialAgent.openTab("https://created.example");
     expect(opened.targetId).toBe("CREATED");
     expect(state.profiles.get("special-agent")?.lastTargetId).toBe("CREATED");
   });

@@ -21,8 +21,13 @@ describe("argv helpers", () => {
 
   it("extracts command path ignoring flags and terminator", () => {
     expect(getCommandPath(["node", "special-agent", "status", "--json"], 2)).toEqual(["status"]);
-    expect(getCommandPath(["node", "special-agent", "agents", "list"], 2)).toEqual(["agents", "list"]);
-    expect(getCommandPath(["node", "special-agent", "status", "--", "ignored"], 2)).toEqual(["status"]);
+    expect(getCommandPath(["node", "special-agent", "agents", "list"], 2)).toEqual([
+      "agents",
+      "list",
+    ]);
+    expect(getCommandPath(["node", "special-agent", "status", "--", "ignored"], 2)).toEqual([
+      "status",
+    ]);
   });
 
   it("returns primary command", () => {
@@ -36,37 +41,47 @@ describe("argv helpers", () => {
   });
 
   it("extracts flag values with equals and missing values", () => {
-    expect(getFlagValue(["node", "special-agent", "status", "--timeout", "5000"], "--timeout")).toBe(
-      "5000",
-    );
+    expect(
+      getFlagValue(["node", "special-agent", "status", "--timeout", "5000"], "--timeout"),
+    ).toBe("5000");
     expect(getFlagValue(["node", "special-agent", "status", "--timeout=2500"], "--timeout")).toBe(
       "2500",
     );
     expect(getFlagValue(["node", "special-agent", "status", "--timeout"], "--timeout")).toBeNull();
-    expect(getFlagValue(["node", "special-agent", "status", "--timeout", "--json"], "--timeout")).toBe(
-      null,
-    );
-    expect(getFlagValue(["node", "special-agent", "--", "--timeout=99"], "--timeout")).toBeUndefined();
+    expect(
+      getFlagValue(["node", "special-agent", "status", "--timeout", "--json"], "--timeout"),
+    ).toBe(null);
+    expect(
+      getFlagValue(["node", "special-agent", "--", "--timeout=99"], "--timeout"),
+    ).toBeUndefined();
   });
 
   it("parses verbose flags", () => {
     expect(getVerboseFlag(["node", "special-agent", "status", "--verbose"])).toBe(true);
     expect(getVerboseFlag(["node", "special-agent", "status", "--debug"])).toBe(false);
-    expect(getVerboseFlag(["node", "special-agent", "status", "--debug"], { includeDebug: true })).toBe(
-      true,
-    );
+    expect(
+      getVerboseFlag(["node", "special-agent", "status", "--debug"], { includeDebug: true }),
+    ).toBe(true);
   });
 
   it("parses positive integer flag values", () => {
-    expect(getPositiveIntFlagValue(["node", "special-agent", "status"], "--timeout")).toBeUndefined();
+    expect(
+      getPositiveIntFlagValue(["node", "special-agent", "status"], "--timeout"),
+    ).toBeUndefined();
     expect(
       getPositiveIntFlagValue(["node", "special-agent", "status", "--timeout"], "--timeout"),
     ).toBeNull();
     expect(
-      getPositiveIntFlagValue(["node", "special-agent", "status", "--timeout", "5000"], "--timeout"),
+      getPositiveIntFlagValue(
+        ["node", "special-agent", "status", "--timeout", "5000"],
+        "--timeout",
+      ),
     ).toBe(5000);
     expect(
-      getPositiveIntFlagValue(["node", "special-agent", "status", "--timeout", "nope"], "--timeout"),
+      getPositiveIntFlagValue(
+        ["node", "special-agent", "status", "--timeout", "nope"],
+        "--timeout",
+      ),
     ).toBeUndefined();
   });
 
@@ -117,7 +132,13 @@ describe("argv helpers", () => {
       programName: "special-agent",
       rawArgs: ["node-dev", "special-agent", "status"],
     });
-    expect(nonVersionedNodeArgv).toEqual(["node", "special-agent", "node-dev", "special-agent", "status"]);
+    expect(nonVersionedNodeArgv).toEqual([
+      "node",
+      "special-agent",
+      "node-dev",
+      "special-agent",
+      "status",
+    ]);
 
     const directArgv = buildParseArgv({
       programName: "special-agent",

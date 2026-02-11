@@ -76,10 +76,10 @@ See [Configuration: Env var substitution](/gateway/configuration#env-var-substit
 
 ## Path-related env vars
 
-| Variable               | Purpose                                                                                                                                                                          |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable                    | Purpose                                                                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `SPECIAL_AGENT_HOME`        | Override the home directory used for all internal path resolution (`~/.special-agent/`, agent dirs, sessions, credentials). Useful when running Special Agent as a dedicated service user. |
-| `SPECIAL_AGENT_STATE_DIR`   | Override the state directory (default `~/.special-agent`).                                                                                                                            |
+| `SPECIAL_AGENT_STATE_DIR`   | Override the state directory (default `~/.special-agent`).                                                                                                                                 |
 | `SPECIAL_AGENT_CONFIG_PATH` | Override the config file path (default `~/.special-agent/special-agent.json`).                                                                                                             |
 
 ### `SPECIAL_AGENT_HOME`

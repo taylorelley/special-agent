@@ -27,7 +27,10 @@ function setWhatsAppAllowFrom(cfg: SpecialAgentConfig, allowFrom?: string[]): Sp
   return mergeWhatsAppConfig(cfg, { allowFrom }, { unsetOnUndefined: ["allowFrom"] });
 }
 
-function setWhatsAppSelfChatMode(cfg: SpecialAgentConfig, selfChatMode: boolean): SpecialAgentConfig {
+function setWhatsAppSelfChatMode(
+  cfg: SpecialAgentConfig,
+  selfChatMode: boolean,
+): SpecialAgentConfig {
   return mergeWhatsAppConfig(cfg, { selfChatMode });
 }
 

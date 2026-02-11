@@ -122,7 +122,10 @@ export async function handleIrcInbound(params: {
     allowFrom: message.isGroup ? effectiveGroupAllowFrom : effectiveAllowFrom,
     message,
   }).allowed;
-  const hasControlCommand = core.channel.text.hasControlCommand(rawBody, config as SpecialAgentConfig);
+  const hasControlCommand = core.channel.text.hasControlCommand(
+    rawBody,
+    config as SpecialAgentConfig,
+  );
   const commandGate = resolveControlCommandGate({
     useAccessGroups,
     authorizers: [
@@ -243,7 +246,9 @@ export async function handleIrcInbound(params: {
   const storePath = core.channel.session.resolveStorePath(config.session?.store, {
     agentId: route.agentId,
   });
-  const envelopeOptions = core.channel.reply.resolveEnvelopeFormatOptions(config as SpecialAgentConfig);
+  const envelopeOptions = core.channel.reply.resolveEnvelopeFormatOptions(
+    config as SpecialAgentConfig,
+  );
   const previousTimestamp = core.channel.session.readSessionUpdatedAt({
     storePath,
     sessionKey: route.sessionKey,

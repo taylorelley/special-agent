@@ -47,7 +47,10 @@ function resolveAccountConfig(
   return accounts[accountId] as DiscordAccountConfig | undefined;
 }
 
-function mergeDiscordAccountConfig(cfg: SpecialAgentConfig, accountId: string): DiscordAccountConfig {
+function mergeDiscordAccountConfig(
+  cfg: SpecialAgentConfig,
+  accountId: string,
+): DiscordAccountConfig {
   const { accounts: _ignored, ...base } = (cfg.channels?.discord ?? {}) as DiscordAccountConfig & {
     accounts?: unknown;
   };

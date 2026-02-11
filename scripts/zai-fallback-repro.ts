@@ -107,8 +107,6 @@ async function main() {
     ...process.env,
     SPECIAL_AGENT_CONFIG_PATH: configPath,
     SPECIAL_AGENT_STATE_DIR: stateDir,
-    SPECIAL_AGENT_CONFIG_PATH: configPath,
-    SPECIAL_AGENT_STATE_DIR: stateDir,
     ZAI_API_KEY: zaiKey,
     Z_AI_API_KEY: "",
   };

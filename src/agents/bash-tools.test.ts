@@ -28,7 +28,10 @@ const resolveShellFromPath = (name: string) => {
 };
 const defaultShell = isWin
   ? undefined
-  : process.env.SPECIAL_AGENT_TEST_SHELL || resolveShellFromPath("bash") || process.env.SHELL || "sh";
+  : process.env.SPECIAL_AGENT_TEST_SHELL ||
+    resolveShellFromPath("bash") ||
+    process.env.SHELL ||
+    "sh";
 // PowerShell: Start-Sleep for delays, ; for command separation, $null for null device
 const shortDelayCmd = isWin ? "Start-Sleep -Milliseconds 50" : "sleep 0.05";
 const yieldDelayCmd = isWin ? "Start-Sleep -Milliseconds 200" : "sleep 0.2";

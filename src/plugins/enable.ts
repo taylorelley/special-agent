@@ -20,7 +20,10 @@ function ensureAllowlisted(cfg: SpecialAgentConfig, pluginId: string): SpecialAg
   };
 }
 
-export function enablePluginInConfig(cfg: SpecialAgentConfig, pluginId: string): PluginEnableResult {
+export function enablePluginInConfig(
+  cfg: SpecialAgentConfig,
+  pluginId: string,
+): PluginEnableResult {
   if (cfg.plugins?.enabled === false) {
     return { config: cfg, enabled: false, reason: "plugins disabled" };
   }

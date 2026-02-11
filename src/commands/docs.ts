@@ -163,7 +163,9 @@ export async function docsSearchCommand(queryParts: string[], runtime: RuntimeEn
     const docs = formatDocsLink("/", "docs.special-agent.ai");
     if (isRich()) {
       runtime.log(`${theme.muted("Docs:")} ${docs}`);
-      runtime.log(`${theme.muted("Search:")} ${formatCliCommand('special-agent docs "your query"')}`);
+      runtime.log(
+        `${theme.muted("Search:")} ${formatCliCommand('special-agent docs "your query"')}`,
+      );
     } else {
       runtime.log("Docs: https://docs.special-agent.ai/");
       runtime.log(`Search: ${formatCliCommand('special-agent docs "your query"')}`);

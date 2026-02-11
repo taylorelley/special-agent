@@ -41,7 +41,7 @@ export function readSessionMessages(
           role: "system",
           content: [{ type: "text", text: "Compaction" }],
           timestamp,
-          __special-agent: {
+          "__special-agent": {
             kind: "compaction",
             id: typeof parsed.id === "string" ? parsed.id : undefined,
           },

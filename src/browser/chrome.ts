@@ -59,7 +59,9 @@ function resolveBrowserExecutable(resolved: ResolvedBrowserConfig): BrowserExecu
   return resolveBrowserExecutableForPlatform(resolved, process.platform);
 }
 
-export function resolveSpecialAgentUserDataDir(profileName = DEFAULT_SPECIAL_AGENT_BROWSER_PROFILE_NAME) {
+export function resolveSpecialAgentUserDataDir(
+  profileName = DEFAULT_SPECIAL_AGENT_BROWSER_PROFILE_NAME,
+) {
   return path.join(CONFIG_DIR, "browser", profileName, "user-data");
 }
 

@@ -84,7 +84,9 @@ name: my-hook
 description: "Short description"
 homepage: https://docs.special-agent.ai/hooks#my-hook
 metadata:
-  { "special-agent": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
+  {
+    "special-agent": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } },
+  }
 ---
 # Hook Title
 

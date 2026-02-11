@@ -179,7 +179,7 @@ describe("loadSpecialAgentPlugins", () => {
         name: "@special-agent/memory-core",
         version: "1.2.3",
         description: "Memory plugin package",
-        special-agent: { extensions: ["./index.ts"] },
+        "special-agent": { extensions: ["./index.ts"] },
       }),
       "utf-8",
     );

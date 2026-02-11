@@ -239,7 +239,9 @@ describe("onboard-hooks", () => {
 
       // Second note should confirm configuration
       expect(noteCalls[1][0]).toContain("Enabled 1 hook: session-memory");
-      expect(noteCalls[1][0]).toMatch(/(?:special-agent|special-agent)( --profile isolated)? hooks list/);
+      expect(noteCalls[1][0]).toMatch(
+        /(?:special-agent|special-agent)( --profile isolated)? hooks list/,
+      );
     });
   });
 });

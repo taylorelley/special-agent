@@ -15,7 +15,9 @@ describe("resolveDefaultAgentWorkspaceDir", () => {
       HOME: "/home/other",
     } as NodeJS.ProcessEnv);
 
-    expect(dir).toBe(path.join(path.resolve("/srv/special-agent-home"), ".special-agent", "workspace"));
+    expect(dir).toBe(
+      path.join(path.resolve("/srv/special-agent-home"), ".special-agent", "workspace"),
+    );
   });
 });
 

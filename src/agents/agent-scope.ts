@@ -71,7 +71,10 @@ export function resolveDefaultAgentId(cfg: SpecialAgentConfig): string {
   return normalizeAgentId(chosen || DEFAULT_AGENT_ID);
 }
 
-export function resolveSessionAgentIds(params: { sessionKey?: string; config?: SpecialAgentConfig }): {
+export function resolveSessionAgentIds(params: {
+  sessionKey?: string;
+  config?: SpecialAgentConfig;
+}): {
   defaultAgentId: string;
   sessionAgentId: string;
 } {
@@ -136,7 +139,10 @@ export function resolveAgentSkillsFilter(
   return normalized.length > 0 ? normalized : [];
 }
 
-export function resolveAgentModelPrimary(cfg: SpecialAgentConfig, agentId: string): string | undefined {
+export function resolveAgentModelPrimary(
+  cfg: SpecialAgentConfig,
+  agentId: string,
+): string | undefined {
   const raw = resolveAgentConfig(cfg, agentId)?.model;
   if (!raw) {
     return undefined;

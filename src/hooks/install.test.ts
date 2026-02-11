@@ -41,7 +41,7 @@ describe("installHooksFromArchive", () => {
       JSON.stringify({
         name: "@special-agent/zip-hooks",
         version: "0.0.1",
-        special-agent: { hooks: ["./hooks/zip-hook"] },
+        "special-agent": { hooks: ["./hooks/zip-hook"] },
       }),
     );
     zip.file(
@@ -86,7 +86,7 @@ describe("installHooksFromArchive", () => {
       JSON.stringify({
         name: "@special-agent/tar-hooks",
         version: "0.0.1",
-        special-agent: { hooks: ["./hooks/tar-hook"] },
+        "special-agent": { hooks: ["./hooks/tar-hook"] },
       }),
       "utf-8",
     );
@@ -135,7 +135,7 @@ describe("installHooksFromArchive", () => {
       JSON.stringify({
         name: "@evil/..",
         version: "0.0.1",
-        special-agent: { hooks: ["./hooks/evil-hook"] },
+        "special-agent": { hooks: ["./hooks/evil-hook"] },
       }),
       "utf-8",
     );
@@ -182,7 +182,7 @@ describe("installHooksFromArchive", () => {
       JSON.stringify({
         name: "@evil/.",
         version: "0.0.1",
-        special-agent: { hooks: ["./hooks/reserved-hook"] },
+        "special-agent": { hooks: ["./hooks/reserved-hook"] },
       }),
       "utf-8",
     );
@@ -229,7 +229,7 @@ describe("installHooksFromPath", () => {
       JSON.stringify({
         name: "@special-agent/test-hooks",
         version: "0.0.1",
-        special-agent: { hooks: ["./hooks/one-hook"] },
+        "special-agent": { hooks: ["./hooks/one-hook"] },
         dependencies: { "left-pad": "1.3.0" },
       }),
       "utf-8",

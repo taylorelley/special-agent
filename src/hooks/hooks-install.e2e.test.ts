@@ -63,7 +63,7 @@ describe("hooks install (e2e)", () => {
         {
           name: "@acme/hello-hooks",
           version: "0.0.0",
-          special-agent: { hooks: ["./hooks/hello-hook"] },
+          "special-agent": { hooks: ["./hooks/hello-hook"] },
         },
         null,
         2,

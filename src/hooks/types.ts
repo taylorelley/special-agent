@@ -35,7 +35,11 @@ export type ParsedHookFrontmatter = Record<string, string>;
 export type Hook = {
   name: string;
   description: string;
-  source: "special-agent-bundled" | "special-agent-managed" | "special-agent-workspace" | "special-agent-plugin";
+  source:
+    | "special-agent-bundled"
+    | "special-agent-managed"
+    | "special-agent-workspace"
+    | "special-agent-plugin";
   pluginId?: string;
   filePath: string; // Path to HOOK.md
   baseDir: string; // Directory containing hook

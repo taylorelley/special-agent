@@ -14,7 +14,9 @@ import { ensureSandboxWorkspaceForSession } from "../agents/sandbox.js";
 import { stageSandboxMedia } from "./reply/stage-sandbox-media.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  return withTempHomeBase(async (home) => await fn(home), { prefix: "special-agent-triggers-bypass-" });
+  return withTempHomeBase(async (home) => await fn(home), {
+    prefix: "special-agent-triggers-bypass-",
+  });
 }
 
 afterEach(() => {

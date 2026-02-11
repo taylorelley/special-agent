@@ -15,7 +15,7 @@ export type ExtraGatewayService = {
   label: string;
   detail: string;
   scope: "user" | "system";
-  marker?: "special-agent" | "special-agent" | "special-agent";
+  marker?: "special-agent";
   legacy?: boolean;
 };
 

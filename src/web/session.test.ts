@@ -108,7 +108,13 @@ describe("web session", () => {
   });
 
   it("does not clobber creds backup when creds.json is corrupted", async () => {
-    const credsSuffix = path.join(".special-agent", "credentials", "whatsapp", "default", "creds.json");
+    const credsSuffix = path.join(
+      ".special-agent",
+      "credentials",
+      "whatsapp",
+      "default",
+      "creds.json",
+    );
 
     const copySpy = vi.spyOn(fsSync, "copyFileSync").mockImplementation(() => {});
     const existsSpy = vi.spyOn(fsSync, "existsSync").mockImplementation((p) => {
@@ -186,7 +192,13 @@ describe("web session", () => {
   });
 
   it("rotates creds backup when creds.json is valid JSON", async () => {
-    const credsSuffix = path.join(".special-agent", "credentials", "whatsapp", "default", "creds.json");
+    const credsSuffix = path.join(
+      ".special-agent",
+      "credentials",
+      "whatsapp",
+      "default",
+      "creds.json",
+    );
     const backupSuffix = path.join(
       ".special-agent",
       "credentials",

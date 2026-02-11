@@ -128,7 +128,10 @@ export async function handleNextcloudTalkInbound(params: {
     allowFrom: isGroup ? effectiveGroupAllowFrom : effectiveAllowFrom,
     senderId,
   }).allowed;
-  const hasControlCommand = core.channel.text.hasControlCommand(rawBody, config as SpecialAgentConfig);
+  const hasControlCommand = core.channel.text.hasControlCommand(
+    rawBody,
+    config as SpecialAgentConfig,
+  );
   const commandGate = resolveControlCommandGate({
     useAccessGroups,
     authorizers: [
@@ -245,7 +248,9 @@ export async function handleNextcloudTalkInbound(params: {
       agentId: route.agentId,
     },
   );
-  const envelopeOptions = core.channel.reply.resolveEnvelopeFormatOptions(config as SpecialAgentConfig);
+  const envelopeOptions = core.channel.reply.resolveEnvelopeFormatOptions(
+    config as SpecialAgentConfig,
+  );
   const previousTimestamp = core.channel.session.readSessionUpdatedAt({
     storePath,
     sessionKey: route.sessionKey,
