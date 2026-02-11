@@ -242,13 +242,13 @@ importers:
 
   extensions/bluebubbles:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/copilot-proxy:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -288,13 +288,13 @@ importers:
         specifier: ^1.39.0
         version: 1.39.0
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/discord:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -310,19 +310,19 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/google-antigravity-auth:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/google-gemini-cli-auth:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -332,37 +332,37 @@ importers:
         specifier: ^10.5.0
         version: 10.5.0
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/imessage:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/irc:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/line:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/llm-task:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/lobster:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -384,19 +384,19 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/mattermost:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/memory-core:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -412,13 +412,13 @@ importers:
         specifier: ^6.19.0
         version: 6.19.0(ws@8.19.0)(zod@4.3.6)
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/minimax-portal-auth:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -440,13 +440,13 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/nextcloud-talk:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -459,31 +459,31 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/open-prose:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/signal:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/slack:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/telegram:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -496,7 +496,7 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -515,7 +515,7 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -531,13 +531,13 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
   extensions/whatsapp:
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -547,7 +547,7 @@ importers:
         specifier: 7.21.0
         version: 7.21.0
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
@@ -557,19 +557,19 @@ importers:
         specifier: 0.34.48
         version: 0.34.48
     devDependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
-  packages/clawdbot:
+  packages/special-agent:
     dependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 
-  packages/moltbot:
+  packages/special-agent:
     dependencies:
-      openclaw:
+      special-agent:
         specifier: workspace:*
         version: link:../..
 

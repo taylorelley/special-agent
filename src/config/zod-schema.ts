@@ -91,7 +91,7 @@ const MemorySchema = z
   .strict()
   .optional();
 
-export const OpenClawSchema = z
+export const SpecialAgentSchema = z
   .object({
     meta: z
       .object({

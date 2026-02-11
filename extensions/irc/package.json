@@ -1,12 +1,12 @@
 {
-  "name": "@openclaw/irc",
+  "name": "@special-agent/irc",
   "version": "2026.2.10",
-  "description": "OpenClaw IRC channel plugin",
+  "description": "Special Agent IRC channel plugin",
   "type": "module",
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ]

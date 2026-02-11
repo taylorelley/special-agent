@@ -1,7 +1,7 @@
 {
-  "name": "@openclaw/matrix",
+  "name": "@special-agent/matrix",
   "version": "2026.2.10",
-  "description": "OpenClaw Matrix channel plugin",
+  "description": "Special Agent Matrix channel plugin",
   "type": "module",
   "dependencies": {
     "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0",
@@ -11,9 +11,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ],
@@ -28,7 +28,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@openclaw/matrix",
+      "npmSpec": "@special-agent/matrix",
       "localPath": "extensions/matrix",
       "defaultChoice": "npm"
     }

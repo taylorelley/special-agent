@@ -1,16 +1,16 @@
 {
-  "name": "@openclaw/memory-core",
+  "name": "@special-agent/memory-core",
   "version": "2026.2.10",
   "private": true,
-  "description": "OpenClaw core memory search plugin",
+  "description": "Special Agent core memory search plugin",
   "type": "module",
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.1.26"
+    "special-agent": ">=2026.1.26"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ]

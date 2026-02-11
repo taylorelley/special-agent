@@ -1,12 +1,12 @@
 {
-  "name": "@openclaw/lobster",
+  "name": "@special-agent/lobster",
   "version": "2026.2.10",
   "description": "Lobster workflow tool plugin (typed pipelines + resumable approvals)",
   "type": "module",
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ]

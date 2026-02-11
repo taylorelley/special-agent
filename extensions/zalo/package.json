@@ -1,15 +1,15 @@
 {
-  "name": "@openclaw/zalo",
+  "name": "@special-agent/zalo",
   "version": "2026.2.10",
-  "description": "OpenClaw Zalo channel plugin",
+  "description": "Special Agent Zalo channel plugin",
   "type": "module",
   "dependencies": {
     "undici": "7.21.0"
   },
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ],
@@ -27,7 +27,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@openclaw/zalo",
+      "npmSpec": "@special-agent/zalo",
       "localPath": "extensions/zalo",
       "defaultChoice": "npm"
     }

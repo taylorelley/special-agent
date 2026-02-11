@@ -1,17 +1,17 @@
 {
-  "name": "@openclaw/tlon",
+  "name": "@special-agent/tlon",
   "version": "2026.2.10",
   "private": true,
-  "description": "OpenClaw Tlon/Urbit channel plugin",
+  "description": "Special Agent Tlon/Urbit channel plugin",
   "type": "module",
   "dependencies": {
     "@urbit/aura": "^3.0.0",
     "@urbit/http-api": "^3.0.0"
   },
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ],
@@ -26,7 +26,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@openclaw/tlon",
+      "npmSpec": "@special-agent/tlon",
       "localPath": "extensions/tlon",
       "defaultChoice": "npm"
     }

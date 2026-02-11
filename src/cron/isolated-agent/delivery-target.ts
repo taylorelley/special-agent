@@ -1,5 +1,5 @@
 import type { ChannelId } from "../../channels/plugins/types.js";
-import type { OpenClawConfig } from "../../config/config.js";
+import type { SpecialAgentConfig } from "../../config/config.js";
 import type { OutboundChannel } from "../../infra/outbound/targets.js";
 import { DEFAULT_CHAT_CHANNEL } from "../../channels/registry.js";
 import {
@@ -14,7 +14,7 @@ import {
 } from "../../infra/outbound/targets.js";
 
 export async function resolveDeliveryTarget(
-  cfg: OpenClawConfig,
+  cfg: SpecialAgentConfig,
   agentId: string,
   jobPayload: {
     channel?: "last" | ChannelId;

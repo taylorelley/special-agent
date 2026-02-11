@@ -1,19 +1,19 @@
 {
-  "name": "@openclaw/googlechat",
+  "name": "@special-agent/googlechat",
   "version": "2026.2.10",
   "private": true,
-  "description": "OpenClaw Google Chat channel plugin",
+  "description": "Special Agent Google Chat channel plugin",
   "type": "module",
   "dependencies": {
     "google-auth-library": "^10.5.0"
   },
   "devDependencies": {
-    "openclaw": "workspace:*"
+    "special-agent": "workspace:*"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.1.26"
+    "special-agent": ">=2026.1.26"
   },
-  "openclaw": {
+  "special-agent": {
     "extensions": [
       "./index.ts"
     ],
@@ -32,7 +32,7 @@
       "order": 55
     },
     "install": {
-      "npmSpec": "@openclaw/googlechat",
+      "npmSpec": "@special-agent/googlechat",
       "localPath": "extensions/googlechat",
       "defaultChoice": "npm"
     }
