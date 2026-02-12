@@ -55,16 +55,7 @@ export function normalizeChannelId(raw?: string | null): ChannelId | null {
   // Plugin registry must be initialized before calling.
   return normalizeAnyChannelId(raw);
 }
-export {
-  listDiscordDirectoryGroupsFromConfig,
-  listDiscordDirectoryPeersFromConfig,
-  listSlackDirectoryGroupsFromConfig,
-  listSlackDirectoryPeersFromConfig,
-  listTelegramDirectoryGroupsFromConfig,
-  listTelegramDirectoryPeersFromConfig,
-  listWhatsAppDirectoryGroupsFromConfig,
-  listWhatsAppDirectoryPeersFromConfig,
-} from "./directory-config.js";
+export type { DirectoryConfigParams } from "./directory-config.js";
 export {
   applyChannelMatchMeta,
   buildChannelKeyCandidates,

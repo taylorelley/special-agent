@@ -261,14 +261,14 @@ describe("mention helpers", () => {
   });
 
   it("normalizes zero-width characters", () => {
-    expect(normalizeMentionText("open\u200bclaw")).toBe("special-agent");
+    expect(normalizeMentionText("open\u200bclaw")).toBe("openclaw");
   });
 
   it("matches patterns case-insensitively", () => {
     const regexes = buildMentionRegexes({
       messages: { groupChat: { mentionPatterns: ["\\bspecial-agent\\b"] } },
     });
-    expect(matchesMentionPatterns("SPECIAL_AGENT: hi", regexes)).toBe(true);
+    expect(matchesMentionPatterns("SPECIAL-AGENT: hi", regexes)).toBe(true);
   });
 
   it("uses per-agent mention patterns when configured", () => {
@@ -294,57 +294,20 @@ describe("mention helpers", () => {
 });
 
 describe("resolveGroupRequireMention", () => {
-  it("respects Discord guild/channel requireMention settings", () => {
+  it("defaults to true for unregistered channels", () => {
     const cfg: SpecialAgentConfig = {
-      channels: {
-        discord: {
-          guilds: {
-            "145": {
-              requireMention: false,
-              channels: {
-                general: { allow: true },
-              },
-            },
-          },
-        },
-      },
+      channels: {},
     };
     const ctx: TemplateContext = {
-      Provider: "discord",
-      From: "discord:group:123",
-      GroupChannel: "#general",
-      GroupSpace: "145",
+      Provider: "unknown",
+      From: "unknown:group:123",
     };
     const groupResolution: GroupKeyResolution = {
-      channel: "discord",
+      channel: "unknown",
       id: "123",
       chatType: "group",
     };
 
-    expect(resolveGroupRequireMention({ cfg, ctx, groupResolution })).toBe(false);
-  });
-
-  it("respects Slack channel requireMention settings", () => {
-    const cfg: SpecialAgentConfig = {
-      channels: {
-        slack: {
-          channels: {
-            C123: { requireMention: false },
-          },
-        },
-      },
-    };
-    const ctx: TemplateContext = {
-      Provider: "slack",
-      From: "slack:channel:C123",
-      GroupSubject: "#general",
-    };
-    const groupResolution: GroupKeyResolution = {
-      channel: "slack",
-      id: "C123",
-      chatType: "group",
-    };
-
-    expect(resolveGroupRequireMention({ cfg, ctx, groupResolution })).toBe(false);
+    expect(resolveGroupRequireMention({ cfg, ctx, groupResolution })).toBe(true);
   });
 });

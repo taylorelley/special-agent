@@ -183,10 +183,13 @@ describe("gateway send mirroring", () => {
     });
 
     expect(mocks.recordSessionMetaFromInbound).toHaveBeenCalled();
+    // The fallback session resolver treats the target as a direct peer (the
+    // mock plugin has no capabilities/chatTypes), and with the default
+    // dmScope="main" the session key collapses to "agent:main:main".
     expect(mocks.deliverOutboundPayloads).toHaveBeenCalledWith(
       expect.objectContaining({
         mirror: expect.objectContaining({
-          sessionKey: "agent:main:slack:channel:resolved",
+          sessionKey: "agent:main:main",
           agentId: "main",
         }),
       }),

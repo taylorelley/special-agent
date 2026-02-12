@@ -212,6 +212,35 @@ describe("image tool implicit imageModel config", () => {
           imageModel: { primary: "minimax/MiniMax-VL-01" },
         },
       },
+      models: {
+        providers: {
+          minimax: {
+            baseUrl: "https://api.minimax.chat/v1",
+            apiKey: "MINIMAX_API_KEY",
+            api: "anthropic-messages",
+            models: [
+              {
+                id: "MiniMax-M2.1",
+                name: "MiniMax M2.1",
+                reasoning: false,
+                input: ["text"],
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 200000,
+                maxTokens: 8192,
+              },
+              {
+                id: "MiniMax-VL-01",
+                name: "MiniMax VL-01",
+                reasoning: false,
+                input: ["text", "image"],
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 200000,
+                maxTokens: 8192,
+              },
+            ],
+          },
+        },
+      },
     };
     const tool = createImageTool({ config: cfg, agentDir, sandboxRoot });
     expect(tool).not.toBeNull();
@@ -282,6 +311,35 @@ describe("image tool MiniMax VLM routing", () => {
     vi.stubEnv("MINIMAX_API_KEY", "minimax-test");
     const cfg: SpecialAgentConfig = {
       agents: { defaults: { model: { primary: "minimax/MiniMax-M2.1" } } },
+      models: {
+        providers: {
+          minimax: {
+            baseUrl: "https://api.minimax.chat/v1",
+            apiKey: "MINIMAX_API_KEY",
+            api: "anthropic-messages",
+            models: [
+              {
+                id: "MiniMax-M2.1",
+                name: "MiniMax M2.1",
+                reasoning: false,
+                input: ["text"],
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 200000,
+                maxTokens: 8192,
+              },
+              {
+                id: "MiniMax-VL-01",
+                name: "MiniMax VL-01",
+                reasoning: false,
+                input: ["text", "image"],
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 200000,
+                maxTokens: 8192,
+              },
+            ],
+          },
+        },
+      },
     };
     const tool = createImageTool({ config: cfg, agentDir });
     expect(tool).not.toBeNull();
@@ -326,6 +384,35 @@ describe("image tool MiniMax VLM routing", () => {
     vi.stubEnv("MINIMAX_API_KEY", "minimax-test");
     const cfg: SpecialAgentConfig = {
       agents: { defaults: { model: { primary: "minimax/MiniMax-M2.1" } } },
+      models: {
+        providers: {
+          minimax: {
+            baseUrl: "https://api.minimax.chat/v1",
+            apiKey: "MINIMAX_API_KEY",
+            api: "anthropic-messages",
+            models: [
+              {
+                id: "MiniMax-M2.1",
+                name: "MiniMax M2.1",
+                reasoning: false,
+                input: ["text"],
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 200000,
+                maxTokens: 8192,
+              },
+              {
+                id: "MiniMax-VL-01",
+                name: "MiniMax VL-01",
+                reasoning: false,
+                input: ["text", "image"],
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 200000,
+                maxTokens: 8192,
+              },
+            ],
+          },
+        },
+      },
     };
     const tool = createImageTool({ config: cfg, agentDir });
     expect(tool).not.toBeNull();

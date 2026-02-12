@@ -12,8 +12,8 @@ import { parseSendPolicyCommand } from "./send-policy.js";
 const createRegistry = () =>
   createTestRegistry([
     {
-      pluginId: "discord",
-      plugin: createOutboundTestPlugin({ id: "discord", outbound: { deliveryMode: "direct" } }),
+      pluginId: "msteams",
+      plugin: createOutboundTestPlugin({ id: "msteams", outbound: { deliveryMode: "direct" } }),
       source: "test",
     },
   ]);
@@ -75,12 +75,12 @@ describe("resolveCommandAuthorization", () => {
 
   it("falls back to From when SenderId and SenderE164 are whitespace", () => {
     const cfg = {
-      channels: { whatsapp: { allowFrom: ["+999"] } },
+      channels: { msteams: { allowFrom: ["whatsapp:+999"] } },
     } as SpecialAgentConfig;
 
     const ctx = {
-      Provider: "whatsapp",
-      Surface: "whatsapp",
+      Provider: "msteams",
+      Surface: "msteams",
       From: "whatsapp:+999",
       SenderId: "   ",
       SenderE164: "   ",
@@ -92,19 +92,17 @@ describe("resolveCommandAuthorization", () => {
       commandAuthorized: true,
     });
 
-    expect(auth.senderId).toBe("+999");
+    expect(auth.senderId).toBe("whatsapp:+999");
     expect(auth.isAuthorizedSender).toBe(true);
   });
 
-  it("falls back from un-normalizable SenderId to SenderE164", () => {
-    const cfg = {
-      channels: { whatsapp: { allowFrom: ["+123"] } },
-    } as SpecialAgentConfig;
+  it("uses SenderId as primary when provider is not whatsapp", () => {
+    const cfg = {} as SpecialAgentConfig;
 
     const ctx = {
-      Provider: "whatsapp",
-      Surface: "whatsapp",
-      From: "whatsapp:+999",
+      Provider: "msteams",
+      Surface: "msteams",
+      From: "msteams:+999",
       SenderId: "wat",
       SenderE164: "+123",
     } as MsgContext;
@@ -115,19 +113,17 @@ describe("resolveCommandAuthorization", () => {
       commandAuthorized: true,
     });
 
-    expect(auth.senderId).toBe("+123");
+    expect(auth.senderId).toBe("wat");
     expect(auth.isAuthorizedSender).toBe(true);
   });
 
-  it("prefers SenderE164 when SenderId does not match allowFrom", () => {
-    const cfg = {
-      channels: { whatsapp: { allowFrom: ["+41796666864"] } },
-    } as SpecialAgentConfig;
+  it("uses SenderId as primary candidate for non-whatsapp channels", () => {
+    const cfg = {} as SpecialAgentConfig;
 
     const ctx = {
-      Provider: "whatsapp",
-      Surface: "whatsapp",
-      From: "whatsapp:120363401234567890@g.us",
+      Provider: "msteams",
+      Surface: "msteams",
+      From: "msteams:120363401234567890",
       SenderId: "123@lid",
       SenderE164: "+41796666864",
     } as MsgContext;
@@ -138,7 +134,7 @@ describe("resolveCommandAuthorization", () => {
       commandAuthorized: true,
     });
 
-    expect(auth.senderId).toBe("+41796666864");
+    expect(auth.senderId).toBe("123@lid");
     expect(auth.isAuthorizedSender).toBe(true);
   });
 
@@ -181,9 +177,9 @@ describe("resolveCommandAuthorization", () => {
     setActivePluginRegistry(
       createTestRegistry([
         {
-          pluginId: "discord",
+          pluginId: "msteams",
           plugin: createOutboundTestPlugin({
-            id: "discord",
+            id: "msteams",
             outbound: { deliveryMode: "direct" },
           }),
           source: "test",
@@ -191,15 +187,15 @@ describe("resolveCommandAuthorization", () => {
       ]),
     );
     const cfg = {
-      channels: { discord: {} },
+      channels: { msteams: {} },
     } as SpecialAgentConfig;
 
     const ctx = {
-      Provider: "discord",
-      Surface: "discord",
-      From: "discord:123",
+      Provider: "msteams",
+      Surface: "msteams",
+      From: "msteams:123",
       SenderId: "123",
-      OwnerAllowFrom: ["discord:123"],
+      OwnerAllowFrom: ["msteams:123"],
     } as MsgContext;
 
     const auth = resolveCommandAuthorization({
@@ -300,17 +296,16 @@ describe("resolveCommandAuthorization", () => {
         commands: {
           allowFrom: {
             "*": ["globaluser"],
-            whatsapp: ["+15551234567"],
+            msteams: ["user123"],
           },
         },
-        channels: { whatsapp: { allowFrom: ["*"] } },
       } as SpecialAgentConfig;
 
-      // User in global list but not in whatsapp-specific list
+      // User in global list but not in msteams-specific list
       const globalUserCtx = {
-        Provider: "whatsapp",
-        Surface: "whatsapp",
-        From: "whatsapp:globaluser",
+        Provider: "msteams",
+        Surface: "msteams",
+        From: "msteams:globaluser",
         SenderId: "globaluser",
       } as MsgContext;
 
@@ -323,21 +318,21 @@ describe("resolveCommandAuthorization", () => {
       // Provider-specific list overrides global, so globaluser is not authorized
       expect(globalAuth.isAuthorizedSender).toBe(false);
 
-      // User in whatsapp-specific list
-      const whatsappUserCtx = {
-        Provider: "whatsapp",
-        Surface: "whatsapp",
-        From: "whatsapp:+15551234567",
-        SenderE164: "+15551234567",
+      // User in msteams-specific list
+      const msteamsUserCtx = {
+        Provider: "msteams",
+        Surface: "msteams",
+        From: "msteams:user123",
+        SenderId: "user123",
       } as MsgContext;
 
-      const whatsappAuth = resolveCommandAuthorization({
-        ctx: whatsappUserCtx,
+      const msteamsAuth = resolveCommandAuthorization({
+        ctx: msteamsUserCtx,
         cfg,
         commandAuthorized: true,
       });
 
-      expect(whatsappAuth.isAuthorizedSender).toBe(true);
+      expect(msteamsAuth.isAuthorizedSender).toBe(true);
     });
 
     it("falls back to channel allowFrom when commands.allowFrom not set", () => {

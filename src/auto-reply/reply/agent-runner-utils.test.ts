@@ -6,7 +6,7 @@ import { buildThreadingToolContext } from "./agent-runner-utils.js";
 describe("buildThreadingToolContext", () => {
   const cfg = {} as SpecialAgentConfig;
 
-  it("uses conversation id for WhatsApp", () => {
+  it("uses To as currentChannelId for unregistered channels", () => {
     const sessionCtx = {
       Provider: "whatsapp",
       From: "123@g.us",
@@ -19,10 +19,11 @@ describe("buildThreadingToolContext", () => {
       hasRepliedRef: undefined,
     });
 
-    expect(result.currentChannelId).toBe("123@g.us");
+    // Without a registered channel dock, falls back to To
+    expect(result.currentChannelId).toBe("+15550001");
   });
 
-  it("falls back to To for WhatsApp when From is missing", () => {
+  it("falls back to To when From is missing", () => {
     const sessionCtx = {
       Provider: "whatsapp",
       To: "+15550001",
@@ -37,7 +38,7 @@ describe("buildThreadingToolContext", () => {
     expect(result.currentChannelId).toBe("+15550001");
   });
 
-  it("uses the recipient id for other channels", () => {
+  it("uses the recipient id for generic channels", () => {
     const sessionCtx = {
       Provider: "telegram",
       From: "user:42",
@@ -53,7 +54,7 @@ describe("buildThreadingToolContext", () => {
     expect(result.currentChannelId).toBe("chat:99");
   });
 
-  it("uses the sender handle for iMessage direct chats", () => {
+  it("uses To for unregistered channels regardless of chat type", () => {
     const sessionCtx = {
       Provider: "imessage",
       ChatType: "direct",
@@ -67,10 +68,11 @@ describe("buildThreadingToolContext", () => {
       hasRepliedRef: undefined,
     });
 
-    expect(result.currentChannelId).toBe("imessage:+15550001");
+    // Without a registered channel dock, falls back to To
+    expect(result.currentChannelId).toBe("chat_id:12");
   });
 
-  it("uses chat_id for iMessage groups", () => {
+  it("uses To for unregistered group channels", () => {
     const sessionCtx = {
       Provider: "imessage",
       ChatType: "group",
@@ -87,7 +89,7 @@ describe("buildThreadingToolContext", () => {
     expect(result.currentChannelId).toBe("chat_id:7");
   });
 
-  it("prefers MessageThreadId for Slack tool threading", () => {
+  it("uses To for unregistered channels without custom threading", () => {
     const sessionCtx = {
       Provider: "slack",
       To: "channel:C1",
@@ -96,11 +98,12 @@ describe("buildThreadingToolContext", () => {
 
     const result = buildThreadingToolContext({
       sessionCtx,
-      config: { channels: { slack: { replyToMode: "all" } } } as SpecialAgentConfig,
+      config: cfg,
       hasRepliedRef: undefined,
     });
 
-    expect(result.currentChannelId).toBe("C1");
-    expect(result.currentThreadTs).toBe("123.456");
+    // Without a registered channel dock, falls back to To (no thread extraction)
+    expect(result.currentChannelId).toBe("channel:C1");
+    expect(result.currentThreadTs).toBeUndefined();
   });
 });

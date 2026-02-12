@@ -5,33 +5,32 @@ import { resolveOutboundSessionRoute } from "./outbound-session.js";
 const baseConfig = {} as SpecialAgentConfig;
 
 describe("resolveOutboundSessionRoute", () => {
-  it("builds Slack thread session keys", async () => {
+  it("builds MS Teams channel session keys", async () => {
     const route = await resolveOutboundSessionRoute({
       cfg: baseConfig,
-      channel: "slack",
+      channel: "msteams",
       agentId: "main",
-      target: "channel:C123",
-      replyToId: "456",
+      target: "conversation:19:abc@thread.tacv2",
     });
 
-    expect(route?.sessionKey).toBe("agent:main:slack:channel:c123:thread:456");
-    expect(route?.from).toBe("slack:channel:C123");
-    expect(route?.to).toBe("channel:C123");
-    expect(route?.threadId).toBe("456");
+    expect(route?.sessionKey).toBe("agent:main:msteams:channel:19:abc@thread.tacv2");
+    expect(route?.from).toBe("msteams:channel:19:abc@thread.tacv2");
+    expect(route?.to).toBe("conversation:19:abc@thread.tacv2");
   });
 
-  it("uses Telegram topic ids in group session keys", async () => {
+  it("resolves fallback session for unregistered channels with per-channel-peer scope", async () => {
+    const cfg = { session: { dmScope: "per-channel-peer" } } as SpecialAgentConfig;
     const route = await resolveOutboundSessionRoute({
-      cfg: baseConfig,
+      cfg,
       channel: "telegram",
       agentId: "main",
-      target: "-100123456:topic:42",
+      target: "-100123456",
     });
 
-    expect(route?.sessionKey).toBe("agent:main:telegram:group:-100123456:topic:42");
-    expect(route?.from).toBe("telegram:group:-100123456:topic:42");
-    expect(route?.to).toBe("telegram:-100123456");
-    expect(route?.threadId).toBe(42);
+    // Without a registered channel, falls to fallback session resolver
+    expect(route?.sessionKey).toBe("agent:main:telegram:direct:-100123456");
+    expect(route?.from).toBe("telegram:-100123456");
+    expect(route?.chatType).toBe("direct");
   });
 
   it("treats Telegram usernames as DMs when unresolved", async () => {
@@ -92,25 +91,16 @@ describe("resolveOutboundSessionRoute", () => {
     expect(route?.chatType).toBe("direct");
   });
 
-  it("uses group session keys for Slack mpim allowlist entries", async () => {
-    const cfg = {
-      channels: {
-        slack: {
-          dm: {
-            groupChannels: ["G123"],
-          },
-        },
-      },
-    } as SpecialAgentConfig;
-
+  it("resolves MS Teams user session keys", async () => {
     const route = await resolveOutboundSessionRoute({
-      cfg,
-      channel: "slack",
+      cfg: baseConfig,
+      channel: "msteams",
       agentId: "main",
-      target: "channel:G123",
+      target: "user:29:abc-def-ghi",
     });
 
-    expect(route?.sessionKey).toBe("agent:main:slack:group:g123");
-    expect(route?.from).toBe("slack:group:G123");
+    expect(route?.sessionKey).toBe("agent:main:main");
+    expect(route?.from).toBe("msteams:29:abc-def-ghi");
+    expect(route?.chatType).toBe("direct");
   });
 });

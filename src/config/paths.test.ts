@@ -78,18 +78,6 @@ describe("state + config path candidates", () => {
       path.join(resolvedHome, ".special-agent", "special-agent.json"),
       path.join(resolvedHome, ".special-agent", "special-agent.json"),
       path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
-      path.join(resolvedHome, ".special-agent", "special-agent.json"),
     ];
     expect(candidates).toEqual(expected);
   });

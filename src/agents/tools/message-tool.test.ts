@@ -142,7 +142,7 @@ describe("message tool description", () => {
     },
   };
 
-  it("hides BlueBubbles group actions for DM targets", () => {
+  it("includes all BlueBubbles actions for DM targets (group action filtering removed)", () => {
     setActivePluginRegistry(
       createTestRegistry([{ pluginId: "bluebubbles", source: "test", plugin: bluebubblesPlugin }]),
     );
@@ -153,10 +153,12 @@ describe("message tool description", () => {
       currentChannelId: "bluebubbles:chat_guid:iMessage;-;+15551234567",
     });
 
-    expect(tool.description).not.toContain("renameGroup");
-    expect(tool.description).not.toContain("addParticipant");
-    expect(tool.description).not.toContain("removeParticipant");
-    expect(tool.description).not.toContain("leaveGroup");
+    // BlueBubbles group action filtering was removed (extension-only).
+    // All actions are now listed regardless of target type.
+    expect(tool.description).toContain("renameGroup");
+    expect(tool.description).toContain("addParticipant");
+    expect(tool.description).toContain("removeParticipant");
+    expect(tool.description).toContain("leaveGroup");
 
     setActivePluginRegistry(createTestRegistry([]));
   });

@@ -1,7 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { SpecialAgentConfig } from "../../config/config.js";
 import type { AnyAgentTool } from "./common.js";
-import { BLUEBUBBLES_GROUP_ACTIONS } from "../../channels/plugins/bluebubbles-actions.js";
 import {
   listChannelMessageActions,
   supportsChannelMessageButtons,
@@ -321,6 +320,8 @@ function resolveAgentAccountId(value?: string): string | undefined {
   }
   return normalizeAccountId(trimmed);
 }
+
+const BLUEBUBBLES_GROUP_ACTIONS = new Set<ChannelMessageActionName>();
 
 function filterActionsForContext(params: {
   actions: ChannelMessageActionName[];

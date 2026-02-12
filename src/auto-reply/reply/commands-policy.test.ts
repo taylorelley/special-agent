@@ -110,7 +110,9 @@ describe("handleCommands /allowlist", () => {
 
     expect(result.shouldContinue).toBe(false);
     expect(result.reply?.text).toContain("Channel: telegram");
-    expect(result.reply?.text).toContain("DM allowFrom (config): 123, @alice");
+    // Channel-specific allowFrom resolution was removed with core channels;
+    // dmAllowFrom is empty so the display shows (none)
+    expect(result.reply?.text).toContain("DM allowFrom (config): (none)");
     expect(result.reply?.text).toContain("Paired allowFrom (store): 456");
   });
 
@@ -166,15 +168,14 @@ describe("/models command", () => {
     expect(result.reply?.text).toContain("Use: /models <provider>");
   });
 
-  it("lists providers on telegram (buttons)", async () => {
+  it("lists providers on telegram (text, buttons removed)", async () => {
     const params = buildParams("/models", cfg, { Provider: "telegram", Surface: "telegram" });
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
-    expect(result.reply?.text).toBe("Select a provider:");
-    const buttons = (result.reply?.channelData as { telegram?: { buttons?: unknown[][] } })
-      ?.telegram?.buttons;
-    expect(buttons).toBeDefined();
-    expect(buttons?.length).toBeGreaterThan(0);
+    // Telegram button support was removed; now returns text output like other channels
+    expect(result.reply?.text).toContain("Providers:");
+    expect(result.reply?.text).toContain("anthropic");
+    expect(result.reply?.text).toContain("Use: /models <provider>");
   });
 
   it("lists provider models with pagination hints", async () => {

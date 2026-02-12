@@ -18,10 +18,12 @@ describe("noteMacLaunchctlGatewayEnvOverrides", () => {
 
     await noteMacLaunchctlGatewayEnvOverrides(cfg, { platform: "darwin", getenv, noteFn });
 
-    expect(noteFn).toHaveBeenCalledTimes(1);
+    // After rebrand, deprecated var names match current names, so BOTH
+    // the deprecated-entries block AND the overrides block fire.
+    expect(noteFn).toHaveBeenCalledTimes(2);
     expect(getenv).toHaveBeenCalledTimes(6);
 
-    const [message, title] = noteFn.mock.calls[0] ?? [];
+    const [message, title] = noteFn.mock.calls[1] ?? [];
     expect(title).toBe("Gateway (macOS)");
     expect(message).toContain("launchctl environment overrides detected");
     expect(message).toContain("SPECIAL_AGENT_GATEWAY_TOKEN");

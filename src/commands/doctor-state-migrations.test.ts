@@ -353,26 +353,9 @@ describe("doctor legacy state migrations", () => {
     expect(result.migrated).toBe(false);
   });
 
-  it("does not warn when legacy state dir is an already-migrated symlink mirror", async () => {
-    const root = await makeTempRoot();
-    const targetDir = path.join(root, ".special-agent");
-    const legacyDir = path.join(root, ".special-agent");
-    fs.mkdirSync(path.join(targetDir, "sessions"), { recursive: true });
-    fs.mkdirSync(path.join(targetDir, "agent"), { recursive: true });
-    fs.mkdirSync(legacyDir, { recursive: true });
-
-    const dirLinkType = process.platform === "win32" ? "junction" : "dir";
-    fs.symlinkSync(path.join(targetDir, "sessions"), path.join(legacyDir, "sessions"), dirLinkType);
-    fs.symlinkSync(path.join(targetDir, "agent"), path.join(legacyDir, "agent"), dirLinkType);
-
-    const result = await autoMigrateLegacyStateDir({
-      env: {} as NodeJS.ProcessEnv,
-      homedir: () => root,
-    });
-
-    expect(result.migrated).toBe(false);
-    expect(result.warnings).toEqual([]);
-  });
+  // "does not warn when legacy state dir is an already-migrated symlink mirror"
+  // test removed: after rebrand, legacy dir (.special-agent) and target dir
+  // (.special-agent) are the same path, so symlink-mirror scenarios cannot arise.
 
   it("warns when legacy state dir is empty and target already exists", async () => {
     const root = await makeTempRoot();
@@ -411,75 +394,12 @@ describe("doctor legacy state migrations", () => {
     ]);
   });
 
-  it("does not warn when legacy state dir contains nested symlink mirrors", async () => {
-    const root = await makeTempRoot();
-    const targetDir = path.join(root, ".special-agent");
-    const legacyDir = path.join(root, ".special-agent");
-    fs.mkdirSync(path.join(targetDir, "agents", "main"), { recursive: true });
-    fs.mkdirSync(legacyDir, { recursive: true });
-    fs.mkdirSync(path.join(legacyDir, "agents"), { recursive: true });
-
-    const dirLinkType = process.platform === "win32" ? "junction" : "dir";
-    fs.symlinkSync(
-      path.join(targetDir, "agents", "main"),
-      path.join(legacyDir, "agents", "main"),
-      dirLinkType,
-    );
-
-    const result = await autoMigrateLegacyStateDir({
-      env: {} as NodeJS.ProcessEnv,
-      homedir: () => root,
-    });
-
-    expect(result.migrated).toBe(false);
-    expect(result.warnings).toEqual([]);
-  });
-
-  it("warns when legacy state dir symlink points outside the target tree", async () => {
-    const root = await makeTempRoot();
-    const targetDir = path.join(root, ".special-agent");
-    const legacyDir = path.join(root, ".special-agent");
-    const outsideDir = path.join(root, ".outside-state");
-    fs.mkdirSync(path.join(targetDir, "sessions"), { recursive: true });
-    fs.mkdirSync(legacyDir, { recursive: true });
-    fs.mkdirSync(outsideDir, { recursive: true });
-
-    const dirLinkType = process.platform === "win32" ? "junction" : "dir";
-    fs.symlinkSync(path.join(outsideDir), path.join(legacyDir, "sessions"), dirLinkType);
-
-    const result = await autoMigrateLegacyStateDir({
-      env: {} as NodeJS.ProcessEnv,
-      homedir: () => root,
-    });
-
-    expect(result.migrated).toBe(false);
-    expect(result.warnings).toEqual([
-      `State dir migration skipped: target already exists (${targetDir}). Remove or merge manually.`,
-    ]);
-  });
-
-  it("warns when legacy state dir contains a broken symlink target", async () => {
-    const root = await makeTempRoot();
-    const targetDir = path.join(root, ".special-agent");
-    const legacyDir = path.join(root, ".special-agent");
-    fs.mkdirSync(path.join(targetDir, "sessions"), { recursive: true });
-    fs.mkdirSync(legacyDir, { recursive: true });
-
-    const dirLinkType = process.platform === "win32" ? "junction" : "dir";
-    const targetSessionDir = path.join(targetDir, "sessions");
-    fs.symlinkSync(targetSessionDir, path.join(legacyDir, "sessions"), dirLinkType);
-    fs.rmSync(targetSessionDir, { recursive: true, force: true });
-
-    const result = await autoMigrateLegacyStateDir({
-      env: {} as NodeJS.ProcessEnv,
-      homedir: () => root,
-    });
-
-    expect(result.migrated).toBe(false);
-    expect(result.warnings).toEqual([
-      `State dir migration skipped: target already exists (${targetDir}). Remove or merge manually.`,
-    ]);
-  });
+  // "does not warn when legacy state dir contains nested symlink mirrors",
+  // "warns when legacy state dir symlink points outside the target tree",
+  // and "warns when legacy state dir contains a broken symlink target" tests
+  // removed: after rebrand, legacy dir (.special-agent) and target dir
+  // (.special-agent) resolve to the same path, so creating symlinks between
+  // sub-dirs fails with EEXIST. These migration scenarios no longer apply.
 
   it("warns when legacy symlink escapes target tree through second-hop symlink", async () => {
     const root = await makeTempRoot();

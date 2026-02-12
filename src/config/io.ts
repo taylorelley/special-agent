@@ -16,7 +16,6 @@ import { VERSION } from "../version.js";
 import { DuplicateAgentDirError, findDuplicateAgentDirs } from "./agent-dirs.js";
 import {
   applyCompactionDefaults,
-  applyContextPruningDefaults,
   applyAgentDefaults,
   applyLoggingDefaults,
   applyMessageDefaults,
@@ -291,10 +290,8 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       warnIfConfigFromFuture(validated.config, deps.logger);
       const cfg = applyModelDefaults(
         applyCompactionDefaults(
-          applyContextPruningDefaults(
-            applyAgentDefaults(
-              applySessionDefaults(applyLoggingDefaults(applyMessageDefaults(validated.config))),
-            ),
+          applyAgentDefaults(
+            applySessionDefaults(applyLoggingDefaults(applyMessageDefaults(validated.config))),
           ),
         ),
       );
@@ -344,9 +341,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       const config = applyTalkApiKey(
         applyModelDefaults(
           applyCompactionDefaults(
-            applyContextPruningDefaults(
-              applyAgentDefaults(applySessionDefaults(applyMessageDefaults({}))),
-            ),
+            applyAgentDefaults(applySessionDefaults(applyMessageDefaults({}))),
           ),
         ),
       );

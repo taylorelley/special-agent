@@ -1,16 +1,6 @@
 import type { SpecialAgentConfig } from "./config.js";
 import { normalizeProviderId } from "../agents/model-selection.js";
-import {
-  getChannelPluginCatalogEntry,
-  listChannelPluginCatalogEntries,
-} from "../channels/plugins/catalog.js";
-import {
-  getChatChannelMeta,
-  listChatChannels,
-  normalizeChatChannelId,
-} from "../channels/registry.js";
 import { isRecord } from "../utils.js";
-import { hasAnyWhatsAppAuth } from "../web/accounts.js";
 
 type PluginEnableChange = {
   pluginId: string;
@@ -22,20 +12,9 @@ export type PluginAutoEnableResult = {
   changes: string[];
 };
 
-const CHANNEL_PLUGIN_IDS = Array.from(
-  new Set([
-    ...listChatChannels().map((meta) => meta.id),
-    ...listChannelPluginCatalogEntries().map((entry) => entry.id),
-  ]),
-);
+const CHANNEL_PLUGIN_IDS: string[] = [];
 
-const PROVIDER_PLUGIN_IDS: Array<{ pluginId: string; providerId: string }> = [
-  { pluginId: "google-antigravity-auth", providerId: "google-antigravity" },
-  { pluginId: "google-gemini-cli-auth", providerId: "google-gemini-cli" },
-  { pluginId: "qwen-portal-auth", providerId: "qwen-portal" },
-  { pluginId: "copilot-proxy", providerId: "copilot-proxy" },
-  { pluginId: "minimax-portal-auth", providerId: "minimax-portal" },
-];
+const PROVIDER_PLUGIN_IDS: Array<{ pluginId: string; providerId: string }> = [];
 
 function hasNonEmptyString(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;
@@ -43,23 +22,6 @@ function hasNonEmptyString(value: unknown): boolean {
 
 function recordHasKeys(value: unknown): boolean {
   return isRecord(value) && Object.keys(value).length > 0;
-}
-
-function accountsHaveKeys(value: unknown, keys: string[]): boolean {
-  if (!isRecord(value)) {
-    return false;
-  }
-  for (const account of Object.values(value)) {
-    if (!isRecord(account)) {
-      continue;
-    }
-    for (const key of keys) {
-      if (hasNonEmptyString(account[key])) {
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 function resolveChannelConfig(
@@ -71,124 +33,6 @@ function resolveChannelConfig(
   return isRecord(entry) ? entry : null;
 }
 
-function isTelegramConfigured(cfg: SpecialAgentConfig, env: NodeJS.ProcessEnv): boolean {
-  if (hasNonEmptyString(env.TELEGRAM_BOT_TOKEN)) {
-    return true;
-  }
-  const entry = resolveChannelConfig(cfg, "telegram");
-  if (!entry) {
-    return false;
-  }
-  if (hasNonEmptyString(entry.botToken) || hasNonEmptyString(entry.tokenFile)) {
-    return true;
-  }
-  if (accountsHaveKeys(entry.accounts, ["botToken", "tokenFile"])) {
-    return true;
-  }
-  return recordHasKeys(entry);
-}
-
-function isDiscordConfigured(cfg: SpecialAgentConfig, env: NodeJS.ProcessEnv): boolean {
-  if (hasNonEmptyString(env.DISCORD_BOT_TOKEN)) {
-    return true;
-  }
-  const entry = resolveChannelConfig(cfg, "discord");
-  if (!entry) {
-    return false;
-  }
-  if (hasNonEmptyString(entry.token)) {
-    return true;
-  }
-  if (accountsHaveKeys(entry.accounts, ["token"])) {
-    return true;
-  }
-  return recordHasKeys(entry);
-}
-
-function isIrcConfigured(cfg: SpecialAgentConfig, env: NodeJS.ProcessEnv): boolean {
-  if (hasNonEmptyString(env.IRC_HOST) && hasNonEmptyString(env.IRC_NICK)) {
-    return true;
-  }
-  const entry = resolveChannelConfig(cfg, "irc");
-  if (!entry) {
-    return false;
-  }
-  if (hasNonEmptyString(entry.host) || hasNonEmptyString(entry.nick)) {
-    return true;
-  }
-  if (accountsHaveKeys(entry.accounts, ["host", "nick"])) {
-    return true;
-  }
-  return recordHasKeys(entry);
-}
-
-function isSlackConfigured(cfg: SpecialAgentConfig, env: NodeJS.ProcessEnv): boolean {
-  if (
-    hasNonEmptyString(env.SLACK_BOT_TOKEN) ||
-    hasNonEmptyString(env.SLACK_APP_TOKEN) ||
-    hasNonEmptyString(env.SLACK_USER_TOKEN)
-  ) {
-    return true;
-  }
-  const entry = resolveChannelConfig(cfg, "slack");
-  if (!entry) {
-    return false;
-  }
-  if (
-    hasNonEmptyString(entry.botToken) ||
-    hasNonEmptyString(entry.appToken) ||
-    hasNonEmptyString(entry.userToken)
-  ) {
-    return true;
-  }
-  if (accountsHaveKeys(entry.accounts, ["botToken", "appToken", "userToken"])) {
-    return true;
-  }
-  return recordHasKeys(entry);
-}
-
-function isSignalConfigured(cfg: SpecialAgentConfig): boolean {
-  const entry = resolveChannelConfig(cfg, "signal");
-  if (!entry) {
-    return false;
-  }
-  if (
-    hasNonEmptyString(entry.account) ||
-    hasNonEmptyString(entry.httpUrl) ||
-    hasNonEmptyString(entry.httpHost) ||
-    typeof entry.httpPort === "number" ||
-    hasNonEmptyString(entry.cliPath)
-  ) {
-    return true;
-  }
-  if (accountsHaveKeys(entry.accounts, ["account", "httpUrl", "httpHost", "cliPath"])) {
-    return true;
-  }
-  return recordHasKeys(entry);
-}
-
-function isIMessageConfigured(cfg: SpecialAgentConfig): boolean {
-  const entry = resolveChannelConfig(cfg, "imessage");
-  if (!entry) {
-    return false;
-  }
-  if (hasNonEmptyString(entry.cliPath)) {
-    return true;
-  }
-  return recordHasKeys(entry);
-}
-
-function isWhatsAppConfigured(cfg: SpecialAgentConfig): boolean {
-  if (hasAnyWhatsAppAuth(cfg)) {
-    return true;
-  }
-  const entry = resolveChannelConfig(cfg, "whatsapp");
-  if (!entry) {
-    return false;
-  }
-  return recordHasKeys(entry);
-}
-
 function isGenericChannelConfigured(cfg: SpecialAgentConfig, channelId: string): boolean {
   const entry = resolveChannelConfig(cfg, channelId);
   return recordHasKeys(entry);
@@ -197,26 +41,9 @@ function isGenericChannelConfigured(cfg: SpecialAgentConfig, channelId: string):
 export function isChannelConfigured(
   cfg: SpecialAgentConfig,
   channelId: string,
-  env: NodeJS.ProcessEnv = process.env,
+  _env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  switch (channelId) {
-    case "whatsapp":
-      return isWhatsAppConfigured(cfg);
-    case "telegram":
-      return isTelegramConfigured(cfg, env);
-    case "discord":
-      return isDiscordConfigured(cfg, env);
-    case "irc":
-      return isIrcConfigured(cfg, env);
-    case "slack":
-      return isSlackConfigured(cfg, env);
-    case "signal":
-      return isSignalConfigured(cfg);
-    case "imessage":
-      return isIMessageConfigured(cfg);
-    default:
-      return isGenericChannelConfigured(cfg, channelId);
-  }
+  return isGenericChannelConfigured(cfg, channelId);
 }
 
 function collectModelRefs(cfg: SpecialAgentConfig): string[] {
@@ -356,13 +183,8 @@ function isPluginDenied(cfg: SpecialAgentConfig, pluginId: string): boolean {
   return Array.isArray(deny) && deny.includes(pluginId);
 }
 
-function resolvePreferredOverIds(pluginId: string): string[] {
-  const normalized = normalizeChatChannelId(pluginId);
-  if (normalized) {
-    return getChatChannelMeta(normalized).preferOver ?? [];
-  }
-  const catalogEntry = getChannelPluginCatalogEntry(pluginId);
-  return catalogEntry?.meta.preferOver ?? [];
+function resolvePreferredOverIds(_pluginId: string): string[] {
+  return [];
 }
 
 function shouldSkipPreferredPluginAutoEnable(
@@ -420,12 +242,7 @@ function registerPluginEntry(cfg: SpecialAgentConfig, pluginId: string): Special
 }
 
 function formatAutoEnableChange(entry: PluginEnableChange): string {
-  let reason = entry.reason.trim();
-  const channelId = normalizeChatChannelId(entry.pluginId);
-  if (channelId) {
-    const label = getChatChannelMeta(channelId).label;
-    reason = reason.replace(new RegExp(`^${channelId}\\b`, "i"), label);
-  }
+  const reason = entry.reason.trim();
   return `${reason}, not enabled yet.`;
 }
 

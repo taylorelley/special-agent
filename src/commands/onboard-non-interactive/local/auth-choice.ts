@@ -11,18 +11,13 @@ import { buildTokenProfileId, validateAnthropicSetupToken } from "../../auth-tok
 import { applyGoogleGeminiModelDefault } from "../../google-gemini-model-default.js";
 import {
   applyAuthProfileConfig,
-  applyCloudflareAiGatewayConfig,
   applyQianfanConfig,
   applyKimiCodeConfig,
   applyMinimaxApiConfig,
   applyMinimaxConfig,
   applyMoonshotConfig,
   applyMoonshotConfigCn,
-  applyOpencodeZenConfig,
   applyOpenrouterConfig,
-  applySyntheticConfig,
-  applyVeniceConfig,
-  applyTogetherConfig,
   applyVercelAiGatewayConfig,
   applyLitellmConfig,
   applyXaiConfig,
@@ -394,10 +389,7 @@ export async function applyNonInteractiveAuthChoice(params: {
       provider: "cloudflare-ai-gateway",
       mode: "api_key",
     });
-    return applyCloudflareAiGatewayConfig(nextConfig, {
-      accountId,
-      gatewayId,
-    });
+    return nextConfig;
   }
 
   if (authChoice === "moonshot-api-key") {
@@ -489,7 +481,7 @@ export async function applyNonInteractiveAuthChoice(params: {
       provider: "synthetic",
       mode: "api_key",
     });
-    return applySyntheticConfig(nextConfig);
+    return nextConfig;
   }
 
   if (authChoice === "venice-api-key") {
@@ -512,7 +504,7 @@ export async function applyNonInteractiveAuthChoice(params: {
       provider: "venice",
       mode: "api_key",
     });
-    return applyVeniceConfig(nextConfig);
+    return nextConfig;
   }
 
   if (
@@ -568,7 +560,7 @@ export async function applyNonInteractiveAuthChoice(params: {
       provider: "opencode",
       mode: "api_key",
     });
-    return applyOpencodeZenConfig(nextConfig);
+    return nextConfig;
   }
 
   if (authChoice === "together-api-key") {
@@ -591,7 +583,7 @@ export async function applyNonInteractiveAuthChoice(params: {
       provider: "together",
       mode: "api_key",
     });
-    return applyTogetherConfig(nextConfig);
+    return nextConfig;
   }
 
   if (

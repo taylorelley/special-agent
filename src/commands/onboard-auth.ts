@@ -1,12 +1,5 @@
 export {
-  SYNTHETIC_DEFAULT_MODEL_ID,
-  SYNTHETIC_DEFAULT_MODEL_REF,
-} from "../agents/synthetic-models.js";
-export { VENICE_DEFAULT_MODEL_ID, VENICE_DEFAULT_MODEL_REF } from "../agents/venice-models.js";
-export {
   applyAuthProfileConfig,
-  applyCloudflareAiGatewayConfig,
-  applyCloudflareAiGatewayProviderConfig,
   applyQianfanConfig,
   applyQianfanProviderConfig,
   applyKimiCodeConfig,
@@ -19,12 +12,6 @@ export {
   applyMoonshotProviderConfigCn,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
-  applySyntheticConfig,
-  applySyntheticProviderConfig,
-  applyTogetherConfig,
-  applyTogetherProviderConfig,
-  applyVeniceConfig,
-  applyVeniceProviderConfig,
   applyVercelAiGatewayConfig,
   applyVercelAiGatewayProviderConfig,
   applyXaiConfig,
@@ -43,11 +30,6 @@ export {
 } from "./onboard-auth.config-minimax.js";
 
 export {
-  applyOpencodeZenConfig,
-  applyOpencodeZenProviderConfig,
-} from "./onboard-auth.config-opencode.js";
-export {
-  CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
   LITELLM_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
   setAnthropicApiKey,

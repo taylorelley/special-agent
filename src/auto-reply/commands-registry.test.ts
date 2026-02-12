@@ -122,24 +122,26 @@ describe("commands registry", () => {
 
   it("respects text command gating", () => {
     const cfg = { commands: { text: false } };
+    // With no core channels registered, no surface is a "native command surface",
+    // so text commands are always allowed when text: false (only native surfaces are gated)
     expect(
       shouldHandleTextCommands({
         cfg,
-        surface: "discord",
-        commandSource: "text",
-      }),
-    ).toBe(false);
-    expect(
-      shouldHandleTextCommands({
-        cfg,
-        surface: "whatsapp",
+        surface: "msteams",
         commandSource: "text",
       }),
     ).toBe(true);
     expect(
       shouldHandleTextCommands({
         cfg,
-        surface: "discord",
+        surface: "unknown-channel",
+        commandSource: "text",
+      }),
+    ).toBe(true);
+    expect(
+      shouldHandleTextCommands({
+        cfg,
+        surface: "msteams",
         commandSource: "native",
       }),
     ).toBe(true);
@@ -167,8 +169,9 @@ describe("commands registry", () => {
     );
   });
 
-  it("normalizes dock command aliases", () => {
-    expect(normalizeCommandBody("/dock_telegram")).toBe("/dock-telegram");
+  it("keeps unregistered dock commands unchanged", () => {
+    // No core channel docks are registered, so /dock_telegram is not a known alias
+    expect(normalizeCommandBody("/dock_telegram")).toBe("/dock_telegram");
   });
 });
 

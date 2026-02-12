@@ -56,7 +56,12 @@ vi.mock("../logging/subsystem.js", () => ({
   },
 }));
 
-vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
+vi.mock("node:child_process", () => ({
+  spawn: vi.fn(),
+  execFile: vi.fn((_cmd: string, _args: string[], _opts: unknown, cb: Function) => {
+    cb(null, "", "");
+  }),
+}));
 
 import { spawn as mockedSpawn } from "node:child_process";
 import type { SpecialAgentConfig } from "../config/config.js";

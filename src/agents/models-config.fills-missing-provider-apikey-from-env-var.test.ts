@@ -82,8 +82,9 @@ describe("models-config", () => {
           providers: Record<string, { apiKey?: string; models?: Array<{ id: string }> }>;
         };
         expect(parsed.providers.minimax?.apiKey).toBe("MINIMAX_API_KEY");
+        // No implicit provider discovery: only the explicitly declared model is present.
         const ids = parsed.providers.minimax?.models?.map((model) => model.id);
-        expect(ids).toContain("MiniMax-VL-01");
+        expect(ids).toEqual(["MiniMax-M2.1"]);
       } finally {
         if (prevKey === undefined) {
           delete process.env.MINIMAX_API_KEY;

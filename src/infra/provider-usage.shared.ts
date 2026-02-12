@@ -3,27 +3,9 @@ import { normalizeProviderId } from "../agents/model-selection.js";
 
 export const DEFAULT_TIMEOUT_MS = 5000;
 
-export const PROVIDER_LABELS: Record<UsageProviderId, string> = {
-  anthropic: "Claude",
-  "github-copilot": "Copilot",
-  "google-gemini-cli": "Gemini",
-  "google-antigravity": "Antigravity",
-  minimax: "MiniMax",
-  "openai-codex": "Codex",
-  xiaomi: "Xiaomi",
-  zai: "z.ai",
-};
+export const PROVIDER_LABELS: Record<string, string> = {};
 
-export const usageProviders: UsageProviderId[] = [
-  "anthropic",
-  "github-copilot",
-  "google-gemini-cli",
-  "google-antigravity",
-  "minimax",
-  "openai-codex",
-  "xiaomi",
-  "zai",
-];
+export const usageProviders: UsageProviderId[] = [];
 
 export function resolveUsageProviderId(provider?: string | null): UsageProviderId | undefined {
   if (!provider) {

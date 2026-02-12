@@ -17,12 +17,4 @@ export type UsageSummary = {
   providers: ProviderUsageSnapshot[];
 };
 
-export type UsageProviderId =
-  | "anthropic"
-  | "github-copilot"
-  | "google-gemini-cli"
-  | "google-antigravity"
-  | "minimax"
-  | "openai-codex"
-  | "xiaomi"
-  | "zai";
+export type UsageProviderId = string;

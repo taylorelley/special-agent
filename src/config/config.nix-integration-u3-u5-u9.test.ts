@@ -168,12 +168,8 @@ describe("Nix integration (U3, U5, U9)", () => {
                 ],
               },
               channels: {
-                whatsapp: {
-                  accounts: {
-                    personal: {
-                      authDir: "~/.special-agent/credentials/wa-personal",
-                    },
-                  },
+                msteams: {
+                  tenantId: "test-tenant",
                 },
               },
             },
@@ -194,9 +190,7 @@ describe("Nix integration (U3, U5, U9)", () => {
           path.join(home, ".special-agent", "agents", "main"),
         );
         expect(cfg.agents?.list?.[0]?.sandbox?.workspaceRoot).toBe(path.join(home, "sandbox-root"));
-        expect(cfg.channels?.whatsapp?.accounts?.personal?.authDir).toBe(
-          path.join(home, ".special-agent", "credentials", "wa-personal"),
-        );
+        expect(cfg.channels?.msteams?.tenantId).toBe("test-tenant");
       });
     });
   });
@@ -224,70 +218,5 @@ describe("Nix integration (U3, U5, U9)", () => {
     });
   });
 
-  describe("U9: telegram.tokenFile schema validation", () => {
-    it("accepts config with only botToken", async () => {
-      await withTempHome(async (home) => {
-        const configDir = path.join(home, ".special-agent");
-        await fs.mkdir(configDir, { recursive: true });
-        await fs.writeFile(
-          path.join(configDir, "special-agent.json"),
-          JSON.stringify({
-            channels: { telegram: { botToken: "123:ABC" } },
-          }),
-          "utf-8",
-        );
-
-        vi.resetModules();
-        const { loadConfig } = await import("./config.js");
-        const cfg = loadConfig();
-        expect(cfg.channels?.telegram?.botToken).toBe("123:ABC");
-        expect(cfg.channels?.telegram?.tokenFile).toBeUndefined();
-      });
-    });
-
-    it("accepts config with only tokenFile", async () => {
-      await withTempHome(async (home) => {
-        const configDir = path.join(home, ".special-agent");
-        await fs.mkdir(configDir, { recursive: true });
-        await fs.writeFile(
-          path.join(configDir, "special-agent.json"),
-          JSON.stringify({
-            channels: { telegram: { tokenFile: "/run/agenix/telegram-token" } },
-          }),
-          "utf-8",
-        );
-
-        vi.resetModules();
-        const { loadConfig } = await import("./config.js");
-        const cfg = loadConfig();
-        expect(cfg.channels?.telegram?.tokenFile).toBe("/run/agenix/telegram-token");
-        expect(cfg.channels?.telegram?.botToken).toBeUndefined();
-      });
-    });
-
-    it("accepts config with both botToken and tokenFile", async () => {
-      await withTempHome(async (home) => {
-        const configDir = path.join(home, ".special-agent");
-        await fs.mkdir(configDir, { recursive: true });
-        await fs.writeFile(
-          path.join(configDir, "special-agent.json"),
-          JSON.stringify({
-            channels: {
-              telegram: {
-                botToken: "fallback:token",
-                tokenFile: "/run/agenix/telegram-token",
-              },
-            },
-          }),
-          "utf-8",
-        );
-
-        vi.resetModules();
-        const { loadConfig } = await import("./config.js");
-        const cfg = loadConfig();
-        expect(cfg.channels?.telegram?.botToken).toBe("fallback:token");
-        expect(cfg.channels?.telegram?.tokenFile).toBe("/run/agenix/telegram-token");
-      });
-    });
-  });
+  // U9 telegram.tokenFile tests removed: telegram channel is no longer a core channel.
 });

@@ -46,8 +46,10 @@ describe("message-channel", () => {
   });
 
   it("normalizes gateway message channels and rejects unknown values", () => {
-    expect(resolveGatewayMessageChannel("discord")).toBe("discord");
-    expect(resolveGatewayMessageChannel(" imsg ")).toBe("imessage");
+    // Core channels (discord, imessage, etc.) were removed; only extension
+    // channels registered via plugin registry are recognized now.
+    expect(resolveGatewayMessageChannel("discord")).toBeUndefined();
+    expect(resolveGatewayMessageChannel(" imsg ")).toBeUndefined();
     expect(resolveGatewayMessageChannel("web")).toBeUndefined();
     expect(resolveGatewayMessageChannel("nope")).toBeUndefined();
   });

@@ -8,19 +8,13 @@ import {
   applyLitellmProviderConfig,
   applyMinimaxApiConfig,
   applyMinimaxApiProviderConfig,
-  applyOpencodeZenConfig,
-  applyOpencodeZenProviderConfig,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
-  applySyntheticConfig,
-  applySyntheticProviderConfig,
   applyXaiConfig,
   applyXaiProviderConfig,
   applyXiaomiConfig,
   applyXiaomiProviderConfig,
   OPENROUTER_DEFAULT_MODEL_REF,
-  SYNTHETIC_DEFAULT_MODEL_ID,
-  SYNTHETIC_DEFAULT_MODEL_REF,
   XAI_DEFAULT_MODEL_REF,
   setMinimaxApiKey,
   writeOAuthCredentials,
@@ -303,51 +297,7 @@ describe("applyMinimaxApiProviderConfig", () => {
   });
 });
 
-describe("applySyntheticConfig", () => {
-  it("adds synthetic provider with correct settings", () => {
-    const cfg = applySyntheticConfig({});
-    expect(cfg.models?.providers?.synthetic).toMatchObject({
-      baseUrl: "https://api.synthetic.new/anthropic",
-      api: "anthropic-messages",
-    });
-  });
-
-  it("sets correct primary model", () => {
-    const cfg = applySyntheticConfig({});
-    expect(cfg.agents?.defaults?.model?.primary).toBe(SYNTHETIC_DEFAULT_MODEL_REF);
-  });
-
-  it("merges existing synthetic provider models", () => {
-    const cfg = applySyntheticProviderConfig({
-      models: {
-        providers: {
-          synthetic: {
-            baseUrl: "https://old.example.com",
-            apiKey: "old-key",
-            api: "openai-completions",
-            models: [
-              {
-                id: "old-model",
-                name: "Old",
-                reasoning: false,
-                input: ["text"],
-                cost: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0 },
-                contextWindow: 1000,
-                maxTokens: 100,
-              },
-            ],
-          },
-        },
-      },
-    });
-    expect(cfg.models?.providers?.synthetic?.baseUrl).toBe("https://api.synthetic.new/anthropic");
-    expect(cfg.models?.providers?.synthetic?.api).toBe("anthropic-messages");
-    expect(cfg.models?.providers?.synthetic?.apiKey).toBe("old-key");
-    const ids = cfg.models?.providers?.synthetic?.models.map((m) => m.id);
-    expect(ids).toContain("old-model");
-    expect(ids).toContain(SYNTHETIC_DEFAULT_MODEL_ID);
-  });
-});
+// applySyntheticConfig tests removed (provider stripped).
 
 describe("applyXiaomiConfig", () => {
   it("adds Xiaomi provider with correct settings", () => {
@@ -452,44 +402,7 @@ describe("applyXaiProviderConfig", () => {
   });
 });
 
-describe("applyOpencodeZenProviderConfig", () => {
-  it("adds allowlist entry for the default model", () => {
-    const cfg = applyOpencodeZenProviderConfig({});
-    const models = cfg.agents?.defaults?.models ?? {};
-    expect(Object.keys(models)).toContain("opencode/claude-opus-4-6");
-  });
-
-  it("preserves existing alias for the default model", () => {
-    const cfg = applyOpencodeZenProviderConfig({
-      agents: {
-        defaults: {
-          models: {
-            "opencode/claude-opus-4-6": { alias: "My Opus" },
-          },
-        },
-      },
-    });
-    expect(cfg.agents?.defaults?.models?.["opencode/claude-opus-4-6"]?.alias).toBe("My Opus");
-  });
-});
-
-describe("applyOpencodeZenConfig", () => {
-  it("sets correct primary model", () => {
-    const cfg = applyOpencodeZenConfig({});
-    expect(cfg.agents?.defaults?.model?.primary).toBe("opencode/claude-opus-4-6");
-  });
-
-  it("preserves existing model fallbacks", () => {
-    const cfg = applyOpencodeZenConfig({
-      agents: {
-        defaults: {
-          model: { fallbacks: ["anthropic/claude-opus-4-5"] },
-        },
-      },
-    });
-    expect(cfg.agents?.defaults?.model?.fallbacks).toEqual(["anthropic/claude-opus-4-5"]);
-  });
-});
+// applyOpencodeZenProviderConfig and applyOpencodeZenConfig tests removed (provider stripped).
 
 describe("applyOpenrouterProviderConfig", () => {
   it("adds allowlist entry for the default model", () => {

@@ -36,7 +36,7 @@ describe("config pruning defaults", () => {
     }
   });
 
-  it("enables cache-ttl pruning + 1h heartbeat for Anthropic OAuth", async () => {
+  it("does not auto-enable pruning for Anthropic OAuth (applyContextPruningDefaults removed)", async () => {
     await withTempHome(async (home) => {
       const configDir = path.join(home, ".special-agent");
       await fs.mkdir(configDir, { recursive: true });
@@ -61,13 +61,12 @@ describe("config pruning defaults", () => {
       const { loadConfig } = await import("./config.js");
       const cfg = loadConfig();
 
-      expect(cfg.agents?.defaults?.contextPruning?.mode).toBe("cache-ttl");
-      expect(cfg.agents?.defaults?.contextPruning?.ttl).toBe("1h");
-      expect(cfg.agents?.defaults?.heartbeat?.every).toBe("1h");
+      expect(cfg.agents?.defaults?.contextPruning?.mode).toBeUndefined();
+      expect(cfg.agents?.defaults?.heartbeat?.every).toBeUndefined();
     });
   });
 
-  it("enables cache-ttl pruning + 1h cache TTL for Anthropic API keys", async () => {
+  it("does not auto-enable pruning for Anthropic API keys (applyContextPruningDefaults removed)", async () => {
     await withTempHome(async (home) => {
       const configDir = path.join(home, ".special-agent");
       await fs.mkdir(configDir, { recursive: true });
@@ -96,12 +95,8 @@ describe("config pruning defaults", () => {
       const { loadConfig } = await import("./config.js");
       const cfg = loadConfig();
 
-      expect(cfg.agents?.defaults?.contextPruning?.mode).toBe("cache-ttl");
-      expect(cfg.agents?.defaults?.contextPruning?.ttl).toBe("1h");
-      expect(cfg.agents?.defaults?.heartbeat?.every).toBe("30m");
-      expect(
-        cfg.agents?.defaults?.models?.["anthropic/claude-opus-4-5"]?.params?.cacheRetention,
-      ).toBe("short");
+      expect(cfg.agents?.defaults?.contextPruning?.mode).toBeUndefined();
+      expect(cfg.agents?.defaults?.heartbeat?.every).toBeUndefined();
     });
   });
 

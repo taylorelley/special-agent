@@ -13,8 +13,6 @@ import {
 } from "./google-gemini-model-default.js";
 import {
   applyAuthProfileConfig,
-  applyCloudflareAiGatewayConfig,
-  applyCloudflareAiGatewayProviderConfig,
   applyQianfanConfig,
   applyQianfanProviderConfig,
   applyKimiCodeConfig,
@@ -25,49 +23,31 @@ import {
   applyMoonshotConfigCn,
   applyMoonshotProviderConfig,
   applyMoonshotProviderConfigCn,
-  applyOpencodeZenConfig,
-  applyOpencodeZenProviderConfig,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
-  applySyntheticConfig,
-  applySyntheticProviderConfig,
-  applyTogetherConfig,
-  applyTogetherProviderConfig,
-  applyVeniceConfig,
-  applyVeniceProviderConfig,
   applyVercelAiGatewayConfig,
   applyVercelAiGatewayProviderConfig,
   applyXiaomiConfig,
   applyXiaomiProviderConfig,
   applyZaiConfig,
-  CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
   LITELLM_DEFAULT_MODEL_REF,
   QIANFAN_DEFAULT_MODEL_REF,
   KIMI_CODING_MODEL_REF,
   MOONSHOT_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
-  SYNTHETIC_DEFAULT_MODEL_REF,
-  TOGETHER_DEFAULT_MODEL_REF,
-  VENICE_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   XIAOMI_DEFAULT_MODEL_REF,
-  setCloudflareAiGatewayConfig,
   setQianfanApiKey,
   setGeminiApiKey,
   setLitellmApiKey,
   setKimiCodingApiKey,
   setMoonshotApiKey,
-  setOpencodeZenApiKey,
   setOpenrouterApiKey,
-  setSyntheticApiKey,
-  setTogetherApiKey,
-  setVeniceApiKey,
   setVercelAiGatewayApiKey,
   setXiaomiApiKey,
   setZaiApiKey,
   ZAI_DEFAULT_MODEL_REF,
 } from "./onboard-auth.js";
-import { OPENCODE_ZEN_DEFAULT_MODEL } from "./opencode-zen-model-default.js";
 
 export async function applyAuthChoiceApiProviders(
   params: ApplyAuthChoiceParams,
@@ -97,8 +77,6 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "litellm-api-key";
     } else if (params.opts.tokenProvider === "vercel-ai-gateway") {
       authChoice = "ai-gateway-api-key";
-    } else if (params.opts.tokenProvider === "cloudflare-ai-gateway") {
-      authChoice = "cloudflare-ai-gateway-api-key";
     } else if (params.opts.tokenProvider === "moonshot") {
       authChoice = "moonshot-api-key";
     } else if (
@@ -112,14 +90,6 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "zai-api-key";
     } else if (params.opts.tokenProvider === "xiaomi") {
       authChoice = "xiaomi-api-key";
-    } else if (params.opts.tokenProvider === "synthetic") {
-      authChoice = "synthetic-api-key";
-    } else if (params.opts.tokenProvider === "venice") {
-      authChoice = "venice-api-key";
-    } else if (params.opts.tokenProvider === "together") {
-      authChoice = "together-api-key";
-    } else if (params.opts.tokenProvider === "opencode") {
-      authChoice = "opencode-zen";
     } else if (params.opts.tokenProvider === "qianfan") {
       authChoice = "qianfan-api-key";
     }
@@ -309,105 +279,6 @@ export async function applyAuthChoiceApiProviders(
         applyDefaultConfig: applyVercelAiGatewayConfig,
         applyProviderConfig: applyVercelAiGatewayProviderConfig,
         noteDefault: VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
-        noteAgentModel,
-        prompter: params.prompter,
-      });
-      nextConfig = applied.config;
-      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
-    }
-    return { config: nextConfig, agentModelOverride };
-  }
-
-  if (authChoice === "cloudflare-ai-gateway-api-key") {
-    let hasCredential = false;
-    let accountId = params.opts?.cloudflareAiGatewayAccountId?.trim() ?? "";
-    let gatewayId = params.opts?.cloudflareAiGatewayGatewayId?.trim() ?? "";
-
-    const ensureAccountGateway = async () => {
-      if (!accountId) {
-        const value = await params.prompter.text({
-          message: "Enter Cloudflare Account ID",
-          validate: (val) => (String(val).trim() ? undefined : "Account ID is required"),
-        });
-        accountId = String(value).trim();
-      }
-      if (!gatewayId) {
-        const value = await params.prompter.text({
-          message: "Enter Cloudflare AI Gateway ID",
-          validate: (val) => (String(val).trim() ? undefined : "Gateway ID is required"),
-        });
-        gatewayId = String(value).trim();
-      }
-    };
-
-    const optsApiKey = normalizeApiKeyInput(params.opts?.cloudflareAiGatewayApiKey ?? "");
-    if (!hasCredential && accountId && gatewayId && optsApiKey) {
-      await setCloudflareAiGatewayConfig(accountId, gatewayId, optsApiKey, params.agentDir);
-      hasCredential = true;
-    }
-
-    const envKey = resolveEnvApiKey("cloudflare-ai-gateway");
-    if (!hasCredential && envKey) {
-      const useExisting = await params.prompter.confirm({
-        message: `Use existing CLOUDFLARE_AI_GATEWAY_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
-        initialValue: true,
-      });
-      if (useExisting) {
-        await ensureAccountGateway();
-        await setCloudflareAiGatewayConfig(
-          accountId,
-          gatewayId,
-          normalizeApiKeyInput(envKey.apiKey),
-          params.agentDir,
-        );
-        hasCredential = true;
-      }
-    }
-
-    if (!hasCredential && optsApiKey) {
-      await ensureAccountGateway();
-      await setCloudflareAiGatewayConfig(accountId, gatewayId, optsApiKey, params.agentDir);
-      hasCredential = true;
-    }
-
-    if (!hasCredential) {
-      await ensureAccountGateway();
-      const key = await params.prompter.text({
-        message: "Enter Cloudflare AI Gateway API key",
-        validate: validateApiKeyInput,
-      });
-      await setCloudflareAiGatewayConfig(
-        accountId,
-        gatewayId,
-        normalizeApiKeyInput(String(key)),
-        params.agentDir,
-      );
-      hasCredential = true;
-    }
-
-    if (hasCredential) {
-      nextConfig = applyAuthProfileConfig(nextConfig, {
-        profileId: "cloudflare-ai-gateway:default",
-        provider: "cloudflare-ai-gateway",
-        mode: "api_key",
-      });
-    }
-    {
-      const applied = await applyDefaultModelChoice({
-        config: nextConfig,
-        setDefaultModel: params.setDefaultModel,
-        defaultModel: CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
-        applyDefaultConfig: (cfg) =>
-          applyCloudflareAiGatewayConfig(cfg, {
-            accountId: accountId || params.opts?.cloudflareAiGatewayAccountId,
-            gatewayId: gatewayId || params.opts?.cloudflareAiGatewayGatewayId,
-          }),
-        applyProviderConfig: (cfg) =>
-          applyCloudflareAiGatewayProviderConfig(cfg, {
-            accountId: accountId || params.opts?.cloudflareAiGatewayAccountId,
-            gatewayId: gatewayId || params.opts?.cloudflareAiGatewayGatewayId,
-          }),
-        noteDefault: CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
         noteAgentModel,
         prompter: params.prompter,
       });
@@ -721,212 +592,6 @@ export async function applyAuthChoiceApiProviders(
         applyDefaultConfig: applyXiaomiConfig,
         applyProviderConfig: applyXiaomiProviderConfig,
         noteDefault: XIAOMI_DEFAULT_MODEL_REF,
-        noteAgentModel,
-        prompter: params.prompter,
-      });
-      nextConfig = applied.config;
-      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
-    }
-    return { config: nextConfig, agentModelOverride };
-  }
-
-  if (authChoice === "synthetic-api-key") {
-    if (params.opts?.token && params.opts?.tokenProvider === "synthetic") {
-      await setSyntheticApiKey(String(params.opts.token).trim(), params.agentDir);
-    } else {
-      const key = await params.prompter.text({
-        message: "Enter Synthetic API key",
-        validate: (value) => (value?.trim() ? undefined : "Required"),
-      });
-      await setSyntheticApiKey(String(key).trim(), params.agentDir);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "synthetic:default",
-      provider: "synthetic",
-      mode: "api_key",
-    });
-    {
-      const applied = await applyDefaultModelChoice({
-        config: nextConfig,
-        setDefaultModel: params.setDefaultModel,
-        defaultModel: SYNTHETIC_DEFAULT_MODEL_REF,
-        applyDefaultConfig: applySyntheticConfig,
-        applyProviderConfig: applySyntheticProviderConfig,
-        noteDefault: SYNTHETIC_DEFAULT_MODEL_REF,
-        noteAgentModel,
-        prompter: params.prompter,
-      });
-      nextConfig = applied.config;
-      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
-    }
-    return { config: nextConfig, agentModelOverride };
-  }
-
-  if (authChoice === "venice-api-key") {
-    let hasCredential = false;
-
-    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "venice") {
-      await setVeniceApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
-      hasCredential = true;
-    }
-
-    if (!hasCredential) {
-      await params.prompter.note(
-        [
-          "Venice AI provides privacy-focused inference with uncensored models.",
-          "Get your API key at: https://venice.ai/settings/api",
-          "Supports 'private' (fully private) and 'anonymized' (proxy) modes.",
-        ].join("\n"),
-        "Venice AI",
-      );
-    }
-
-    const envKey = resolveEnvApiKey("venice");
-    if (envKey) {
-      const useExisting = await params.prompter.confirm({
-        message: `Use existing VENICE_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
-        initialValue: true,
-      });
-      if (useExisting) {
-        await setVeniceApiKey(envKey.apiKey, params.agentDir);
-        hasCredential = true;
-      }
-    }
-    if (!hasCredential) {
-      const key = await params.prompter.text({
-        message: "Enter Venice AI API key",
-        validate: validateApiKeyInput,
-      });
-      await setVeniceApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "venice:default",
-      provider: "venice",
-      mode: "api_key",
-    });
-    {
-      const applied = await applyDefaultModelChoice({
-        config: nextConfig,
-        setDefaultModel: params.setDefaultModel,
-        defaultModel: VENICE_DEFAULT_MODEL_REF,
-        applyDefaultConfig: applyVeniceConfig,
-        applyProviderConfig: applyVeniceProviderConfig,
-        noteDefault: VENICE_DEFAULT_MODEL_REF,
-        noteAgentModel,
-        prompter: params.prompter,
-      });
-      nextConfig = applied.config;
-      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
-    }
-    return { config: nextConfig, agentModelOverride };
-  }
-
-  if (authChoice === "opencode-zen") {
-    let hasCredential = false;
-    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "opencode") {
-      await setOpencodeZenApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
-      hasCredential = true;
-    }
-
-    if (!hasCredential) {
-      await params.prompter.note(
-        [
-          "OpenCode Zen provides access to Claude, GPT, Gemini, and more models.",
-          "Get your API key at: https://opencode.ai/auth",
-          "OpenCode Zen bills per request. Check your OpenCode dashboard for details.",
-        ].join("\n"),
-        "OpenCode Zen",
-      );
-    }
-    const envKey = resolveEnvApiKey("opencode");
-    if (envKey) {
-      const useExisting = await params.prompter.confirm({
-        message: `Use existing OPENCODE_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
-        initialValue: true,
-      });
-      if (useExisting) {
-        await setOpencodeZenApiKey(envKey.apiKey, params.agentDir);
-        hasCredential = true;
-      }
-    }
-    if (!hasCredential) {
-      const key = await params.prompter.text({
-        message: "Enter OpenCode Zen API key",
-        validate: validateApiKeyInput,
-      });
-      await setOpencodeZenApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "opencode:default",
-      provider: "opencode",
-      mode: "api_key",
-    });
-    {
-      const applied = await applyDefaultModelChoice({
-        config: nextConfig,
-        setDefaultModel: params.setDefaultModel,
-        defaultModel: OPENCODE_ZEN_DEFAULT_MODEL,
-        applyDefaultConfig: applyOpencodeZenConfig,
-        applyProviderConfig: applyOpencodeZenProviderConfig,
-        noteDefault: OPENCODE_ZEN_DEFAULT_MODEL,
-        noteAgentModel,
-        prompter: params.prompter,
-      });
-      nextConfig = applied.config;
-      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
-    }
-    return { config: nextConfig, agentModelOverride };
-  }
-
-  if (authChoice === "together-api-key") {
-    let hasCredential = false;
-
-    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "together") {
-      await setTogetherApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
-      hasCredential = true;
-    }
-
-    if (!hasCredential) {
-      await params.prompter.note(
-        [
-          "Together AI provides access to leading open-source models including Llama, DeepSeek, Qwen, and more.",
-          "Get your API key at: https://api.together.xyz/settings/api-keys",
-        ].join("\n"),
-        "Together AI",
-      );
-    }
-
-    const envKey = resolveEnvApiKey("together");
-    if (envKey) {
-      const useExisting = await params.prompter.confirm({
-        message: `Use existing TOGETHER_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
-        initialValue: true,
-      });
-      if (useExisting) {
-        await setTogetherApiKey(envKey.apiKey, params.agentDir);
-        hasCredential = true;
-      }
-    }
-    if (!hasCredential) {
-      const key = await params.prompter.text({
-        message: "Enter Together AI API key",
-        validate: validateApiKeyInput,
-      });
-      await setTogetherApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "together:default",
-      provider: "together",
-      mode: "api_key",
-    });
-    {
-      const applied = await applyDefaultModelChoice({
-        config: nextConfig,
-        setDefaultModel: params.setDefaultModel,
-        defaultModel: TOGETHER_DEFAULT_MODEL_REF,
-        applyDefaultConfig: applyTogetherConfig,
-        applyProviderConfig: applyTogetherProviderConfig,
-        noteDefault: TOGETHER_DEFAULT_MODEL_REF,
         noteAgentModel,
         prompter: params.prompter,
       });

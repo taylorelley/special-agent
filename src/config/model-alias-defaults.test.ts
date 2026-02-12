@@ -4,7 +4,7 @@ import { DEFAULT_CONTEXT_TOKENS } from "../agents/defaults.js";
 import { applyModelDefaults } from "./defaults.js";
 
 describe("applyModelDefaults", () => {
-  it("adds default aliases when models are present", () => {
+  it("does not add default aliases since DEFAULT_MODEL_ALIASES is empty", () => {
     const cfg = {
       agents: {
         defaults: {
@@ -17,8 +17,8 @@ describe("applyModelDefaults", () => {
     } satisfies SpecialAgentConfig;
     const next = applyModelDefaults(cfg);
 
-    expect(next.agents?.defaults?.models?.["anthropic/claude-opus-4-6"]?.alias).toBe("opus");
-    expect(next.agents?.defaults?.models?.["openai/gpt-5.2"]?.alias).toBe("gpt");
+    expect(next.agents?.defaults?.models?.["anthropic/claude-opus-4-6"]?.alias).toBeUndefined();
+    expect(next.agents?.defaults?.models?.["openai/gpt-5.2"]?.alias).toBeUndefined();
   });
 
   it("does not override existing aliases", () => {
@@ -37,7 +37,7 @@ describe("applyModelDefaults", () => {
     expect(next.agents?.defaults?.models?.["anthropic/claude-opus-4-5"]?.alias).toBe("Opus");
   });
 
-  it("respects explicit empty alias disables", () => {
+  it("respects explicit empty alias and does not inject defaults", () => {
     const cfg = {
       agents: {
         defaults: {
@@ -52,9 +52,7 @@ describe("applyModelDefaults", () => {
     const next = applyModelDefaults(cfg);
 
     expect(next.agents?.defaults?.models?.["google/gemini-3-pro-preview"]?.alias).toBe("");
-    expect(next.agents?.defaults?.models?.["google/gemini-3-flash-preview"]?.alias).toBe(
-      "gemini-flash",
-    );
+    expect(next.agents?.defaults?.models?.["google/gemini-3-flash-preview"]?.alias).toBeUndefined();
   });
 
   it("fills missing model provider defaults", () => {

@@ -3,13 +3,7 @@ import path from "node:path";
 import { type SpecialAgentConfig, loadConfig } from "../config/config.js";
 import { isRecord } from "../utils.js";
 import { resolveSpecialAgentAgentDir } from "./agent-paths.js";
-import {
-  normalizeProviders,
-  type ProviderConfig,
-  resolveImplicitBedrockProvider,
-  resolveImplicitCopilotProvider,
-  resolveImplicitProviders,
-} from "./models-config.providers.js";
+import { normalizeProviders, type ProviderConfig } from "./models-config.providers.js";
 
 type ModelsConfig = NonNullable<SpecialAgentConfig["models"]>;
 
@@ -88,22 +82,7 @@ export async function ensureSpecialAgentModelsJson(
     : resolveSpecialAgentAgentDir();
 
   const explicitProviders = cfg.models?.providers ?? {};
-  const implicitProviders = await resolveImplicitProviders({ agentDir, explicitProviders });
-  const providers: Record<string, ProviderConfig> = mergeProviders({
-    implicit: implicitProviders,
-    explicit: explicitProviders,
-  });
-  const implicitBedrock = await resolveImplicitBedrockProvider({ agentDir, config: cfg });
-  if (implicitBedrock) {
-    const existing = providers["amazon-bedrock"];
-    providers["amazon-bedrock"] = existing
-      ? mergeProviderModels(implicitBedrock, existing)
-      : implicitBedrock;
-  }
-  const implicitCopilot = await resolveImplicitCopilotProvider({ agentDir });
-  if (implicitCopilot && !providers["github-copilot"]) {
-    providers["github-copilot"] = implicitCopilot;
-  }
+  const providers: Record<string, ProviderConfig> = { ...explicitProviders };
 
   if (Object.keys(providers).length === 0) {
     return { agentDir, wrote: false };
