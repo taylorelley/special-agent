@@ -16,7 +16,6 @@ import {
   applyXiaomiProviderConfig,
   OPENROUTER_DEFAULT_MODEL_REF,
   XAI_DEFAULT_MODEL_REF,
-  setMinimaxApiKey,
   writeOAuthCredentials,
 } from "./onboard-auth.js";
 
@@ -81,59 +80,6 @@ describe("writeOAuthCredentials", () => {
       refresh: "refresh-token",
       access: "access-token",
       type: "oauth",
-    });
-
-    await expect(
-      fs.readFile(path.join(tempStateDir, "agents", "main", "agent", "auth-profiles.json"), "utf8"),
-    ).rejects.toThrow();
-  });
-});
-
-describe("setMinimaxApiKey", () => {
-  const previousStateDir = process.env.SPECIAL_AGENT_STATE_DIR;
-  const previousAgentDir = process.env.SPECIAL_AGENT_AGENT_DIR;
-  const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
-  let tempStateDir: string | null = null;
-
-  afterEach(async () => {
-    if (tempStateDir) {
-      await fs.rm(tempStateDir, { recursive: true, force: true });
-      tempStateDir = null;
-    }
-    if (previousStateDir === undefined) {
-      delete process.env.SPECIAL_AGENT_STATE_DIR;
-    } else {
-      process.env.SPECIAL_AGENT_STATE_DIR = previousStateDir;
-    }
-    if (previousAgentDir === undefined) {
-      delete process.env.SPECIAL_AGENT_AGENT_DIR;
-    } else {
-      process.env.SPECIAL_AGENT_AGENT_DIR = previousAgentDir;
-    }
-    if (previousPiAgentDir === undefined) {
-      delete process.env.PI_CODING_AGENT_DIR;
-    } else {
-      process.env.PI_CODING_AGENT_DIR = previousPiAgentDir;
-    }
-  });
-
-  it("writes to SPECIAL_AGENT_AGENT_DIR when set", async () => {
-    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-minimax-"));
-    process.env.SPECIAL_AGENT_STATE_DIR = tempStateDir;
-    process.env.SPECIAL_AGENT_AGENT_DIR = path.join(tempStateDir, "custom-agent");
-    process.env.PI_CODING_AGENT_DIR = process.env.SPECIAL_AGENT_AGENT_DIR;
-
-    await setMinimaxApiKey("sk-minimax-test");
-
-    const customAuthPath = authProfilePathFor(requireAgentDir());
-    const raw = await fs.readFile(customAuthPath, "utf8");
-    const parsed = JSON.parse(raw) as {
-      profiles?: Record<string, { type?: string; provider?: string; key?: string }>;
-    };
-    expect(parsed.profiles?.["minimax:default"]).toMatchObject({
-      type: "api_key",
-      provider: "minimax",
-      key: "sk-minimax-test",
     });
 
     await expect(

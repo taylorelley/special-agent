@@ -1,7 +1,7 @@
 import type { ChannelId } from "../../channels/plugins/types.js";
 import type { SpecialAgentConfig } from "../../config/config.js";
 import type { OutboundChannel } from "../../infra/outbound/targets.js";
-import { DEFAULT_CHAT_CHANNEL } from "../../channels/registry.js";
+import { DEFAULT_CHAT_CHANNEL, resolveDefaultChatChannel } from "../../channels/registry.js";
 import {
   loadSessionStore,
   resolveAgentMainSessionKey,
@@ -51,7 +51,8 @@ export async function resolveDeliveryTarget(
       const selection = await resolveMessageChannelSelection({ cfg });
       fallbackChannel = selection.channel;
     } catch {
-      fallbackChannel = preliminary.lastChannel ?? DEFAULT_CHAT_CHANNEL;
+      fallbackChannel =
+        preliminary.lastChannel ?? resolveDefaultChatChannel() ?? DEFAULT_CHAT_CHANNEL;
     }
   }
 
@@ -66,7 +67,8 @@ export async function resolveDeliveryTarget(
       })
     : preliminary;
 
-  const channel = resolved.channel ?? fallbackChannel ?? DEFAULT_CHAT_CHANNEL;
+  const channel =
+    resolved.channel ?? fallbackChannel ?? resolveDefaultChatChannel() ?? DEFAULT_CHAT_CHANNEL;
   const mode = resolved.mode as "explicit" | "implicit";
   const toCandidate = resolved.to;
 

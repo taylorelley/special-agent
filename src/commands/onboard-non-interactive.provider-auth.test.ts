@@ -135,33 +135,6 @@ async function expectApiKeyProfile(params: {
 }
 
 describe("onboard (non-interactive): provider auth", () => {
-  it("stores xAI API key and sets default model", async () => {
-    await withOnboardEnv("special-agent-onboard-xai-", async ({ configPath, runtime }) => {
-      await runNonInteractive(
-        {
-          nonInteractive: true,
-          authChoice: "xai-api-key",
-          xaiApiKey: "xai-test-key",
-          skipHealth: true,
-          skipChannels: true,
-          skipSkills: true,
-          json: true,
-        },
-        runtime,
-      );
-
-      const cfg = await readJsonFile<{
-        auth?: { profiles?: Record<string, { provider?: string; mode?: string }> };
-        agents?: { defaults?: { model?: { primary?: string } } };
-      }>(configPath);
-
-      expect(cfg.auth?.profiles?.["xai:default"]?.provider).toBe("xai");
-      expect(cfg.auth?.profiles?.["xai:default"]?.mode).toBe("api_key");
-      expect(cfg.agents?.defaults?.model?.primary).toBe("xai/grok-4");
-      await expectApiKeyProfile({ profileId: "xai:default", provider: "xai", key: "xai-test-key" });
-    });
-  }, 60_000);
-
   it("stores Vercel AI Gateway API key and sets default model", async () => {
     await withOnboardEnv("special-agent-onboard-ai-gateway-", async ({ configPath, runtime }) => {
       await runNonInteractive(

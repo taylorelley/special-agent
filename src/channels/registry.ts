@@ -73,6 +73,18 @@ export function normalizeAnyChannelId(raw?: string | null): ChannelId | null {
   return hit?.plugin.id ?? null;
 }
 
+/**
+ * Resolves the default chat channel through the plugin registry.
+ * Returns null when the default channel plugin is not loaded.
+ */
+export function resolveDefaultChatChannel(): ChatChannelId | null {
+  try {
+    return normalizeChannelId(DEFAULT_CHAT_CHANNEL);
+  } catch {
+    return null;
+  }
+}
+
 export function formatChannelPrimerLine(meta: ChatChannelMeta): string {
   return `${meta.label}: ${meta.blurb}`;
 }

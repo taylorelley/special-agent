@@ -13,16 +13,10 @@ type AuthChoiceFlagOptions = Pick<
   | "openaiApiKey"
   | "openrouterApiKey"
   | "aiGatewayApiKey"
-  | "cloudflareAiGatewayApiKey"
   | "moonshotApiKey"
   | "kimiCodeApiKey"
-  | "syntheticApiKey"
-  | "veniceApiKey"
   | "zaiApiKey"
   | "xiaomiApiKey"
-  | "minimaxApiKey"
-  | "opencodeZenApiKey"
-  | "xaiApiKey"
   | "litellmApiKey"
 >;
 
@@ -32,20 +26,10 @@ const AUTH_CHOICE_FLAG_MAP = [
   { flag: "openaiApiKey", authChoice: "openai-api-key", label: "--openai-api-key" },
   { flag: "openrouterApiKey", authChoice: "openrouter-api-key", label: "--openrouter-api-key" },
   { flag: "aiGatewayApiKey", authChoice: "ai-gateway-api-key", label: "--ai-gateway-api-key" },
-  {
-    flag: "cloudflareAiGatewayApiKey",
-    authChoice: "cloudflare-ai-gateway-api-key",
-    label: "--cloudflare-ai-gateway-api-key",
-  },
   { flag: "moonshotApiKey", authChoice: "moonshot-api-key", label: "--moonshot-api-key" },
   { flag: "kimiCodeApiKey", authChoice: "kimi-code-api-key", label: "--kimi-code-api-key" },
-  { flag: "syntheticApiKey", authChoice: "synthetic-api-key", label: "--synthetic-api-key" },
-  { flag: "veniceApiKey", authChoice: "venice-api-key", label: "--venice-api-key" },
   { flag: "zaiApiKey", authChoice: "zai-api-key", label: "--zai-api-key" },
   { flag: "xiaomiApiKey", authChoice: "xiaomi-api-key", label: "--xiaomi-api-key" },
-  { flag: "xaiApiKey", authChoice: "xai-api-key", label: "--xai-api-key" },
-  { flag: "minimaxApiKey", authChoice: "minimax-api", label: "--minimax-api-key" },
-  { flag: "opencodeZenApiKey", authChoice: "opencode-zen", label: "--opencode-zen-api-key" },
   { flag: "litellmApiKey", authChoice: "litellm-api-key", label: "--litellm-api-key" },
 ] satisfies ReadonlyArray<AuthChoiceFlag>;
 
