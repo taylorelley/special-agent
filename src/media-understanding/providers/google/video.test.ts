@@ -15,25 +15,33 @@ const resolveRequestUrl = (input: RequestInfo | URL) => {
 };
 
 describe("describeGeminiVideo", () => {
+  let resolvePinnedHostnamePolicySpy: ReturnType<typeof vi.spyOn>;
   let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn>;
 
+  const stubPinnedHostname = async (hostname: string) => {
+    // SSRF guard pins DNS; stub resolution to avoid live lookups in unit tests.
+    const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
+    const addresses = [TEST_NET_IP];
+    return {
+      hostname: normalized,
+      addresses,
+      lookup: ssrf.createPinnedLookup({ hostname: normalized, addresses }),
+    };
+  };
+
   beforeEach(() => {
-    resolvePinnedHostnameSpy = vi
+    resolvePinnedHostnamePolicySpy = vi
       .spyOn(ssrf, "resolvePinnedHostnameWithPolicy")
-      .mockImplementation(async (hostname) => {
-        // SSRF guard pins DNS; stub resolution to avoid live lookups in unit tests.
-        const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
-        const addresses = [TEST_NET_IP];
-        return {
-          hostname: normalized,
-          addresses,
-          lookup: ssrf.createPinnedLookup({ hostname: normalized, addresses }),
-        };
-      });
+      .mockImplementation(stubPinnedHostname);
+    resolvePinnedHostnameSpy = vi
+      .spyOn(ssrf, "resolvePinnedHostname")
+      .mockImplementation(stubPinnedHostname);
   });
 
   afterEach(() => {
+    resolvePinnedHostnamePolicySpy?.mockRestore();
     resolvePinnedHostnameSpy?.mockRestore();
+    resolvePinnedHostnamePolicySpy = undefined;
     resolvePinnedHostnameSpy = undefined;
   });
 
