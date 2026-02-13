@@ -19,7 +19,7 @@
 </p>
 
 **Special Agent** is a _personal AI assistant_ you run on your own devices.
-It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
+It connects to messaging channels via a plugin-based architecture — Microsoft Teams ships as a bundled extension, and additional channels can be added as plugins. It also provides a built-in WebChat UI. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
 
 If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
 
@@ -30,12 +30,13 @@ The wizard guides you step by step through setting up the gateway, workspace, ch
 Works with npm, pnpm, or bun.
 New install? Start here: [Getting started](https://docs.openclaw.ai/start/getting-started)
 
-**Subscriptions (OAuth):**
+**Supported model APIs:**
 
-- **[Anthropic](https://www.anthropic.com/)** (Claude Pro/Max)
-- **[OpenAI](https://openai.com/)** (ChatGPT/Codex)
+- **[Anthropic](https://www.anthropic.com/)** — Claude models via OAuth or API key
+- **[OpenAI](https://openai.com/)** — GPT / Codex models via OAuth or API key
+- **[Google](https://ai.google.dev/)** — Gemini models via API key
 
-Model note: while any model is supported, I strongly recommend **Anthropic Pro/Max (100/200) + Opus 4.6** for long‑context strength and better prompt‑injection resistance. See [Onboarding](https://docs.openclaw.ai/start/onboarding).
+Model note: while any OpenAI-compatible provider can be configured explicitly, I strongly recommend **Anthropic Pro/Max (100/200) + Opus 4.6** for long‑context strength and better prompt‑injection resistance. See [Onboarding](https://docs.openclaw.ai/start/onboarding).
 
 ## Models (selection + auth)
 
@@ -69,7 +70,7 @@ special-agent gateway --port 18789 --verbose
 # Send a message
 special-agent message send --to +1234567890 --message "Hello from Special Agent"
 
-# Talk to the assistant (optionally deliver back to any connected channel: WhatsApp/Telegram/Slack/Discord/Google Chat/Signal/iMessage/BlueBubbles/Microsoft Teams/Matrix/Zalo/Zalo Personal/WebChat)
+# Talk to the assistant (optionally deliver back to a connected channel plugin or WebChat)
 special-agent agent --message "Ship checklist" --thinking high
 ```
 
@@ -110,22 +111,22 @@ Special Agent connects to real messaging surfaces. Treat inbound DMs as **untrus
 
 Full security guide: [Security](https://docs.openclaw.ai/gateway/security)
 
-Default behavior on Telegram/WhatsApp/Signal/iMessage/Microsoft Teams/Discord/Google Chat/Slack:
+Default behavior on channel plugins (e.g. Microsoft Teams):
 
-- **DM pairing** (`dmPolicy="pairing"` / `channels.discord.dm.policy="pairing"` / `channels.slack.dm.policy="pairing"`): unknown senders receive a short pairing code and the bot does not process their message.
+- **DM pairing** (`dmPolicy="pairing"`): unknown senders receive a short pairing code and the bot does not process their message.
 - Approve with: `special-agent pairing approve <channel> <code>` (then the sender is added to a local allowlist store).
-- Public inbound DMs require an explicit opt-in: set `dmPolicy="open"` and include `"*"` in the channel allowlist (`allowFrom` / `channels.discord.dm.allowFrom` / `channels.slack.dm.allowFrom`).
+- Public inbound DMs require an explicit opt-in: set `dmPolicy="open"` and include `"*"` in the channel allowlist (`allowFrom`).
 
 Run `special-agent doctor` to surface risky/misconfigured DM policies.
 
 ## Highlights
 
 - **[Local-first Gateway](https://docs.openclaw.ai/gateway)** — single control plane for sessions, channels, tools, and events.
-- **[Multi-channel inbox](https://docs.openclaw.ai/channels)** — WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, BlueBubbles (iMessage), iMessage (legacy), Microsoft Teams, Matrix, Zalo, Zalo Personal, WebChat, macOS, iOS/Android.
+- **[Plugin-based channels](https://docs.openclaw.ai/channels)** — Microsoft Teams (bundled extension), WebChat, and extensible plugin architecture for adding more.
 - **[Multi-agent routing](https://docs.openclaw.ai/gateway/configuration)** — route inbound channels/accounts/peers to isolated agents (workspaces + per-agent sessions).
 - **[Voice Wake](https://docs.openclaw.ai/nodes/voicewake) + [Talk Mode](https://docs.openclaw.ai/nodes/talk)** — always-on speech for macOS/iOS/Android with ElevenLabs.
 - **[Live Canvas](https://docs.openclaw.ai/platforms/mac/canvas)** — agent-driven visual workspace with [A2UI](https://docs.openclaw.ai/platforms/mac/canvas#canvas-a2ui).
-- **[First-class tools](https://docs.openclaw.ai/tools)** — browser, canvas, nodes, cron, sessions, and Discord/Slack actions.
+- **[First-class tools](https://docs.openclaw.ai/tools)** — browser, canvas, nodes, cron, and sessions.
 - **[Companion apps](https://docs.openclaw.ai/platforms/macos)** — macOS menu bar app + iOS/Android [nodes](https://docs.openclaw.ai/nodes).
 - **[Onboarding](https://docs.openclaw.ai/start/wizard) + [skills](https://docs.openclaw.ai/tools/skills)** — wizard-driven setup with bundled/managed/workspace skills.
 
@@ -133,7 +134,7 @@ Run `special-agent doctor` to surface risky/misconfigured DM policies.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=special-agent/special-agent&type=date&legend=top-left)](https://www.star-history.com/#special-agent/special-agent&type=date&legend=top-left)
 
-## Everything we built so far
+## Architecture
 
 ### Core platform
 
@@ -145,8 +146,12 @@ Run `special-agent doctor` to surface risky/misconfigured DM policies.
 
 ### Channels
 
-- [Channels](https://docs.openclaw.ai/channels): [WhatsApp](https://docs.openclaw.ai/channels/whatsapp) (Baileys), [Telegram](https://docs.openclaw.ai/channels/telegram) (grammY), [Slack](https://docs.openclaw.ai/channels/slack) (Bolt), [Discord](https://docs.openclaw.ai/channels/discord) (discord.js), [Google Chat](https://docs.openclaw.ai/channels/googlechat) (Chat API), [Signal](https://docs.openclaw.ai/channels/signal) (signal-cli), [BlueBubbles](https://docs.openclaw.ai/channels/bluebubbles) (iMessage, recommended), [iMessage](https://docs.openclaw.ai/channels/imessage) (legacy imsg), [Microsoft Teams](https://docs.openclaw.ai/channels/msteams) (extension), [Matrix](https://docs.openclaw.ai/channels/matrix) (extension), [Zalo](https://docs.openclaw.ai/channels/zalo) (extension), [Zalo Personal](https://docs.openclaw.ai/channels/zalouser) (extension), [WebChat](https://docs.openclaw.ai/web/webchat).
-- [Group routing](https://docs.openclaw.ai/concepts/group-messages): mention gating, reply tags, per-channel chunking and routing. Channel rules: [Channels](https://docs.openclaw.ai/channels).
+All messaging channels are plugin-based. The core channel registry is empty — channels register themselves at runtime via the plugin system.
+
+- **Bundled extension:** [Microsoft Teams](https://docs.openclaw.ai/channels/msteams) (Bot Framework).
+- **Built-in:** [WebChat](https://docs.openclaw.ai/web/webchat) (Gateway WebSocket).
+- Additional channels can be added as extension plugins.
+- [Group routing](https://docs.openclaw.ai/concepts/group-messages): mention gating, reply tags, per-channel chunking and routing.
 
 ### Apps + nodes
 
@@ -180,7 +185,7 @@ Run `special-agent doctor` to surface risky/misconfigured DM policies.
 ## How it works (short)
 
 ```
-WhatsApp / Telegram / Slack / Discord / Google Chat / Signal / iMessage / BlueBubbles / Microsoft Teams / Matrix / Zalo / Zalo Personal / WebChat
+Channel plugins (Microsoft Teams, WebChat, custom extensions)
                │
                ▼
 ┌───────────────────────────────┐
@@ -224,7 +229,7 @@ Details: [Tailscale guide](https://docs.openclaw.ai/gateway/tailscale) · [Web s
 
 ## Remote Gateway (Linux is great)
 
-It’s perfectly fine to run the Gateway on a small Linux instance. Clients (macOS app, CLI, WebChat) can connect over **Tailscale Serve/Funnel** or **SSH tunnels**, and you can still pair device nodes (macOS/iOS/Android) to execute device‑local actions when needed.
+It's perfectly fine to run the Gateway on a small Linux instance. Clients (macOS app, CLI, WebChat) can connect over **Tailscale Serve/Funnel** or **SSH tunnels**, and you can still pair device nodes (macOS/iOS/Android) to execute device‑local actions when needed.
 
 - **Gateway host** runs the exec tool and channel connections by default.
 - **Device nodes** run device‑local actions (`system.run`, camera, screen recording, notifications) via `node.invoke`.
@@ -236,7 +241,7 @@ Details: [Remote access](https://docs.openclaw.ai/gateway/remote) · [Nodes](htt
 
 The macOS app can run in **node mode** and advertises its capabilities + permission map over the Gateway WebSocket (`node.list` / `node.describe`). Clients can then execute local actions via `node.invoke`:
 
-- `system.run` runs a local command and returns stdout/stderr/exit code; set `needsScreenRecording: true` to require screen-recording permission (otherwise you’ll get `PERMISSION_MISSING`).
+- `system.run` runs a local command and returns stdout/stderr/exit code; set `needsScreenRecording: true` to require screen-recording permission (otherwise you'll get `PERMISSION_MISSING`).
 - `system.notify` posts a user notification and fails if notifications are denied.
 - `canvas.*`, `camera.*`, `screen.record`, and `location.get` are also routed via `node.invoke` and follow TCC permission status.
 
@@ -262,9 +267,45 @@ ClawHub is a minimal skill registry. With ClawHub enabled, the agent can search 
 
 [ClawHub](https://clawhub.com)
 
+## Bundled skills
+
+The following skills ship with Special Agent:
+
+| Skill | Description |
+|-------|-------------|
+| `blogwatcher` | Blog monitoring |
+| `clawhub` | ClawHub integration |
+| `coding-agent` | Coding assistance |
+| `github` | GitHub operations |
+| `healthcheck` | System health checks |
+| `mcporter` | MCP transport bridge |
+| `model-usage` | Model usage tracking |
+| `session-logs` | Session logging |
+| `skill-creator` | Skill scaffolding |
+| `summarize` | Text summarization |
+| `tmux` | Tmux session management |
+| `weather` | Weather information |
+
+## Extensions
+
+Bundled extensions that add capabilities to the Gateway:
+
+| Extension | Description |
+|-----------|-------------|
+| `msteams` | Microsoft Teams channel |
+| `device-pair` | Device pairing / setup codes |
+| `diagnostics-otel` | OpenTelemetry diagnostics |
+| `llm-task` | Generic JSON LLM tool |
+| `lobster` | Typed workflow tool with resumable approvals |
+| `open-prose` | OpenProse VM skill pack |
+| `memory-core` | Core memory system |
+| `memory-lancedb` | LanceDB vector memory backend |
+| `phone-control` | Phone node command control |
+| `talk-voice` | Talk voice management |
+
 ## Chat commands
 
-Send these in WhatsApp/Telegram/Slack/Google Chat/Microsoft Teams/WebChat (group commands are owner-only):
+Send these in Microsoft Teams or WebChat (group commands are owner-only):
 
 - `/status` — compact session status (model + tokens, cost when available)
 - `/new` or `/reset` — reset the session
@@ -326,66 +367,11 @@ Minimal `~/.special-agent/special-agent.json` (model + defaults):
 
 ## Security model (important)
 
-- **Default:** tools run on the host for the **main** session, so the agent has full access when it’s just you.
+- **Default:** tools run on the host for the **main** session, so the agent has full access when it's just you.
 - **Group/channel safety:** set `agents.defaults.sandbox.mode: "non-main"` to run **non‑main sessions** (groups/channels) inside per‑session Docker sandboxes; bash then runs in Docker for those sessions.
-- **Sandbox defaults:** allowlist `bash`, `process`, `read`, `write`, `edit`, `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`; denylist `browser`, `canvas`, `nodes`, `cron`, `discord`, `gateway`.
+- **Sandbox defaults:** allowlist `bash`, `process`, `read`, `write`, `edit`, `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`; denylist `browser`, `canvas`, `nodes`, `cron`, `gateway`.
 
 Details: [Security guide](https://docs.openclaw.ai/gateway/security) · [Docker + sandboxing](https://docs.openclaw.ai/install/docker) · [Sandbox config](https://docs.openclaw.ai/gateway/configuration)
-
-### [WhatsApp](https://docs.openclaw.ai/channels/whatsapp)
-
-- Link the device: `pnpm special-agent channels login` (stores creds in `~/.special-agent/credentials`).
-- Allowlist who can talk to the assistant via `channels.whatsapp.allowFrom`.
-- If `channels.whatsapp.groups` is set, it becomes a group allowlist; include `"*"` to allow all.
-
-### [Telegram](https://docs.openclaw.ai/channels/telegram)
-
-- Set `TELEGRAM_BOT_TOKEN` or `channels.telegram.botToken` (env wins).
-- Optional: set `channels.telegram.groups` (with `channels.telegram.groups."*".requireMention`); when set, it is a group allowlist (include `"*"` to allow all). Also `channels.telegram.allowFrom` or `channels.telegram.webhookUrl` + `channels.telegram.webhookSecret` as needed.
-
-```json5
-{
-  channels: {
-    telegram: {
-      botToken: "123456:ABCDEF",
-    },
-  },
-}
-```
-
-### [Slack](https://docs.openclaw.ai/channels/slack)
-
-- Set `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN` (or `channels.slack.botToken` + `channels.slack.appToken`).
-
-### [Discord](https://docs.openclaw.ai/channels/discord)
-
-- Set `DISCORD_BOT_TOKEN` or `channels.discord.token` (env wins).
-- Optional: set `commands.native`, `commands.text`, or `commands.useAccessGroups`, plus `channels.discord.dm.allowFrom`, `channels.discord.guilds`, or `channels.discord.mediaMaxMb` as needed.
-
-```json5
-{
-  channels: {
-    discord: {
-      token: "1234abcd",
-    },
-  },
-}
-```
-
-### [Signal](https://docs.openclaw.ai/channels/signal)
-
-- Requires `signal-cli` and a `channels.signal` config section.
-
-### [BlueBubbles (iMessage)](https://docs.openclaw.ai/channels/bluebubbles)
-
-- **Recommended** iMessage integration.
-- Configure `channels.bluebubbles.serverUrl` + `channels.bluebubbles.password` and a webhook (`channels.bluebubbles.webhookPath`).
-- The BlueBubbles server runs on macOS; the Gateway can run on macOS or elsewhere.
-
-### [iMessage (legacy)](https://docs.openclaw.ai/channels/imessage)
-
-- Legacy macOS-only integration via `imsg` (Messages must be signed in).
-- If `channels.imessage.groups` is set, it becomes a group allowlist; include `"*"` to allow all.
 
 ### [Microsoft Teams](https://docs.openclaw.ai/channels/msteams)
 
@@ -409,9 +395,9 @@ Browser control (optional):
 
 ## Docs
 
-Use these when you’re past the onboarding flow and want the deeper reference.
+Use these when you're past the onboarding flow and want the deeper reference.
 
-- [Start with the docs index for navigation and “what’s where.”](https://docs.openclaw.ai)
+- [Start with the docs index for navigation and "what's where."](https://docs.openclaw.ai)
 - [Read the architecture overview for the gateway + protocol model.](https://docs.openclaw.ai/concepts/architecture)
 - [Use the full configuration reference when you need every key and example.](https://docs.openclaw.ai/gateway/configuration)
 - [Run the Gateway by the book with the operational runbook.](https://docs.openclaw.ai/gateway)
