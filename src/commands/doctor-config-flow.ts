@@ -116,9 +116,6 @@ function noteOpencodeProviderOverrides(cfg: SpecialAgentConfig) {
   if (providers.opencode) {
     overrides.push("opencode");
   }
-  if (providers["opencode-zen"]) {
-    overrides.push("opencode-zen");
-  }
   if (overrides.length === 0) {
     return;
   }

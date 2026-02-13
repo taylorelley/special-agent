@@ -44,10 +44,10 @@ export function normalizeChatChannelId(raw?: string | null): ChatChannelId | nul
   return CHAT_CHANNEL_ORDER.includes(resolved) ? resolved : null;
 }
 
-// Channel docking: prefer this helper in shared code. Importing from
-// `src/channels/plugins/*` can eagerly load channel implementations.
+// Channel docking: prefer this helper in shared code. Falls through to
+// plugin registry when no core channels are registered.
 export function normalizeChannelId(raw?: string | null): ChatChannelId | null {
-  return normalizeChatChannelId(raw);
+  return normalizeChatChannelId(raw) ?? normalizeAnyChannelId(raw);
 }
 
 // Normalizes registered channel plugins (bundled or external).
@@ -71,6 +71,18 @@ export function normalizeAnyChannelId(raw?: string | null): ChannelId | null {
     return (entry.plugin.meta.aliases ?? []).some((alias) => alias.trim().toLowerCase() === key);
   });
   return hit?.plugin.id ?? null;
+}
+
+/**
+ * Resolves the default chat channel through the plugin registry.
+ * Returns null when the default channel plugin is not loaded.
+ */
+export function resolveDefaultChatChannel(): ChatChannelId | null {
+  try {
+    return normalizeChannelId(DEFAULT_CHAT_CHANNEL);
+  } catch {
+    return null;
+  }
 }
 
 export function formatChannelPrimerLine(meta: ChatChannelMeta): string {

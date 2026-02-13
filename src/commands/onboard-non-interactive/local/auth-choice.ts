@@ -13,30 +13,20 @@ import {
   applyAuthProfileConfig,
   applyQianfanConfig,
   applyKimiCodeConfig,
-  applyMinimaxApiConfig,
-  applyMinimaxConfig,
   applyMoonshotConfig,
   applyMoonshotConfigCn,
   applyOpenrouterConfig,
   applyVercelAiGatewayConfig,
   applyLitellmConfig,
-  applyXaiConfig,
   applyXiaomiConfig,
   applyZaiConfig,
   setAnthropicApiKey,
-  setCloudflareAiGatewayConfig,
   setQianfanApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
   setLitellmApiKey,
-  setMinimaxApiKey,
   setMoonshotApiKey,
-  setOpencodeZenApiKey,
   setOpenrouterApiKey,
-  setSyntheticApiKey,
-  setXaiApiKey,
-  setVeniceApiKey,
-  setTogetherApiKey,
   setVercelAiGatewayApiKey,
   setXiaomiApiKey,
   setZaiApiKey,
@@ -222,29 +212,6 @@ export async function applyNonInteractiveAuthChoice(params: {
     return applyXiaomiConfig(nextConfig);
   }
 
-  if (authChoice === "xai-api-key") {
-    const resolved = await resolveNonInteractiveApiKey({
-      provider: "xai",
-      cfg: baseConfig,
-      flagValue: opts.xaiApiKey,
-      flagName: "--xai-api-key",
-      envVar: "XAI_API_KEY",
-      runtime,
-    });
-    if (!resolved) {
-      return null;
-    }
-    if (resolved.source !== "profile") {
-      setXaiApiKey(resolved.key);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "xai:default",
-      provider: "xai",
-      mode: "api_key",
-    });
-    return applyXaiConfig(nextConfig);
-  }
-
   if (authChoice === "qianfan-api-key") {
     const resolved = await resolveNonInteractiveApiKey({
       provider: "qianfan",
@@ -357,41 +324,6 @@ export async function applyNonInteractiveAuthChoice(params: {
     return applyVercelAiGatewayConfig(nextConfig);
   }
 
-  if (authChoice === "cloudflare-ai-gateway-api-key") {
-    const accountId = opts.cloudflareAiGatewayAccountId?.trim() ?? "";
-    const gatewayId = opts.cloudflareAiGatewayGatewayId?.trim() ?? "";
-    if (!accountId || !gatewayId) {
-      runtime.error(
-        [
-          'Auth choice "cloudflare-ai-gateway-api-key" requires Account ID and Gateway ID.',
-          "Use --cloudflare-ai-gateway-account-id and --cloudflare-ai-gateway-gateway-id.",
-        ].join("\n"),
-      );
-      runtime.exit(1);
-      return null;
-    }
-    const resolved = await resolveNonInteractiveApiKey({
-      provider: "cloudflare-ai-gateway",
-      cfg: baseConfig,
-      flagValue: opts.cloudflareAiGatewayApiKey,
-      flagName: "--cloudflare-ai-gateway-api-key",
-      envVar: "CLOUDFLARE_AI_GATEWAY_API_KEY",
-      runtime,
-    });
-    if (!resolved) {
-      return null;
-    }
-    if (resolved.source !== "profile") {
-      await setCloudflareAiGatewayConfig(accountId, gatewayId, resolved.key);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "cloudflare-ai-gateway:default",
-      provider: "cloudflare-ai-gateway",
-      mode: "api_key",
-    });
-    return nextConfig;
-  }
-
   if (authChoice === "moonshot-api-key") {
     const resolved = await resolveNonInteractiveApiKey({
       provider: "moonshot",
@@ -461,138 +393,7 @@ export async function applyNonInteractiveAuthChoice(params: {
     return applyKimiCodeConfig(nextConfig);
   }
 
-  if (authChoice === "synthetic-api-key") {
-    const resolved = await resolveNonInteractiveApiKey({
-      provider: "synthetic",
-      cfg: baseConfig,
-      flagValue: opts.syntheticApiKey,
-      flagName: "--synthetic-api-key",
-      envVar: "SYNTHETIC_API_KEY",
-      runtime,
-    });
-    if (!resolved) {
-      return null;
-    }
-    if (resolved.source !== "profile") {
-      await setSyntheticApiKey(resolved.key);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "synthetic:default",
-      provider: "synthetic",
-      mode: "api_key",
-    });
-    return nextConfig;
-  }
-
-  if (authChoice === "venice-api-key") {
-    const resolved = await resolveNonInteractiveApiKey({
-      provider: "venice",
-      cfg: baseConfig,
-      flagValue: opts.veniceApiKey,
-      flagName: "--venice-api-key",
-      envVar: "VENICE_API_KEY",
-      runtime,
-    });
-    if (!resolved) {
-      return null;
-    }
-    if (resolved.source !== "profile") {
-      await setVeniceApiKey(resolved.key);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "venice:default",
-      provider: "venice",
-      mode: "api_key",
-    });
-    return nextConfig;
-  }
-
-  if (
-    authChoice === "minimax-cloud" ||
-    authChoice === "minimax-api" ||
-    authChoice === "minimax-api-lightning"
-  ) {
-    const resolved = await resolveNonInteractiveApiKey({
-      provider: "minimax",
-      cfg: baseConfig,
-      flagValue: opts.minimaxApiKey,
-      flagName: "--minimax-api-key",
-      envVar: "MINIMAX_API_KEY",
-      runtime,
-    });
-    if (!resolved) {
-      return null;
-    }
-    if (resolved.source !== "profile") {
-      await setMinimaxApiKey(resolved.key);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "minimax:default",
-      provider: "minimax",
-      mode: "api_key",
-    });
-    const modelId =
-      authChoice === "minimax-api-lightning" ? "MiniMax-M2.1-lightning" : "MiniMax-M2.1";
-    return applyMinimaxApiConfig(nextConfig, modelId);
-  }
-
-  if (authChoice === "minimax") {
-    return applyMinimaxConfig(nextConfig);
-  }
-
-  if (authChoice === "opencode-zen") {
-    const resolved = await resolveNonInteractiveApiKey({
-      provider: "opencode",
-      cfg: baseConfig,
-      flagValue: opts.opencodeZenApiKey,
-      flagName: "--opencode-zen-api-key",
-      envVar: "OPENCODE_API_KEY (or OPENCODE_ZEN_API_KEY)",
-      runtime,
-    });
-    if (!resolved) {
-      return null;
-    }
-    if (resolved.source !== "profile") {
-      await setOpencodeZenApiKey(resolved.key);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "opencode:default",
-      provider: "opencode",
-      mode: "api_key",
-    });
-    return nextConfig;
-  }
-
-  if (authChoice === "together-api-key") {
-    const resolved = await resolveNonInteractiveApiKey({
-      provider: "together",
-      cfg: baseConfig,
-      flagValue: opts.togetherApiKey,
-      flagName: "--together-api-key",
-      envVar: "TOGETHER_API_KEY",
-      runtime,
-    });
-    if (!resolved) {
-      return null;
-    }
-    if (resolved.source !== "profile") {
-      await setTogetherApiKey(resolved.key);
-    }
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "together:default",
-      provider: "together",
-      mode: "api_key",
-    });
-    return nextConfig;
-  }
-
-  if (
-    authChoice === "oauth" ||
-    authChoice === "chutes" ||
-    authChoice === "openai-codex" ||
-    authChoice === "qwen-portal" ||
-    authChoice === "minimax-portal"
-  ) {
+  if (authChoice === "oauth" || authChoice === "chutes" || authChoice === "openai-codex") {
     runtime.error("OAuth requires interactive mode.");
     runtime.exit(1);
     return null;

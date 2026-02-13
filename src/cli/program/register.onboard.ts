@@ -58,7 +58,7 @@ export function registerOnboardCommand(program: Command) {
     .option("--mode <mode>", "Wizard mode: local|remote")
     .option(
       "--auth-choice <choice>",
-      "Auth: setup-token|token|chutes|openai-codex|openai-api-key|xai-api-key|qianfan-api-key|openrouter-api-key|litellm-api-key|ai-gateway-api-key|cloudflare-ai-gateway-api-key|moonshot-api-key|moonshot-api-key-cn|kimi-code-api-key|synthetic-api-key|venice-api-key|gemini-api-key|zai-api-key|xiaomi-api-key|apiKey|minimax-api|minimax-api-lightning|opencode-zen|skip|together-api-key",
+      "Auth: setup-token|token|chutes|openai-codex|openai-api-key|qianfan-api-key|openrouter-api-key|litellm-api-key|ai-gateway-api-key|moonshot-api-key|moonshot-api-key-cn|kimi-code-api-key|gemini-api-key|zai-api-key|xiaomi-api-key|apiKey|skip",
     )
     .option(
       "--token-provider <id>",
@@ -74,20 +74,11 @@ export function registerOnboardCommand(program: Command) {
     .option("--openai-api-key <key>", "OpenAI API key")
     .option("--openrouter-api-key <key>", "OpenRouter API key")
     .option("--ai-gateway-api-key <key>", "Vercel AI Gateway API key")
-    .option("--cloudflare-ai-gateway-account-id <id>", "Cloudflare Account ID")
-    .option("--cloudflare-ai-gateway-gateway-id <id>", "Cloudflare AI Gateway ID")
-    .option("--cloudflare-ai-gateway-api-key <key>", "Cloudflare AI Gateway API key")
     .option("--moonshot-api-key <key>", "Moonshot API key")
     .option("--kimi-code-api-key <key>", "Kimi Coding API key")
     .option("--gemini-api-key <key>", "Gemini API key")
     .option("--zai-api-key <key>", "Z.AI API key")
     .option("--xiaomi-api-key <key>", "Xiaomi API key")
-    .option("--minimax-api-key <key>", "MiniMax API key")
-    .option("--synthetic-api-key <key>", "Synthetic API key")
-    .option("--venice-api-key <key>", "Venice API key")
-    .option("--together-api-key <key>", "Together AI API key")
-    .option("--opencode-zen-api-key <key>", "OpenCode Zen API key")
-    .option("--xai-api-key <key>", "xAI API key")
     .option("--litellm-api-key <key>", "LiteLLM API key")
     .option("--qianfan-api-key <key>", "QIANFAN API key")
     .option("--gateway-port <port>", "Gateway port")
@@ -132,21 +123,12 @@ export function registerOnboardCommand(program: Command) {
             openaiApiKey: opts.openaiApiKey as string | undefined,
             openrouterApiKey: opts.openrouterApiKey as string | undefined,
             aiGatewayApiKey: opts.aiGatewayApiKey as string | undefined,
-            cloudflareAiGatewayAccountId: opts.cloudflareAiGatewayAccountId as string | undefined,
-            cloudflareAiGatewayGatewayId: opts.cloudflareAiGatewayGatewayId as string | undefined,
-            cloudflareAiGatewayApiKey: opts.cloudflareAiGatewayApiKey as string | undefined,
             moonshotApiKey: opts.moonshotApiKey as string | undefined,
             kimiCodeApiKey: opts.kimiCodeApiKey as string | undefined,
             geminiApiKey: opts.geminiApiKey as string | undefined,
             zaiApiKey: opts.zaiApiKey as string | undefined,
             xiaomiApiKey: opts.xiaomiApiKey as string | undefined,
             qianfanApiKey: opts.qianfanApiKey as string | undefined,
-            minimaxApiKey: opts.minimaxApiKey as string | undefined,
-            syntheticApiKey: opts.syntheticApiKey as string | undefined,
-            veniceApiKey: opts.veniceApiKey as string | undefined,
-            togetherApiKey: opts.togetherApiKey as string | undefined,
-            opencodeZenApiKey: opts.opencodeZenApiKey as string | undefined,
-            xaiApiKey: opts.xaiApiKey as string | undefined,
             litellmApiKey: opts.litellmApiKey as string | undefined,
             gatewayPort:
               typeof gatewayPort === "number" && Number.isFinite(gatewayPort)

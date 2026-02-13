@@ -161,12 +161,6 @@ describe("cli program (smoke)", () => {
   it("passes auth api keys to onboard", async () => {
     const cases = [
       {
-        authChoice: "opencode-zen",
-        flag: "--opencode-zen-api-key",
-        key: "sk-opencode-zen-test",
-        field: "opencodeZenApiKey",
-      },
-      {
         authChoice: "openrouter-api-key",
         flag: "--openrouter-api-key",
         key: "sk-openrouter-test",
@@ -179,12 +173,6 @@ describe("cli program (smoke)", () => {
         field: "moonshotApiKey",
       },
       {
-        authChoice: "together-api-key",
-        flag: "--together-api-key",
-        key: "sk-together-test",
-        field: "togetherApiKey",
-      },
-      {
         authChoice: "moonshot-api-key-cn",
         flag: "--moonshot-api-key",
         key: "sk-moonshot-cn-test",
@@ -195,12 +183,6 @@ describe("cli program (smoke)", () => {
         flag: "--kimi-code-api-key",
         key: "sk-kimi-code-test",
         field: "kimiCodeApiKey",
-      },
-      {
-        authChoice: "synthetic-api-key",
-        flag: "--synthetic-api-key",
-        key: "sk-synthetic-test",
-        field: "syntheticApiKey",
       },
       {
         authChoice: "zai-api-key",

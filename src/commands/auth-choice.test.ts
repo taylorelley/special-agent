@@ -89,12 +89,6 @@ describe("applyAuthChoice", () => {
     }
   });
 
-  // minimax-api test removed (handler in auth-choice.apply.minimax.ts was stripped).
-  // Synthetic API key test removed (provider stripped).
-  // xai-api-key test removed (handler in auth-choice.apply.xai.ts was stripped).
-  // github-copilot test removed (provider stripped).
-  // opencode-zen test removed (provider stripped).
-
   it("uses existing OPENROUTER_API_KEY when selecting openrouter-api-key", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-auth-"));
     process.env.SPECIAL_AGENT_STATE_DIR = tempStateDir;
@@ -309,8 +303,6 @@ describe("applyAuthChoice", () => {
     delete process.env.AI_GATEWAY_API_KEY;
   });
 
-  // cloudflare-ai-gateway-api-key test removed (handler in auth-choice.apply.copilot-proxy.ts was stripped).
-
   it("writes Chutes OAuth credentials when selecting chutes (remote/manual)", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-auth-"));
     process.env.SPECIAL_AGENT_STATE_DIR = tempStateDir;
@@ -397,18 +389,11 @@ describe("applyAuthChoice", () => {
       email: "remote-user",
     });
   });
-
-  // qwen-portal test removed (handler in auth-choice.apply.qwen-portal.ts was stripped).
-  // minimax-portal test removed (provider stripped).
 });
 
 describe("resolvePreferredProviderForAuthChoice", () => {
-  it("maps github-copilot to the provider", () => {
-    expect(resolvePreferredProviderForAuthChoice("github-copilot")).toBe("github-copilot");
-  });
-
-  it("maps qwen-portal to the provider", () => {
-    expect(resolvePreferredProviderForAuthChoice("qwen-portal")).toBe("qwen-portal");
+  it("maps openrouter-api-key to the provider", () => {
+    expect(resolvePreferredProviderForAuthChoice("openrouter-api-key")).toBe("openrouter");
   });
 
   it("returns undefined for unknown choices", () => {

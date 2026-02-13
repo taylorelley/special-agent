@@ -49,19 +49,6 @@ export async function setGeminiApiKey(key: string, agentDir?: string) {
   });
 }
 
-export async function setMinimaxApiKey(key: string, agentDir?: string) {
-  // Write to resolved agent dir so gateway finds credentials on startup.
-  upsertAuthProfile({
-    profileId: "minimax:default",
-    credential: {
-      type: "api_key",
-      provider: "minimax",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
 export async function setMoonshotApiKey(key: string, agentDir?: string) {
   // Write to resolved agent dir so gateway finds credentials on startup.
   upsertAuthProfile({
@@ -88,36 +75,9 @@ export async function setKimiCodingApiKey(key: string, agentDir?: string) {
   });
 }
 
-export async function setSyntheticApiKey(key: string, agentDir?: string) {
-  // Write to resolved agent dir so gateway finds credentials on startup.
-  upsertAuthProfile({
-    profileId: "synthetic:default",
-    credential: {
-      type: "api_key",
-      provider: "synthetic",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export async function setVeniceApiKey(key: string, agentDir?: string) {
-  // Write to resolved agent dir so gateway finds credentials on startup.
-  upsertAuthProfile({
-    profileId: "venice:default",
-    credential: {
-      type: "api_key",
-      provider: "venice",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
 export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
-export const TOGETHER_DEFAULT_MODEL_REF = "together/moonshotai/Kimi-K2.5";
 export const LITELLM_DEFAULT_MODEL_REF = "litellm/claude-opus-4-6";
 export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.6";
 
@@ -158,30 +118,6 @@ export async function setOpenrouterApiKey(key: string, agentDir?: string) {
   });
 }
 
-export async function setCloudflareAiGatewayConfig(
-  accountId: string,
-  gatewayId: string,
-  apiKey: string,
-  agentDir?: string,
-) {
-  const normalizedAccountId = accountId.trim();
-  const normalizedGatewayId = gatewayId.trim();
-  const normalizedKey = apiKey.trim();
-  upsertAuthProfile({
-    profileId: "cloudflare-ai-gateway:default",
-    credential: {
-      type: "api_key",
-      provider: "cloudflare-ai-gateway",
-      key: normalizedKey,
-      metadata: {
-        accountId: normalizedAccountId,
-        gatewayId: normalizedGatewayId,
-      },
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
 export async function setLitellmApiKey(key: string, agentDir?: string) {
   upsertAuthProfile({
     profileId: "litellm:default",
@@ -206,48 +142,12 @@ export async function setVercelAiGatewayApiKey(key: string, agentDir?: string) {
   });
 }
 
-export async function setOpencodeZenApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "opencode:default",
-    credential: {
-      type: "api_key",
-      provider: "opencode",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export async function setTogetherApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "together:default",
-    credential: {
-      type: "api_key",
-      provider: "together",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
 export function setQianfanApiKey(key: string, agentDir?: string) {
   upsertAuthProfile({
     profileId: "qianfan:default",
     credential: {
       type: "api_key",
       provider: "qianfan",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export function setXaiApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "xai:default",
-    credential: {
-      type: "api_key",
-      provider: "xai",
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),
