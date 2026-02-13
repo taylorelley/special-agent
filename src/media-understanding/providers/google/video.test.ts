@@ -15,8 +15,8 @@ const resolveRequestUrl = (input: RequestInfo | URL) => {
 };
 
 describe("describeGeminiVideo", () => {
-  let resolvePinnedHostnamePolicySpy: ReturnType<typeof vi.spyOn>;
-  let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn>;
+  let resolvePinnedHostnamePolicySpy: ReturnType<typeof vi.spyOn> | undefined;
+  let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn> | undefined;
 
   const stubPinnedHostname = async (hostname: string) => {
     // SSRF guard pins DNS; stub resolution to avoid live lookups in unit tests.
