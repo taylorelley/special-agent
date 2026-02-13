@@ -207,11 +207,6 @@ export async function resolveApiKeyForProvider(params: {
     return { apiKey: customKey, source: "models.json", mode: "api-key" };
   }
 
-  const normalized = normalizeProviderId(provider);
-  if (authOverride === undefined && normalized === "amazon-bedrock") {
-    return resolveAwsSdkAuthInfo();
-  }
-
   if (provider === "openai") {
     const hasCodex = listProfilesForProvider(store, "openai-codex").length > 0;
     if (hasCodex) {
@@ -247,10 +242,6 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return { apiKey: value, source };
   };
 
-  if (normalized === "github-copilot") {
-    return pick("COPILOT_GITHUB_TOKEN") ?? pick("GH_TOKEN") ?? pick("GITHUB_TOKEN");
-  }
-
   if (normalized === "anthropic") {
     return pick("ANTHROPIC_OAUTH_TOKEN") ?? pick("ANTHROPIC_API_KEY");
   }
@@ -269,10 +260,6 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
       return null;
     }
     return { apiKey: envKey, source: "gcloud adc" };
-  }
-
-  if (normalized === "opencode") {
-    return pick("OPENCODE_API_KEY") ?? pick("OPENCODE_ZEN_API_KEY");
   }
 
   if (normalized === "qwen-portal") {
@@ -298,15 +285,10 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     openrouter: "OPENROUTER_API_KEY",
     litellm: "LITELLM_API_KEY",
     "vercel-ai-gateway": "AI_GATEWAY_API_KEY",
-    "cloudflare-ai-gateway": "CLOUDFLARE_AI_GATEWAY_API_KEY",
     moonshot: "MOONSHOT_API_KEY",
     minimax: "MINIMAX_API_KEY",
     xiaomi: "XIAOMI_API_KEY",
-    synthetic: "SYNTHETIC_API_KEY",
-    venice: "VENICE_API_KEY",
     mistral: "MISTRAL_API_KEY",
-    opencode: "OPENCODE_API_KEY",
-    together: "TOGETHER_API_KEY",
     qianfan: "QIANFAN_API_KEY",
     ollama: "OLLAMA_API_KEY",
   };
@@ -355,10 +337,6 @@ export function resolveModelAuthMode(
     if (modes.has("api_key")) {
       return "api-key";
     }
-  }
-
-  if (authOverride === undefined && normalizeProviderId(resolved) === "amazon-bedrock") {
-    return "aws-sdk";
   }
 
   const envKey = resolveEnvApiKey(resolved);

@@ -102,8 +102,7 @@ export function normalizeProviders(params: {
     const hasModels =
       Array.isArray(normalizedProvider.models) && normalizedProvider.models.length > 0;
     if (hasModels && !normalizedProvider.apiKey?.trim()) {
-      const authMode =
-        normalizedProvider.auth ?? (normalizedKey === "amazon-bedrock" ? "aws-sdk" : undefined);
+      const authMode = normalizedProvider.auth;
       if (authMode === "aws-sdk") {
         const apiKey = resolveAwsSdkApiKeyVarName();
         mutated = true;
