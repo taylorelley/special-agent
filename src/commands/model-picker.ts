@@ -8,7 +8,6 @@ import {
   buildAllowedModelSet,
   buildModelAliasIndex,
   modelKey,
-  normalizeProviderId,
   resolveConfiguredModelRef,
 } from "../agents/model-selection.js";
 import { fetchWithTimeout } from "../utils/fetch-timeout.js";
@@ -140,10 +139,6 @@ export async function promptDefaultModel(
   const allowKeep = params.allowKeep ?? true;
   const includeManual = params.includeManual ?? true;
   const ignoreAllowlist = params.ignoreAllowlist ?? false;
-  const preferredProviderRaw = params.preferredProvider?.trim();
-  const preferredProvider = preferredProviderRaw
-    ? normalizeProviderId(preferredProviderRaw)
-    : undefined;
   const configuredRaw = resolveConfiguredModelRaw(cfg);
 
   const resolved = resolveConfiguredModelRef({
