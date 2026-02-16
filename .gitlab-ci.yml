@@ -1,0 +1,56 @@
+image: node:22
+
+stages:
+  - check
+  - test
+  - build
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Shared Node.js setup
+.setup:
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@10.23.0 --activate
+    - pnpm install --frozen-lockfile
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store
+    policy: pull-push
+  variables:
+    PNPM_STORE_DIR: .pnpm-store
+
+check:
+  extends: .setup
+  stage: check
+  script:
+    - pnpm check
+
+test:
+  extends: .setup
+  stage: test
+  script:
+    - pnpm canvas:a2ui:bundle
+    - pnpm test
+
+build:
+  extends: .setup
+  stage: build
+  script:
+    - pnpm build
+
+docker:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - docker build -t $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA .
