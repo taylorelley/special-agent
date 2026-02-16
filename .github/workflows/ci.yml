@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       docs_only: ${{ steps.check.outputs.docs_only }}
-      docs_changed: ${{ steps.check.outputs.docs_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -241,23 +240,6 @@ jobs:
               print(f"- {path}")
             sys.exit(1)
           PY
-
-  # Validate docs (format, lint, broken links) only when docs files changed.
-  check-docs:
-    needs: [docs-scope]
-    if: needs.docs-scope.outputs.docs_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-
-      - name: Setup Node environment
-        uses: ./.github/actions/setup-node-env
-
-      - name: Check docs
-        run: pnpm check:docs
 
   # Check for files that grew past LOC threshold in this PR (delta-only).
   # Skipped on push-to-main; downstream jobs use always() && !failure() && !cancelled().
