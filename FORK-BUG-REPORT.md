@@ -1,6 +1,7 @@
 # Fork Bug Report: taylorelley/special-agent
 
 Reviewed commits:
+
 - `0918ea6` rebrand: rename OpenClaw/Clawdbot/Moltbot to Special Agent
 - `f14bbd6` rebrand: fix CI issues from Special Agent rename
 - `3ccecd2` rebrand: restore external URLs, repo refs, and npm package name
@@ -17,20 +18,20 @@ Reviewed commits:
 The onboarding wizard (`buildAuthChoiceOptions()`) still presents auth choices for
 providers whose apply-handlers were deleted in the enterprise strip:
 
-| Auth Choice | Label Shown in UI | Handler File |
-|---|---|---|
-| `synthetic-api-key` | Synthetic API key | `auth-choice.apply.*.ts` — **DELETED** |
-| `venice-api-key` | Venice AI API key | **DELETED** |
-| `together-api-key` | Together AI API key | **DELETED** |
-| `cloudflare-ai-gateway-api-key` | Cloudflare AI Gateway | `auth-choice.apply.copilot-proxy.ts` — **DELETED** |
-| `opencode-zen` | OpenCode Zen | **DELETED** |
-| `github-copilot` | GitHub Copilot | **DELETED** |
-| `copilot-proxy` | Copilot Proxy (local) | **DELETED** |
-| `minimax-portal` | MiniMax OAuth | `auth-choice.apply.minimax.ts` — **DELETED** |
-| `minimax-api` | MiniMax M2.1 | **DELETED** |
-| `minimax-api-lightning` | MiniMax M2.1 Lightning | **DELETED** |
-| `xai-api-key` | xAI (Grok) API key | `auth-choice.apply.xai.ts` — **DELETED** |
-| `qwen-portal` | Qwen OAuth | `auth-choice.apply.qwen-portal.ts` — **DELETED** |
+| Auth Choice                     | Label Shown in UI      | Handler File                                       |
+| ------------------------------- | ---------------------- | -------------------------------------------------- |
+| `synthetic-api-key`             | Synthetic API key      | `auth-choice.apply.*.ts` — **DELETED**             |
+| `venice-api-key`                | Venice AI API key      | **DELETED**                                        |
+| `together-api-key`              | Together AI API key    | **DELETED**                                        |
+| `cloudflare-ai-gateway-api-key` | Cloudflare AI Gateway  | `auth-choice.apply.copilot-proxy.ts` — **DELETED** |
+| `opencode-zen`                  | OpenCode Zen           | **DELETED**                                        |
+| `github-copilot`                | GitHub Copilot         | **DELETED**                                        |
+| `copilot-proxy`                 | Copilot Proxy (local)  | **DELETED**                                        |
+| `minimax-portal`                | MiniMax OAuth          | `auth-choice.apply.minimax.ts` — **DELETED**       |
+| `minimax-api`                   | MiniMax M2.1           | **DELETED**                                        |
+| `minimax-api-lightning`         | MiniMax M2.1 Lightning | **DELETED**                                        |
+| `xai-api-key`                   | xAI (Grok) API key     | `auth-choice.apply.xai.ts` — **DELETED**           |
+| `qwen-portal`                   | Qwen OAuth             | `auth-choice.apply.qwen-portal.ts` — **DELETED**   |
 
 **What happens:** A user selects one of these providers in the wizard. `applyAuthChoice()`
 iterates through `[applyAuthChoiceOAuth, applyAuthChoiceApiProviders]` — neither handler
@@ -38,6 +39,7 @@ matches, so both return `null`. The function falls through to `return { config: 
 doing **nothing** — no credential is saved, no error is shown.
 
 **Files:**
+
 - `src/commands/auth-choice-options.ts:167-281` (options still listed)
 - `src/commands/auth-choice.apply.ts:30-46` (no handler matches, silently succeeds)
 - `src/commands/auth-choice.apply.api-providers.ts` (missing cases for stripped providers)
@@ -84,13 +86,14 @@ using it as a fallback.
 **Severity: HIGH**
 
 `src/config/types.models.ts:1-7` defines:
+
 ```typescript
 export type ModelApi =
   | "openai-completions"
   | "openai-responses"
   | "anthropic-messages"
   | "google-generative-ai"
-  | "github-copilot"          // <-- stripped
+  | "github-copilot" // <-- stripped
   | "bedrock-converse-stream"; // <-- stripped
 ```
 
@@ -176,6 +179,7 @@ includes choices for all stripped providers (`synthetic-api-key`,
 
 `src/commands/onboard-types.ts:72-129` — `OnboardOptions` still includes
 fields for stripped providers:
+
 - `syntheticApiKey`, `veniceApiKey`, `togetherApiKey`
 - `cloudflareAiGatewayAccountId`, `cloudflareAiGatewayGatewayId`, `cloudflareAiGatewayApiKey`
 - `opencodeZenApiKey`
@@ -251,16 +255,16 @@ is in one but not the other, and `together` is in both despite being stripped).
 
 ## Summary
 
-| # | Severity | Bug | Impact |
-|---|----------|-----|--------|
-| 1 | CRITICAL | Auth wizard shows 12 stripped providers, silently does nothing | Users can "configure" providers that don't work |
-| 2 | CRITICAL | `DEFAULT_CHAT_CHANNEL = "msteams"` unreliable fallback | Channel login/logout/delivery fails when plugin not loaded |
-| 3 | HIGH | `ModelApi` type includes stripped `github-copilot` and `bedrock` | Config accepts invalid API backends |
-| 4 | HIGH | `BedrockDiscoveryConfig` still in config schema | Users can configure Bedrock discovery that does nothing |
-| 5 | HIGH | Dead auth resolution branches for stripped providers | Confusion, dead code paths |
-| 6 | HIGH | Orphaned credential-setting functions | Unreachable dead code |
-| 7 | HIGH | `AuthChoice`/`OnboardOptions` types include stripped providers | CLI accepts flags that do nothing |
-| 8 | MEDIUM | `opencode-zen` normalization still active | Dead code |
-| 9 | MEDIUM | Provider usage tracking silently empty | No user indication tracking disabled |
-| 10 | MEDIUM | Tests reference stripped providers | Tests may pass or fail incorrectly |
-| 11 | LOW | `AuthChoiceGroupId` defined in two files, diverging | Maintenance risk |
+| #   | Severity | Bug                                                              | Impact                                                     |
+| --- | -------- | ---------------------------------------------------------------- | ---------------------------------------------------------- |
+| 1   | CRITICAL | Auth wizard shows 12 stripped providers, silently does nothing   | Users can "configure" providers that don't work            |
+| 2   | CRITICAL | `DEFAULT_CHAT_CHANNEL = "msteams"` unreliable fallback           | Channel login/logout/delivery fails when plugin not loaded |
+| 3   | HIGH     | `ModelApi` type includes stripped `github-copilot` and `bedrock` | Config accepts invalid API backends                        |
+| 4   | HIGH     | `BedrockDiscoveryConfig` still in config schema                  | Users can configure Bedrock discovery that does nothing    |
+| 5   | HIGH     | Dead auth resolution branches for stripped providers             | Confusion, dead code paths                                 |
+| 6   | HIGH     | Orphaned credential-setting functions                            | Unreachable dead code                                      |
+| 7   | HIGH     | `AuthChoice`/`OnboardOptions` types include stripped providers   | CLI accepts flags that do nothing                          |
+| 8   | MEDIUM   | `opencode-zen` normalization still active                        | Dead code                                                  |
+| 9   | MEDIUM   | Provider usage tracking silently empty                           | No user indication tracking disabled                       |
+| 10  | MEDIUM   | Tests reference stripped providers                               | Tests may pass or fail incorrectly                         |
+| 11  | LOW      | `AuthChoiceGroupId` defined in two files, diverging              | Maintenance risk                                           |

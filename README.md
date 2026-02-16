@@ -93,16 +93,16 @@ Channel plugins (Microsoft Teams, WebChat, custom extensions)
 
 Full documentation is available at **[docs.openclaw.ai](https://docs.openclaw.ai)**.
 
-| Topic | Link |
-|-------|------|
-| Getting started | [docs.openclaw.ai/start/getting-started](https://docs.openclaw.ai/start/getting-started) |
-| Architecture | [docs.openclaw.ai/concepts/architecture](https://docs.openclaw.ai/concepts/architecture) |
-| Configuration | [docs.openclaw.ai/gateway/configuration](https://docs.openclaw.ai/gateway/configuration) |
-| Channels | [docs.openclaw.ai/channels](https://docs.openclaw.ai/channels) |
-| Security | [docs.openclaw.ai/gateway/security](https://docs.openclaw.ai/gateway/security) |
-| Skills | [docs.openclaw.ai/tools/skills](https://docs.openclaw.ai/tools/skills) |
+| Topic           | Link                                                                                           |
+| --------------- | ---------------------------------------------------------------------------------------------- |
+| Getting started | [docs.openclaw.ai/start/getting-started](https://docs.openclaw.ai/start/getting-started)       |
+| Architecture    | [docs.openclaw.ai/concepts/architecture](https://docs.openclaw.ai/concepts/architecture)       |
+| Configuration   | [docs.openclaw.ai/gateway/configuration](https://docs.openclaw.ai/gateway/configuration)       |
+| Channels        | [docs.openclaw.ai/channels](https://docs.openclaw.ai/channels)                                 |
+| Security        | [docs.openclaw.ai/gateway/security](https://docs.openclaw.ai/gateway/security)                 |
+| Skills          | [docs.openclaw.ai/tools/skills](https://docs.openclaw.ai/tools/skills)                         |
 | Troubleshooting | [docs.openclaw.ai/channels/troubleshooting](https://docs.openclaw.ai/channels/troubleshooting) |
-| FAQ | [docs.openclaw.ai/start/faq](https://docs.openclaw.ai/start/faq) |
+| FAQ             | [docs.openclaw.ai/start/faq](https://docs.openclaw.ai/start/faq)                               |
 
 **Platform guides:** [macOS](https://docs.openclaw.ai/platforms/macos) · [Linux](https://docs.openclaw.ai/platforms/linux) · [Windows (WSL2)](https://docs.openclaw.ai/platforms/windows) · [iOS](https://docs.openclaw.ai/platforms/ios) · [Android](https://docs.openclaw.ai/platforms/android) · [Docker](https://docs.openclaw.ai/install/docker) · [Nix](https://github.com/special-agent/nix-special-agent)
 
