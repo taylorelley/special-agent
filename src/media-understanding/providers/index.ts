@@ -1,29 +1,10 @@
 import type { MediaUnderstandingProvider } from "../types.js";
 import { normalizeProviderId } from "../../agents/model-selection.js";
-import { anthropicProvider } from "./anthropic/index.js";
-import { deepgramProvider } from "./deepgram/index.js";
-import { googleProvider } from "./google/index.js";
-import { groqProvider } from "./groq/index.js";
-import { minimaxProvider } from "./minimax/index.js";
-import { openaiProvider } from "./openai/index.js";
-import { zaiProvider } from "./zai/index.js";
 
-const PROVIDERS: MediaUnderstandingProvider[] = [
-  groqProvider,
-  openaiProvider,
-  googleProvider,
-  anthropicProvider,
-  minimaxProvider,
-  zaiProvider,
-  deepgramProvider,
-];
+const PROVIDERS: MediaUnderstandingProvider[] = [];
 
 export function normalizeMediaProviderId(id: string): string {
-  const normalized = normalizeProviderId(id);
-  if (normalized === "gemini") {
-    return "google";
-  }
-  return normalized;
+  return normalizeProviderId(id);
 }
 
 export function buildMediaUnderstandingRegistry(

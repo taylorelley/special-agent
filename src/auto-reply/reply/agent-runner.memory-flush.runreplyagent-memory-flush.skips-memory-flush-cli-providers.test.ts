@@ -152,6 +152,15 @@ describe("runReplyAgent memory flush", () => {
     const { typing, sessionCtx, resolvedQueue, followupRun } = createBaseRun({
       storePath,
       sessionEntry,
+      config: {
+        agents: {
+          defaults: {
+            cliBackends: {
+              "codex-cli": { command: "codex" },
+            },
+          },
+        },
+      },
       runOverrides: { provider: "codex-cli" },
     });
 

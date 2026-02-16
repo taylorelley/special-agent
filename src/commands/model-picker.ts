@@ -12,7 +12,6 @@ import {
 } from "../agents/model-selection.js";
 import { fetchWithTimeout } from "../utils/fetch-timeout.js";
 import { formatTokenK } from "./models/shared.js";
-import { OPENAI_CODEX_DEFAULT_MODEL } from "./openai-codex-model-default.js";
 
 const KEEP_VALUE = "__keep__";
 const MANUAL_VALUE = "__manual__";
@@ -20,7 +19,7 @@ const MANUAL_VALUE = "__manual__";
 // Models that are internal routing features and should not be shown in selection lists.
 // These may be valid as defaults (e.g., set automatically during auth flow) but are not
 // directly callable via API and would cause "Unknown model" errors if selected manually.
-const HIDDEN_ROUTER_MODELS = new Set(["openrouter/auto"]);
+const HIDDEN_ROUTER_MODELS = new Set<string>();
 
 type PromptDefaultModelParams = {
   config: SpecialAgentConfig;
@@ -382,7 +381,7 @@ export async function promptModelAllowlist(params: {
         params.message ??
         "Allowlist models (comma-separated provider/model; blank to keep current)",
       initialValue: existingKeys.join(", "),
-      placeholder: `${OPENAI_CODEX_DEFAULT_MODEL}, anthropic/claude-opus-4-6`,
+      placeholder: `provider/model-name`,
     });
     const parsed = String(raw ?? "")
       .split(",")

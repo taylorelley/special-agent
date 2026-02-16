@@ -1,7 +1,6 @@
 import type { OAuthCredentials } from "@mariozechner/pi-ai";
 import { resolveSpecialAgentAgentDir } from "../agents/agent-paths.js";
 import { upsertAuthProfile } from "../agents/auth-profiles.js";
-export { XAI_DEFAULT_MODEL_REF } from "./onboard-auth.models.js";
 
 const resolveAuthAgentDir = (agentDir?: string) => agentDir ?? resolveSpecialAgentAgentDir();
 
@@ -23,131 +22,42 @@ export async function writeOAuthCredentials(
   });
 }
 
-export async function setAnthropicApiKey(key: string, agentDir?: string) {
-  // Write to resolved agent dir so gateway finds credentials on startup.
-  upsertAuthProfile({
-    profileId: "anthropic:default",
-    credential: {
-      type: "api_key",
-      provider: "anthropic",
-      key,
+/**
+ * Applies an auth-profile reference into the config's provider block.
+ */
+export function applyAuthProfileConfig(
+  cfg: import("../config/config.js").SpecialAgentConfig,
+  params: { profileId: string; provider: string; mode: string; email?: string },
+): import("../config/config.js").SpecialAgentConfig {
+  const providers = { ...cfg.models?.providers };
+  const existing = providers[params.provider];
+  providers[params.provider] = {
+    ...(existing ?? { baseUrl: "", models: [] }),
+    auth: params.mode as import("../config/types.models.js").ModelProviderAuthMode,
+    authProfile: params.profileId,
+  } as import("../config/types.models.js").ModelProviderConfig;
+  return {
+    ...cfg,
+    models: {
+      ...cfg.models,
+      providers,
     },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
+  };
 }
 
-export async function setGeminiApiKey(key: string, agentDir?: string) {
-  // Write to resolved agent dir so gateway finds credentials on startup.
+/**
+ * Generic API key setter for any provider.
+ */
+export async function setProviderApiKey(
+  provider: string,
+  key: string,
+  agentDir?: string,
+): Promise<void> {
   upsertAuthProfile({
-    profileId: "google:default",
+    profileId: `${provider}:default`,
     credential: {
       type: "api_key",
-      provider: "google",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export async function setMoonshotApiKey(key: string, agentDir?: string) {
-  // Write to resolved agent dir so gateway finds credentials on startup.
-  upsertAuthProfile({
-    profileId: "moonshot:default",
-    credential: {
-      type: "api_key",
-      provider: "moonshot",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export async function setKimiCodingApiKey(key: string, agentDir?: string) {
-  // Write to resolved agent dir so gateway finds credentials on startup.
-  upsertAuthProfile({
-    profileId: "kimi-coding:default",
-    credential: {
-      type: "api_key",
-      provider: "kimi-coding",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
-export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
-export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
-export const LITELLM_DEFAULT_MODEL_REF = "litellm/claude-opus-4-6";
-export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.6";
-
-export async function setZaiApiKey(key: string, agentDir?: string) {
-  // Write to resolved agent dir so gateway finds credentials on startup.
-  upsertAuthProfile({
-    profileId: "zai:default",
-    credential: {
-      type: "api_key",
-      provider: "zai",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export async function setXiaomiApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "xiaomi:default",
-    credential: {
-      type: "api_key",
-      provider: "xiaomi",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export async function setOpenrouterApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "openrouter:default",
-    credential: {
-      type: "api_key",
-      provider: "openrouter",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export async function setLitellmApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "litellm:default",
-    credential: {
-      type: "api_key",
-      provider: "litellm",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export async function setVercelAiGatewayApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "vercel-ai-gateway:default",
-    credential: {
-      type: "api_key",
-      provider: "vercel-ai-gateway",
-      key,
-    },
-    agentDir: resolveAuthAgentDir(agentDir),
-  });
-}
-
-export function setQianfanApiKey(key: string, agentDir?: string) {
-  upsertAuthProfile({
-    profileId: "qianfan:default",
-    credential: {
-      type: "api_key",
-      provider: "qianfan",
+      provider,
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),

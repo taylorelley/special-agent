@@ -56,10 +56,10 @@ export function registerOnboardCommand(program: Command) {
     )
     .option("--flow <flow>", "Wizard flow: quickstart|advanced|manual")
     .option("--mode <mode>", "Wizard mode: local|remote")
-    .option(
-      "--auth-choice <choice>",
-      "Auth: setup-token|token|chutes|openai-codex|openai-api-key|qianfan-api-key|openrouter-api-key|litellm-api-key|ai-gateway-api-key|moonshot-api-key|moonshot-api-key-cn|kimi-code-api-key|gemini-api-key|zai-api-key|xiaomi-api-key|apiKey|skip",
-    )
+    .option("--auth-choice <choice>", "Auth: custom-api-key|ollama|skip")
+    .option("--api-key <key>", "API key for the configured endpoint")
+    .option("--base-url <url>", "Base URL for the configured endpoint")
+    .option("--api-type <type>", "API type: openai-compatible|anthropic-compatible|ollama")
     .option(
       "--token-provider <id>",
       "Token provider id (non-interactive; used with --auth-choice token)",
@@ -70,17 +70,6 @@ export function registerOnboardCommand(program: Command) {
       "Auth profile id (non-interactive; default: <provider>:manual)",
     )
     .option("--token-expires-in <duration>", "Optional token expiry duration (e.g. 365d, 12h)")
-    .option("--anthropic-api-key <key>", "Anthropic API key")
-    .option("--openai-api-key <key>", "OpenAI API key")
-    .option("--openrouter-api-key <key>", "OpenRouter API key")
-    .option("--ai-gateway-api-key <key>", "Vercel AI Gateway API key")
-    .option("--moonshot-api-key <key>", "Moonshot API key")
-    .option("--kimi-code-api-key <key>", "Kimi Coding API key")
-    .option("--gemini-api-key <key>", "Gemini API key")
-    .option("--zai-api-key <key>", "Z.AI API key")
-    .option("--xiaomi-api-key <key>", "Xiaomi API key")
-    .option("--litellm-api-key <key>", "LiteLLM API key")
-    .option("--qianfan-api-key <key>", "QIANFAN API key")
     .option("--gateway-port <port>", "Gateway port")
     .option("--gateway-bind <mode>", "Gateway bind: loopback|tailnet|lan|auto|custom")
     .option("--gateway-auth <mode>", "Gateway auth: token|password")
@@ -119,17 +108,9 @@ export function registerOnboardCommand(program: Command) {
             token: opts.token as string | undefined,
             tokenProfileId: opts.tokenProfileId as string | undefined,
             tokenExpiresIn: opts.tokenExpiresIn as string | undefined,
-            anthropicApiKey: opts.anthropicApiKey as string | undefined,
-            openaiApiKey: opts.openaiApiKey as string | undefined,
-            openrouterApiKey: opts.openrouterApiKey as string | undefined,
-            aiGatewayApiKey: opts.aiGatewayApiKey as string | undefined,
-            moonshotApiKey: opts.moonshotApiKey as string | undefined,
-            kimiCodeApiKey: opts.kimiCodeApiKey as string | undefined,
-            geminiApiKey: opts.geminiApiKey as string | undefined,
-            zaiApiKey: opts.zaiApiKey as string | undefined,
-            xiaomiApiKey: opts.xiaomiApiKey as string | undefined,
-            qianfanApiKey: opts.qianfanApiKey as string | undefined,
-            litellmApiKey: opts.litellmApiKey as string | undefined,
+            apiKey: opts.apiKey as string | undefined,
+            baseUrl: opts.baseUrl as string | undefined,
+            apiType: opts.apiType as string | undefined,
             gatewayPort:
               typeof gatewayPort === "number" && Number.isFinite(gatewayPort)
                 ? gatewayPort

@@ -1,5 +1,6 @@
 import { type SpecialAgentConfig, loadConfig } from "../config/config.js";
 import { resolveSpecialAgentAgentDir } from "./agent-paths.js";
+import { discoverAllModels } from "./model-discovery.js";
 import { ensureSpecialAgentModelsJson } from "./models-config.js";
 
 export type ModelCatalogEntry = {
@@ -93,6 +94,21 @@ export async function loadModelCatalog(params?: {
         const reasoning = typeof entry?.reasoning === "boolean" ? entry.reasoning : undefined;
         const input = Array.isArray(entry?.input) ? entry.input : undefined;
         models.push({ id, name, provider, contextWindow, reasoning, input });
+      }
+
+      // Merge dynamically discovered models from configured endpoints
+      try {
+        const discovered = await discoverAllModels(cfg);
+        const existingKeys = new Set(models.map((m) => `${m.provider}/${m.id}`));
+        for (const entry of discovered) {
+          const key = `${entry.provider}/${entry.id}`;
+          if (!existingKeys.has(key)) {
+            models.push(entry);
+            existingKeys.add(key);
+          }
+        }
+      } catch {
+        // Dynamic discovery is best-effort; don't fail the catalog load
       }
 
       if (models.length === 0) {

@@ -63,7 +63,8 @@ describe("promptDefaultModel", () => {
     });
 
     const options = select.mock.calls[0]?.[0]?.options ?? [];
-    expect(options.some((opt) => opt.value === "openrouter/auto")).toBe(false);
+    // HIDDEN_ROUTER_MODELS is now empty, so openrouter/auto is no longer filtered.
+    expect(options.some((opt) => opt.value === "openrouter/auto")).toBe(true);
     expect(options.some((opt) => opt.value === "openrouter/meta-llama/llama-3.3-70b:free")).toBe(
       true,
     );
@@ -94,7 +95,8 @@ describe("promptModelAllowlist", () => {
     await promptModelAllowlist({ config, prompter });
 
     const options = multiselect.mock.calls[0]?.[0]?.options ?? [];
-    expect(options.some((opt: { value: string }) => opt.value === "openrouter/auto")).toBe(false);
+    // HIDDEN_ROUTER_MODELS is now empty, so openrouter/auto is no longer filtered.
+    expect(options.some((opt: { value: string }) => opt.value === "openrouter/auto")).toBe(true);
     expect(
       options.some(
         (opt: { value: string }) => opt.value === "openrouter/meta-llama/llama-3.3-70b:free",

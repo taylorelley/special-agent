@@ -299,8 +299,10 @@ describe("commands registry args", () => {
     ]);
     expect(seen?.commandKey).toBe("think");
     expect(seen?.argName).toBe("level");
-    expect(seen?.provider).toBeTruthy();
-    expect(seen?.model).toBeTruthy();
+    // DEFAULT_PROVIDER and DEFAULT_MODEL are now empty strings.
+    // The function-based choices callback still receives them; just verify defined.
+    expect(seen?.provider).toBeDefined();
+    expect(seen?.model).toBeDefined();
   });
 
   it("does not show menus when args were provided as raw text only", () => {

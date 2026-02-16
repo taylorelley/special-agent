@@ -9,43 +9,6 @@ export type ModelPickerCatalogEntry = {
 
 export type ModelPickerItem = ModelRef;
 
-const MODEL_PICK_PROVIDER_PREFERENCE = [
-  "anthropic",
-  "openai",
-  "openai-codex",
-  "minimax",
-  "synthetic",
-  "google",
-  "zai",
-  "openrouter",
-  "opencode",
-  "github-copilot",
-  "groq",
-  "cerebras",
-  "mistral",
-  "xai",
-  "lmstudio",
-] as const;
-
-const PROVIDER_RANK = new Map<string, number>(
-  MODEL_PICK_PROVIDER_PREFERENCE.map((provider, idx) => [provider, idx]),
-);
-
-function compareProvidersForPicker(a: string, b: string): number {
-  const pa = PROVIDER_RANK.get(a);
-  const pb = PROVIDER_RANK.get(b);
-  if (pa !== undefined && pb !== undefined) {
-    return pa - pb;
-  }
-  if (pa !== undefined) {
-    return -1;
-  }
-  if (pb !== undefined) {
-    return 1;
-  }
-  return a.localeCompare(b);
-}
-
 export function buildModelPickerItems(catalog: ModelPickerCatalogEntry[]): ModelPickerItem[] {
   const seen = new Set<string>();
   const out: ModelPickerItem[] = [];
@@ -66,9 +29,9 @@ export function buildModelPickerItems(catalog: ModelPickerCatalogEntry[]): Model
     out.push({ model, provider });
   }
 
-  // Sort by provider preference first, then by model name
+  // Sort alphabetically by provider, then by model name
   out.sort((a, b) => {
-    const providerOrder = compareProvidersForPicker(a.provider, b.provider);
+    const providerOrder = a.provider.localeCompare(b.provider);
     if (providerOrder !== 0) {
       return providerOrder;
     }

@@ -2,7 +2,6 @@ import type { SpecialAgentConfig } from "../config/config.js";
 import type { ModelCatalogEntry } from "./model-catalog.js";
 import { resolveAgentModelPrimary } from "./agent-scope.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
-import { normalizeGoogleModelId } from "./models-config.providers.js";
 
 export type ModelRef = {
   provider: string;
@@ -16,12 +15,6 @@ export type ModelAliasIndex = {
   byKey: Map<string, string[]>;
 };
 
-const ANTHROPIC_MODEL_ALIASES: Record<string, string> = {
-  "opus-4.6": "claude-opus-4-6",
-  "opus-4.5": "claude-opus-4-5",
-  "sonnet-4.5": "claude-sonnet-4-5",
-};
-
 function normalizeAliasKey(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -31,48 +24,13 @@ export function modelKey(provider: string, model: string) {
 }
 
 export function normalizeProviderId(provider: string): string {
-  const normalized = provider.trim().toLowerCase();
-  if (normalized === "z.ai" || normalized === "z-ai") {
-    return "zai";
-  }
-  if (normalized === "qwen") {
-    return "qwen-portal";
-  }
-  if (normalized === "kimi-code") {
-    return "kimi-coding";
-  }
-  return normalized;
+  return provider.trim().toLowerCase();
 }
 
 export function isCliProvider(provider: string, cfg?: SpecialAgentConfig): boolean {
   const normalized = normalizeProviderId(provider);
-  if (normalized === "claude-cli") {
-    return true;
-  }
-  if (normalized === "codex-cli") {
-    return true;
-  }
   const backends = cfg?.agents?.defaults?.cliBackends ?? {};
   return Object.keys(backends).some((key) => normalizeProviderId(key) === normalized);
-}
-
-function normalizeAnthropicModelId(model: string): string {
-  const trimmed = model.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-  const lower = trimmed.toLowerCase();
-  return ANTHROPIC_MODEL_ALIASES[lower] ?? trimmed;
-}
-
-function normalizeProviderModelId(provider: string, model: string): string {
-  if (provider === "anthropic") {
-    return normalizeAnthropicModelId(model);
-  }
-  if (provider === "google") {
-    return normalizeGoogleModelId(model);
-  }
-  return model;
 }
 
 export function parseModelRef(raw: string, defaultProvider: string): ModelRef | null {
@@ -83,8 +41,7 @@ export function parseModelRef(raw: string, defaultProvider: string): ModelRef | 
   const slash = trimmed.indexOf("/");
   if (slash === -1) {
     const provider = normalizeProviderId(defaultProvider);
-    const model = normalizeProviderModelId(provider, trimmed);
-    return { provider, model };
+    return { provider, model: trimmed };
   }
   const providerRaw = trimmed.slice(0, slash).trim();
   const provider = normalizeProviderId(providerRaw);
@@ -92,8 +49,7 @@ export function parseModelRef(raw: string, defaultProvider: string): ModelRef | 
   if (!provider || !model) {
     return null;
   }
-  const normalizedModel = normalizeProviderModelId(provider, model);
-  return { provider, model: normalizedModel };
+  return { provider, model };
 }
 
 export function resolveAllowlistModelKey(raw: string, defaultProvider: string): string | null {
@@ -199,11 +155,7 @@ export function resolveConfiguredModelRef(params: {
         return aliasMatch.ref;
       }
 
-      // Default to anthropic if no provider is specified, but warn as this is deprecated.
-      console.warn(
-        `[special-agent] Model "${trimmed}" specified without provider. Falling back to "anthropic/${trimmed}". Please use "anthropic/${trimmed}" in your config.`,
-      );
-      return { provider: "anthropic", model: trimmed };
+      return { provider: params.defaultProvider, model: trimmed };
     }
 
     const resolved = resolveModelRefFromString({

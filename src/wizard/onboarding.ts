@@ -5,12 +5,18 @@ import type {
   ResetScope,
 } from "../commands/onboard-types.js";
 import type { SpecialAgentConfig } from "../config/config.js";
+import type { ModelDefinitionConfig } from "../config/types.models.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { QuickstartGatewayDefaults, WizardFlow } from "./onboarding.types.js";
+import {
+  CONTEXT_WINDOW_HARD_MIN_TOKENS,
+  CONTEXT_WINDOW_WARN_BELOW_TOKENS,
+} from "../agents/context-window-guard.js";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { warnIfModelConfigLooksOff } from "../commands/auth-choice.js";
 import { applyPrimaryModel, promptDefaultModel } from "../commands/model-picker.js";
+import { formatTokenK } from "../commands/models/shared.js";
 import { setupChannels } from "../commands/onboard-channels.js";
 import { buildEndpointIdFromUrl } from "../commands/onboard-custom.js";
 import {
@@ -23,6 +29,14 @@ import {
   summarizeExistingConfig,
 } from "../commands/onboard-helpers.js";
 import { setupInternalHooks } from "../commands/onboard-hooks.js";
+import {
+  applyOllamaProviderConfig,
+  buildOllamaModelDefinition,
+  fetchOllamaContextWindow,
+  OLLAMA_DEFAULT_BASE_URL,
+  OLLAMA_PROVIDER_ID,
+  probeOllamaRunning,
+} from "../commands/onboard-ollama.js";
 import { promptRemoteGatewayConfig } from "../commands/onboard-remote.js";
 import { setupSkills } from "../commands/onboard-skills.js";
 import {
@@ -37,6 +51,34 @@ import { resolveUserPath } from "../utils.js";
 import { finalizeOnboardingWizard } from "./onboarding.finalize.js";
 import { configureGatewayForOnboarding } from "./onboarding.gateway-config.js";
 import { WizardCancelledError, type WizardPrompter } from "./prompts.js";
+
+async function promptContextWindow(
+  prompter: WizardPrompter,
+  defaultValue: number,
+  detectedLabel?: string,
+): Promise<number> {
+  const message = detectedLabel
+    ? `Max context length (tokens) — detected: ${detectedLabel}`
+    : "Max context length (tokens)";
+  const raw = await prompter.text({
+    message,
+    initialValue: String(defaultValue),
+    validate: (val) => {
+      const n = parseInt(val, 10);
+      if (isNaN(n) || n <= 0) {
+        return "Please enter a positive integer";
+      }
+      if (n < CONTEXT_WINDOW_HARD_MIN_TOKENS) {
+        return `Context window must be at least ${formatTokenK(CONTEXT_WINDOW_HARD_MIN_TOKENS)} tokens (${CONTEXT_WINDOW_HARD_MIN_TOKENS})`;
+      }
+      if (n < CONTEXT_WINDOW_WARN_BELOW_TOKENS) {
+        return `Warning: ${formatTokenK(n)} tokens is below the recommended ${formatTokenK(CONTEXT_WINDOW_WARN_BELOW_TOKENS)} minimum — performance may suffer`;
+      }
+      return undefined;
+    },
+  });
+  return parseInt(raw, 10);
+}
 
 async function requireRiskAcknowledgement(params: {
   opts: OnboardOptions;
@@ -346,61 +388,68 @@ export async function runOnboardingWizard(
     },
   };
 
-  // Endpoint configuration: base URL, API key, compatibility
-  const endpointBaseUrl = await prompter.text({
-    message: "Endpoint base URL",
-    initialValue: "http://127.0.0.1:11434/v1",
-    placeholder: "http://127.0.0.1:11434/v1",
-    validate: (val) => {
-      try {
-        new URL(val);
-        return undefined;
-      } catch {
-        return "Please enter a valid URL (e.g. http://...)";
-      }
-    },
-  });
-  const endpointApiKey = await prompter.text({
-    message: "API Key (leave blank if not required)",
-    initialValue: "",
-    placeholder: "sk-...",
-  });
-  const endpointCompat = await prompter.select({
-    message: "Endpoint compatibility",
+  // Endpoint configuration: provider type selection, then branch
+  const providerType = await prompter.select({
+    message: "Endpoint type",
     options: [
       {
-        value: "openai-completions",
-        label: "OpenAI-compatible",
+        value: "openai",
+        label: "OpenAI Compatible API",
         hint: "Uses /chat/completions",
       },
       {
-        value: "anthropic-messages",
-        label: "Anthropic-compatible",
+        value: "anthropic",
+        label: "Anthropic Compatible API",
         hint: "Uses /messages",
+      },
+      {
+        value: "ollama",
+        label: "Ollama Compatible API",
+        hint: "Local models, no API key needed",
       },
     ],
   });
 
-  const endpointId = buildEndpointIdFromUrl(endpointBaseUrl.trim());
-  const normalizedApiKey = endpointApiKey.trim() || undefined;
-  nextConfig = {
-    ...nextConfig,
-    models: {
-      ...nextConfig.models,
-      mode: nextConfig.models?.mode ?? "merge",
-      providers: {
-        ...nextConfig.models?.providers,
-        [endpointId]: {
-          baseUrl: endpointBaseUrl.trim(),
-          api: endpointCompat as "openai-completions" | "anthropic-messages",
-          ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
-          models: [],
+  if (providerType === "openai" || providerType === "anthropic") {
+    const endpointBaseUrl = await prompter.text({
+      message: "Endpoint base URL",
+      placeholder:
+        providerType === "openai" ? "https://api.example.com/v1" : "https://api.example.com/v1",
+      validate: (val) => {
+        try {
+          new URL(val);
+          return undefined;
+        } catch {
+          return "Please enter a valid URL (e.g. http://...)";
+        }
+      },
+    });
+    const endpointApiKey = await prompter.text({
+      message: "API Key",
+      placeholder: providerType === "openai" ? "sk-..." : "sk-ant-...",
+    });
+
+    const endpointCompat: "openai-completions" | "anthropic-messages" =
+      providerType === "openai" ? "openai-completions" : "anthropic-messages";
+    const endpointId = buildEndpointIdFromUrl(endpointBaseUrl.trim());
+    const normalizedApiKey = endpointApiKey.trim() || undefined;
+    nextConfig = {
+      ...nextConfig,
+      models: {
+        ...nextConfig.models,
+        mode: nextConfig.models?.mode ?? "merge",
+        providers: {
+          ...nextConfig.models?.providers,
+          [endpointId]: {
+            baseUrl: endpointBaseUrl.trim(),
+            api: endpointCompat,
+            ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+            models: [],
+          },
         },
       },
-    },
-  };
+    };
 
-  {
     const modelSelection = await promptDefaultModel({
       config: nextConfig,
       prompter,
@@ -410,7 +459,159 @@ export async function runOnboardingWizard(
       endpointApiKey: endpointApiKey.trim(),
     });
     if (modelSelection.model) {
-      nextConfig = applyPrimaryModel(nextConfig, modelSelection.model);
+      const modelId = modelSelection.model;
+      const defaultCtx = providerType === "openai" ? 128_000 : 200_000;
+      const ctxValue = await promptContextWindow(prompter, defaultCtx);
+
+      const modelDef: ModelDefinitionConfig = {
+        id: modelId,
+        name: modelId,
+        reasoning: false,
+        input: ["text"],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: ctxValue,
+        maxTokens: 4096,
+      };
+
+      // Re-apply provider config with model definition
+      nextConfig = {
+        ...nextConfig,
+        models: {
+          ...nextConfig.models,
+          mode: nextConfig.models?.mode ?? "merge",
+          providers: {
+            ...nextConfig.models?.providers,
+            [endpointId]: {
+              ...nextConfig.models?.providers?.[endpointId],
+              baseUrl: endpointBaseUrl.trim(),
+              models: [modelDef],
+            },
+          },
+        },
+      };
+
+      const qualifiedModel = modelId.startsWith(`${endpointId}/`)
+        ? modelId
+        : `${endpointId}/${modelId}`;
+      nextConfig = applyPrimaryModel(nextConfig, qualifiedModel);
+    }
+  } else {
+    // Ollama branch
+    const ollamaBaseUrl = await prompter.text({
+      message: "Ollama base URL",
+      initialValue: OLLAMA_DEFAULT_BASE_URL,
+      placeholder: OLLAMA_DEFAULT_BASE_URL,
+      validate: (val) => {
+        try {
+          new URL(val);
+          return undefined;
+        } catch {
+          return "Please enter a valid URL (e.g. http://...)";
+        }
+      },
+    });
+    const trimmedBaseUrl = ollamaBaseUrl.trim();
+
+    // Probe for running Ollama instance
+    let probeOk = false;
+    while (!probeOk) {
+      const probeSpinner = prompter.progress("Checking for Ollama...");
+      const probe = await probeOllamaRunning(trimmedBaseUrl);
+      if (probe.ok) {
+        probeSpinner.stop("Ollama detected.");
+        probeOk = true;
+      } else {
+        probeSpinner.stop("Ollama not detected.");
+        await prompter.note(
+          [
+            `Could not reach Ollama at ${trimmedBaseUrl}`,
+            probe.error ? `Error: ${probe.error}` : "",
+            "",
+            "Make sure Ollama is running: ollama serve",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          "Ollama",
+        );
+        const action = await prompter.select({
+          message: "What would you like to do?",
+          options: [
+            { value: "retry", label: "Retry" },
+            { value: "continue", label: "Continue anyway" },
+          ],
+        });
+        if (action === "continue") {
+          break;
+        }
+      }
+    }
+
+    const ollamaApiKey = await prompter.text({
+      message: "API Key (leave blank if not required)",
+      initialValue: "",
+      placeholder: "leave blank if not required",
+    });
+    const normalizedOllamaApiKey = ollamaApiKey.trim() || undefined;
+
+    nextConfig = applyOllamaProviderConfig(nextConfig, {
+      baseUrl: trimmedBaseUrl,
+      apiKey: normalizedOllamaApiKey,
+      models: [],
+    });
+
+    const modelSelection = await promptDefaultModel({
+      config: nextConfig,
+      prompter,
+      allowKeep: true,
+      ignoreAllowlist: true,
+      endpointBaseUrl: trimmedBaseUrl,
+      endpointApiKey: ollamaApiKey.trim(),
+    });
+    if (modelSelection.model) {
+      const modelId = modelSelection.model;
+
+      // Auto-detect context window from Ollama
+      const detectSpinner = prompter.progress("Detecting context window...");
+      const detectedCtx = await fetchOllamaContextWindow(trimmedBaseUrl, modelId);
+      if (detectedCtx) {
+        detectSpinner.stop(`Detected context window: ${formatTokenK(detectedCtx)} tokens.`);
+      } else {
+        detectSpinner.stop("Could not detect context window.");
+      }
+
+      const ollamaDefaultCtx = 32_768;
+      const ctxDefault = detectedCtx ?? ollamaDefaultCtx;
+      const ctxLabel = detectedCtx ? String(detectedCtx) : undefined;
+      const contextWindow = await promptContextWindow(prompter, ctxDefault, ctxLabel);
+      const modelDef = buildOllamaModelDefinition(modelId, contextWindow);
+
+      // Re-apply provider config with model definition
+      nextConfig = applyOllamaProviderConfig(nextConfig, {
+        baseUrl: trimmedBaseUrl,
+        apiKey: normalizedOllamaApiKey,
+        models: [modelDef],
+      });
+
+      const qualifiedModel = `${OLLAMA_PROVIDER_ID}/${modelId}`;
+      nextConfig = applyPrimaryModel(nextConfig, qualifiedModel);
+
+      // Disable streaming for Ollama models (SDK issue #1205)
+      nextConfig = {
+        ...nextConfig,
+        agents: {
+          ...nextConfig.agents,
+          defaults: {
+            ...nextConfig.agents?.defaults,
+            models: {
+              ...nextConfig.agents?.defaults?.models,
+              [qualifiedModel]: {
+                ...nextConfig.agents?.defaults?.models?.[qualifiedModel],
+                streaming: false,
+              },
+            },
+          },
+        },
+      };
     }
   }
 

@@ -4,11 +4,7 @@ import type { SpecialAgentConfig } from "../../config/config.js";
 import type { ModelRow } from "./list.types.js";
 import { resolveSpecialAgentAgentDir } from "../../agents/agent-paths.js";
 import { listProfilesForProvider } from "../../agents/auth-profiles.js";
-import {
-  getCustomProviderApiKey,
-  resolveAwsSdkEnvVarName,
-  resolveEnvApiKey,
-} from "../../agents/model-auth.js";
+import { getCustomProviderApiKey, resolveEnvApiKey } from "../../agents/model-auth.js";
 import { ensureSpecialAgentModelsJson } from "../../agents/models-config.js";
 import { discoverAuthStorage, discoverModels } from "../../agents/pi-model-discovery.js";
 import { modelKey } from "./shared.js";
@@ -35,9 +31,6 @@ const hasAuthForProvider = (
   authStore: AuthProfileStore,
 ) => {
   if (listProfilesForProvider(authStore, provider).length > 0) {
-    return true;
-  }
-  if (provider === "amazon-bedrock" && resolveAwsSdkEnvVarName()) {
     return true;
   }
   if (resolveEnvApiKey(provider)) {

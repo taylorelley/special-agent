@@ -1,4 +1,4 @@
-import { type Api, getEnvApiKey, type Model } from "@mariozechner/pi-ai";
+import { type Api, type Model } from "@mariozechner/pi-ai";
 import path from "node:path";
 import type { SpecialAgentConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
@@ -19,11 +19,6 @@ import {
 import { normalizeProviderId } from "./model-selection.js";
 
 export { ensureAuthProfileStore, resolveAuthProfileOrder } from "./auth-profiles.js";
-
-const AWS_BEARER_ENV = "AWS_BEARER_TOKEN_BEDROCK";
-const AWS_ACCESS_KEY_ENV = "AWS_ACCESS_KEY_ID";
-const AWS_SECRET_KEY_ENV = "AWS_SECRET_ACCESS_KEY";
-const AWS_PROFILE_ENV = "AWS_PROFILE";
 
 function resolveProviderConfig(
   cfg: SpecialAgentConfig | undefined,
@@ -61,7 +56,7 @@ function resolveProviderAuthOverride(
 ): ModelProviderAuthMode | undefined {
   const entry = resolveProviderConfig(cfg, provider);
   const auth = entry?.auth;
-  if (auth === "api-key" || auth === "aws-sdk" || auth === "oauth" || auth === "token") {
+  if (auth === "api-key" || auth === "oauth" || auth === "token") {
     return auth;
   }
   return undefined;
@@ -77,59 +72,11 @@ function resolveEnvSourceLabel(params: {
   return `${prefix}${params.label}`;
 }
 
-export function resolveAwsSdkEnvVarName(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  if (env[AWS_BEARER_ENV]?.trim()) {
-    return AWS_BEARER_ENV;
-  }
-  if (env[AWS_ACCESS_KEY_ENV]?.trim() && env[AWS_SECRET_KEY_ENV]?.trim()) {
-    return AWS_ACCESS_KEY_ENV;
-  }
-  if (env[AWS_PROFILE_ENV]?.trim()) {
-    return AWS_PROFILE_ENV;
-  }
-  return undefined;
-}
-
-function resolveAwsSdkAuthInfo(): { mode: "aws-sdk"; source: string } {
-  const applied = new Set(getShellEnvAppliedKeys());
-  if (process.env[AWS_BEARER_ENV]?.trim()) {
-    return {
-      mode: "aws-sdk",
-      source: resolveEnvSourceLabel({
-        applied,
-        envVars: [AWS_BEARER_ENV],
-        label: AWS_BEARER_ENV,
-      }),
-    };
-  }
-  if (process.env[AWS_ACCESS_KEY_ENV]?.trim() && process.env[AWS_SECRET_KEY_ENV]?.trim()) {
-    return {
-      mode: "aws-sdk",
-      source: resolveEnvSourceLabel({
-        applied,
-        envVars: [AWS_ACCESS_KEY_ENV, AWS_SECRET_KEY_ENV],
-        label: `${AWS_ACCESS_KEY_ENV} + ${AWS_SECRET_KEY_ENV}`,
-      }),
-    };
-  }
-  if (process.env[AWS_PROFILE_ENV]?.trim()) {
-    return {
-      mode: "aws-sdk",
-      source: resolveEnvSourceLabel({
-        applied,
-        envVars: [AWS_PROFILE_ENV],
-        label: AWS_PROFILE_ENV,
-      }),
-    };
-  }
-  return { mode: "aws-sdk", source: "aws-sdk default chain" };
-}
-
 export type ResolvedProviderAuth = {
   apiKey?: string;
   profileId?: string;
   source: string;
-  mode: "api-key" | "oauth" | "token" | "aws-sdk";
+  mode: "api-key" | "oauth" | "token";
 };
 
 export async function resolveApiKeyForProvider(params: {
@@ -160,11 +107,6 @@ export async function resolveApiKeyForProvider(params: {
       source: `profile:${profileId}`,
       mode: mode === "oauth" ? "oauth" : mode === "token" ? "token" : "api-key",
     };
-  }
-
-  const authOverride = resolveProviderAuthOverride(cfg, provider);
-  if (authOverride === "aws-sdk") {
-    return resolveAwsSdkAuthInfo();
   }
 
   const order = resolveAuthProfileOrder({
@@ -198,7 +140,7 @@ export async function resolveApiKeyForProvider(params: {
     return {
       apiKey: envResolved.apiKey,
       source: envResolved.source,
-      mode: envResolved.source.includes("OAUTH_TOKEN") ? "oauth" : "api-key",
+      mode: "api-key",
     };
   }
 
@@ -207,13 +149,12 @@ export async function resolveApiKeyForProvider(params: {
     return { apiKey: customKey, source: "models.json", mode: "api-key" };
   }
 
-  if (provider === "openai") {
-    const hasCodex = listProfilesForProvider(store, "openai-codex").length > 0;
-    if (hasCodex) {
-      throw new Error(
-        'No API key found for provider "openai". You are authenticated with OpenAI Codex OAuth. Use openai-codex/gpt-5.3-codex (OAuth) or set OPENAI_API_KEY to use openai/gpt-5.1-codex.',
-      );
-    }
+  // Custom providers with a baseUrl and no apiKey field at all (e.g. Ollama)
+  // should be allowed through without auth.  Use a placeholder value so the
+  // SDK auth storage treats it as configured; the endpoint will ignore it.
+  const providerCfg = resolveProviderConfig(cfg, provider);
+  if (providerCfg?.baseUrl && !("apiKey" in providerCfg)) {
+    return { apiKey: "unused", source: "custom-provider-no-key", mode: "api-key" };
   }
 
   const authStorePath = resolveAuthStorePathForDisplay(params.agentDir);
@@ -228,8 +169,12 @@ export async function resolveApiKeyForProvider(params: {
 }
 
 export type EnvApiKeyResult = { apiKey: string; source: string };
-export type ModelAuthMode = "api-key" | "oauth" | "token" | "mixed" | "aws-sdk" | "unknown";
+export type ModelAuthMode = "api-key" | "oauth" | "token" | "mixed" | "unknown";
 
+/**
+ * Resolve API key from environment variables for a provider.
+ * Uses a generic approach: looks for <PROVIDER>_API_KEY in the environment.
+ */
 export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
   const normalized = normalizeProviderId(provider);
   const applied = new Set(getShellEnvAppliedKeys());
@@ -242,60 +187,8 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     return { apiKey: value, source };
   };
 
-  if (normalized === "anthropic") {
-    return pick("ANTHROPIC_OAUTH_TOKEN") ?? pick("ANTHROPIC_API_KEY");
-  }
-
-  if (normalized === "chutes") {
-    return pick("CHUTES_OAUTH_TOKEN") ?? pick("CHUTES_API_KEY");
-  }
-
-  if (normalized === "zai") {
-    return pick("ZAI_API_KEY") ?? pick("Z_AI_API_KEY");
-  }
-
-  if (normalized === "google-vertex") {
-    const envKey = getEnvApiKey(normalized);
-    if (!envKey) {
-      return null;
-    }
-    return { apiKey: envKey, source: "gcloud adc" };
-  }
-
-  if (normalized === "qwen-portal") {
-    return pick("QWEN_OAUTH_TOKEN") ?? pick("QWEN_PORTAL_API_KEY");
-  }
-
-  if (normalized === "minimax-portal") {
-    return pick("MINIMAX_OAUTH_TOKEN") ?? pick("MINIMAX_API_KEY");
-  }
-
-  if (normalized === "kimi-coding") {
-    return pick("KIMI_API_KEY") ?? pick("KIMICODE_API_KEY");
-  }
-
-  const envMap: Record<string, string> = {
-    openai: "OPENAI_API_KEY",
-    google: "GEMINI_API_KEY",
-    voyage: "VOYAGE_API_KEY",
-    groq: "GROQ_API_KEY",
-    deepgram: "DEEPGRAM_API_KEY",
-    cerebras: "CEREBRAS_API_KEY",
-    xai: "XAI_API_KEY",
-    openrouter: "OPENROUTER_API_KEY",
-    litellm: "LITELLM_API_KEY",
-    "vercel-ai-gateway": "AI_GATEWAY_API_KEY",
-    moonshot: "MOONSHOT_API_KEY",
-    minimax: "MINIMAX_API_KEY",
-    xiaomi: "XIAOMI_API_KEY",
-    mistral: "MISTRAL_API_KEY",
-    qianfan: "QIANFAN_API_KEY",
-    ollama: "OLLAMA_API_KEY",
-  };
-  const envVar = envMap[normalized];
-  if (!envVar) {
-    return null;
-  }
+  // Generic: try <UPPER_PROVIDER>_API_KEY
+  const envVar = `${normalized.replace(/-/g, "_").toUpperCase()}_API_KEY`;
   return pick(envVar);
 }
 
@@ -307,11 +200,6 @@ export function resolveModelAuthMode(
   const resolved = provider?.trim();
   if (!resolved) {
     return undefined;
-  }
-
-  const authOverride = resolveProviderAuthOverride(cfg, resolved);
-  if (authOverride === "aws-sdk") {
-    return "aws-sdk";
   }
 
   const authStore = store ?? ensureAuthProfileStore();
@@ -341,7 +229,7 @@ export function resolveModelAuthMode(
 
   const envKey = resolveEnvApiKey(resolved);
   if (envKey?.apiKey) {
-    return envKey.source.includes("OAUTH_TOKEN") ? "oauth" : "api-key";
+    return "api-key";
   }
 
   if (getCustomProviderApiKey(cfg, resolved)) {

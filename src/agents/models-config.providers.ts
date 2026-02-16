@@ -1,6 +1,6 @@
 import type { SpecialAgentConfig } from "../config/config.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
-import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
+import { resolveEnvApiKey } from "./model-auth.js";
 
 type ModelsConfig = NonNullable<SpecialAgentConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
@@ -18,10 +18,6 @@ function resolveEnvApiKeyVarName(provider: string): string | undefined {
   }
   const match = /^(?:env: |shell env: )([A-Z0-9_]+)$/.exec(resolved.source);
   return match ? match[1] : undefined;
-}
-
-function resolveAwsSdkApiKeyVarName(): string {
-  return resolveAwsSdkEnvVarName() ?? "AWS_PROFILE";
 }
 
 function resolveApiKeyFromProfiles(params: {
@@ -44,29 +40,6 @@ function resolveApiKeyFromProfiles(params: {
   return undefined;
 }
 
-export function normalizeGoogleModelId(id: string): string {
-  if (id === "gemini-3-pro") {
-    return "gemini-3-pro-preview";
-  }
-  if (id === "gemini-3-flash") {
-    return "gemini-3-flash-preview";
-  }
-  return id;
-}
-
-function normalizeGoogleProvider(provider: ProviderConfig): ProviderConfig {
-  let mutated = false;
-  const models = provider.models.map((model) => {
-    const nextId = normalizeGoogleModelId(model.id);
-    if (nextId === model.id) {
-      return model;
-    }
-    mutated = true;
-    return { ...model, id: nextId };
-  });
-  return mutated ? { ...provider, models } : provider;
-}
-
 export function normalizeProviders(params: {
   providers: ModelsConfig["providers"];
   agentDir: string;
@@ -82,7 +55,6 @@ export function normalizeProviders(params: {
   const next: Record<string, ProviderConfig> = {};
 
   for (const [key, provider] of Object.entries(providers)) {
-    const normalizedKey = key.trim();
     let normalizedProvider = provider;
 
     // Fix common misconfig: apiKey set to "${ENV_VAR}" instead of "ENV_VAR".
@@ -102,31 +74,16 @@ export function normalizeProviders(params: {
     const hasModels =
       Array.isArray(normalizedProvider.models) && normalizedProvider.models.length > 0;
     if (hasModels && !normalizedProvider.apiKey?.trim()) {
-      const authMode = normalizedProvider.auth;
-      if (authMode === "aws-sdk") {
-        const apiKey = resolveAwsSdkApiKeyVarName();
+      const fromEnv = resolveEnvApiKeyVarName(key.trim());
+      const fromProfiles = resolveApiKeyFromProfiles({
+        provider: key.trim(),
+        store: authStore,
+      });
+      const apiKey = fromEnv ?? fromProfiles;
+      if (apiKey?.trim()) {
         mutated = true;
         normalizedProvider = { ...normalizedProvider, apiKey };
-      } else {
-        const fromEnv = resolveEnvApiKeyVarName(normalizedKey);
-        const fromProfiles = resolveApiKeyFromProfiles({
-          provider: normalizedKey,
-          store: authStore,
-        });
-        const apiKey = fromEnv ?? fromProfiles;
-        if (apiKey?.trim()) {
-          mutated = true;
-          normalizedProvider = { ...normalizedProvider, apiKey };
-        }
       }
-    }
-
-    if (normalizedKey === "google") {
-      const googleNormalized = normalizeGoogleProvider(normalizedProvider);
-      if (googleNormalized !== normalizedProvider) {
-        mutated = true;
-      }
-      normalizedProvider = googleNormalized;
     }
 
     next[key] = normalizedProvider;

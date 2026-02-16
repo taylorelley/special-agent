@@ -159,55 +159,32 @@ describe("cli program (smoke)", () => {
   });
 
   it("passes auth api keys to onboard", async () => {
-    const cases = [
-      {
-        authChoice: "openrouter-api-key",
-        flag: "--openrouter-api-key",
-        key: "sk-openrouter-test",
-        field: "openrouterApiKey",
-      },
-      {
-        authChoice: "moonshot-api-key",
-        flag: "--moonshot-api-key",
-        key: "sk-moonshot-test",
-        field: "moonshotApiKey",
-      },
-      {
-        authChoice: "moonshot-api-key-cn",
-        flag: "--moonshot-api-key",
-        key: "sk-moonshot-cn-test",
-        field: "moonshotApiKey",
-      },
-      {
-        authChoice: "kimi-code-api-key",
-        flag: "--kimi-code-api-key",
-        key: "sk-kimi-code-test",
-        field: "kimiCodeApiKey",
-      },
-      {
-        authChoice: "zai-api-key",
-        flag: "--zai-api-key",
-        key: "sk-zai-test",
-        field: "zaiApiKey",
-      },
-    ] as const;
-
-    for (const entry of cases) {
-      const program = buildProgram();
-      await program.parseAsync(
-        ["onboard", "--non-interactive", "--auth-choice", entry.authChoice, entry.flag, entry.key],
-        { from: "user" },
-      );
-      expect(onboardCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          nonInteractive: true,
-          authChoice: entry.authChoice,
-          [entry.field]: entry.key,
-        }),
-        runtime,
-      );
-      onboardCommand.mockClear();
-    }
+    const program = buildProgram();
+    await program.parseAsync(
+      [
+        "onboard",
+        "--non-interactive",
+        "--auth-choice",
+        "custom-api-key",
+        "--api-key",
+        "sk-test-key",
+        "--base-url",
+        "https://api.example.com/v1",
+        "--api-type",
+        "openai-compatible",
+      ],
+      { from: "user" },
+    );
+    expect(onboardCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nonInteractive: true,
+        authChoice: "custom-api-key",
+        apiKey: "sk-test-key",
+        baseUrl: "https://api.example.com/v1",
+        apiType: "openai-compatible",
+      }),
+      runtime,
+    );
   });
 
   it("runs channels login", async () => {

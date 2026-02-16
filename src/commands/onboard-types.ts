@@ -2,43 +2,7 @@ import type { ChannelId } from "../channels/plugins/types.js";
 import type { GatewayDaemonRuntime } from "./daemon-runtime.js";
 
 export type OnboardMode = "local" | "remote";
-export type AuthChoice =
-  // Legacy alias for `setup-token` (kept for backwards CLI compatibility).
-  | "oauth"
-  | "setup-token"
-  | "claude-cli"
-  | "token"
-  | "chutes"
-  | "openai-codex"
-  | "openai-api-key"
-  | "openrouter-api-key"
-  | "litellm-api-key"
-  | "ai-gateway-api-key"
-  | "moonshot-api-key"
-  | "moonshot-api-key-cn"
-  | "kimi-code-api-key"
-  | "codex-cli"
-  | "apiKey"
-  | "gemini-api-key"
-  | "google-antigravity"
-  | "google-gemini-cli"
-  | "zai-api-key"
-  | "xiaomi-api-key"
-  | "qianfan-api-key"
-  | "custom-api-key"
-  | "skip";
-export type AuthChoiceGroupId =
-  | "openai"
-  | "anthropic"
-  | "google"
-  | "openrouter"
-  | "litellm"
-  | "ai-gateway"
-  | "moonshot"
-  | "zai"
-  | "xiaomi"
-  | "qianfan"
-  | "custom";
+export type AuthChoice = "custom-api-key" | "ollama" | "skip";
 export type GatewayAuthChoice = "token" | "password";
 export type ResetScope = "config" | "config+creds+sessions" | "full";
 export type GatewayBind = "loopback" | "lan" | "auto" | "custom" | "tailnet";
@@ -66,17 +30,12 @@ export type OnboardOptions = {
   tokenProfileId?: string;
   /** Used when `authChoice=token` in non-interactive mode. */
   tokenExpiresIn?: string;
-  anthropicApiKey?: string;
-  openaiApiKey?: string;
-  openrouterApiKey?: string;
-  litellmApiKey?: string;
-  aiGatewayApiKey?: string;
-  moonshotApiKey?: string;
-  kimiCodeApiKey?: string;
-  geminiApiKey?: string;
-  zaiApiKey?: string;
-  xiaomiApiKey?: string;
-  qianfanApiKey?: string;
+  /** Generic API key for the configured endpoint. */
+  apiKey?: string;
+  /** Base URL for the configured endpoint. */
+  baseUrl?: string;
+  /** API type: openai-compatible, anthropic-compatible, or ollama. */
+  apiType?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;
   gatewayAuth?: GatewayAuthChoice;

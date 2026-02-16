@@ -63,7 +63,15 @@ function createRun() {
       messageProvider: "webchat",
       sessionFile: "/tmp/session.jsonl",
       workspaceDir: "/tmp",
-      config: {},
+      config: {
+        agents: {
+          defaults: {
+            cliBackends: {
+              "claude-cli": { command: "claude" },
+            },
+          },
+        },
+      },
       skillsSnapshot: {},
       provider: "claude-cli",
       model: "opus-4.5",

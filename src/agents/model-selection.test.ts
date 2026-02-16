@@ -13,10 +13,9 @@ describe("model-selection", () => {
   describe("normalizeProviderId", () => {
     it("should normalize provider names", () => {
       expect(normalizeProviderId("Anthropic")).toBe("anthropic");
-      expect(normalizeProviderId("Z.ai")).toBe("zai");
-      expect(normalizeProviderId("z-ai")).toBe("zai");
-      expect(normalizeProviderId("qwen")).toBe("qwen-portal");
-      expect(normalizeProviderId("kimi-code")).toBe("kimi-coding");
+      expect(normalizeProviderId("  OpenAI  ")).toBe("openai");
+      expect(normalizeProviderId("Z.ai")).toBe("z.ai");
+      expect(normalizeProviderId("z-ai")).toBe("z-ai");
     });
   });
 
@@ -28,14 +27,14 @@ describe("model-selection", () => {
       });
     });
 
-    it("normalizes anthropic alias refs to canonical model ids", () => {
+    it("preserves model ids as-is without alias normalization", () => {
       expect(parseModelRef("anthropic/opus-4.6", "openai")).toEqual({
         provider: "anthropic",
-        model: "claude-opus-4-6",
+        model: "opus-4.6",
       });
       expect(parseModelRef("opus-4.6", "anthropic")).toEqual({
         provider: "anthropic",
-        model: "claude-opus-4-6",
+        model: "opus-4.6",
       });
     });
 
@@ -114,8 +113,7 @@ describe("model-selection", () => {
   });
 
   describe("resolveConfiguredModelRef", () => {
-    it("should fall back to anthropic and warn if provider is missing for non-alias", () => {
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    it("should use default provider when model has no provider prefix", () => {
       const cfg: Partial<SpecialAgentConfig> = {
         agents: {
           defaults: {
@@ -130,11 +128,7 @@ describe("model-selection", () => {
         defaultModel: "gemini-pro",
       });
 
-      expect(result).toEqual({ provider: "anthropic", model: "claude-3-5-sonnet" });
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Falling back to "anthropic/claude-3-5-sonnet"'),
-      );
-      warnSpy.mockRestore();
+      expect(result).toEqual({ provider: "google", model: "claude-3-5-sonnet" });
     });
 
     it("should use default provider/model if config is empty", () => {

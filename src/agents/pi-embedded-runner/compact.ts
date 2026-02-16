@@ -141,11 +141,9 @@ export async function compactEmbeddedPiSessionDirect(
     });
 
     if (!apiKeyInfo.apiKey) {
-      if (apiKeyInfo.mode !== "aws-sdk") {
-        throw new Error(
-          `No API key resolved for provider "${model.provider}" (auth mode: ${apiKeyInfo.mode}).`,
-        );
-      }
+      throw new Error(
+        `No API key resolved for provider "${model.provider}" (auth mode: ${apiKeyInfo.mode}).`,
+      );
     } else {
       authStorage.setRuntimeApiKey(model.provider, apiKeyInfo.apiKey);
     }

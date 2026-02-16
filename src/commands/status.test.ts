@@ -300,7 +300,8 @@ describe("statusCommand", () => {
     expect(payload.memory.vector.available).toBe(true);
     expect(payload.sessions.count).toBe(1);
     expect(payload.sessions.paths).toContain("/tmp/sessions.json");
-    expect(payload.sessions.defaults.model).toBeTruthy();
+    // DEFAULT_MODEL is now "" (empty sentinel); model is defined but may be empty.
+    expect(payload.sessions.defaults.model).toBeDefined();
     expect(payload.sessions.defaults.contextTokens).toBeGreaterThan(0);
     expect(payload.sessions.recent[0].percentUsed).toBe(50);
     expect(payload.sessions.recent[0].remainingTokens).toBe(5000);

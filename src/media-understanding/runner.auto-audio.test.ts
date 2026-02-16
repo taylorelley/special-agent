@@ -12,57 +12,6 @@ import {
 } from "./runner.js";
 
 describe("runCapability auto audio entries", () => {
-  it("uses provider keys to auto-enable audio transcription", async () => {
-    const originalPath = process.env.PATH;
-    process.env.PATH = "/usr/bin:/bin";
-    const tmpPath = path.join(os.tmpdir(), `special-agent-auto-audio-${Date.now()}.wav`);
-    await fs.writeFile(tmpPath, Buffer.from("RIFF"));
-    const ctx: MsgContext = { MediaPath: tmpPath, MediaType: "audio/wav" };
-    const media = normalizeMediaAttachments(ctx);
-    const cache = createMediaAttachmentCache(media);
-
-    let seenModel: string | undefined;
-    const providerRegistry = buildProviderRegistry({
-      openai: {
-        id: "openai",
-        capabilities: ["audio"],
-        transcribeAudio: async (req) => {
-          seenModel = req.model;
-          return { text: "ok", model: req.model };
-        },
-      },
-    });
-
-    const cfg = {
-      models: {
-        providers: {
-          openai: {
-            apiKey: "test-key",
-            models: [],
-          },
-        },
-      },
-    } as unknown as SpecialAgentConfig;
-
-    try {
-      const result = await runCapability({
-        capability: "audio",
-        cfg,
-        ctx,
-        attachments: cache,
-        media,
-        providerRegistry,
-      });
-      expect(result.outputs[0]?.text).toBe("ok");
-      expect(seenModel).toBe("gpt-4o-mini-transcribe");
-      expect(result.decision.outcome).toBe("success");
-    } finally {
-      process.env.PATH = originalPath;
-      await cache.cleanup();
-      await fs.unlink(tmpPath).catch(() => {});
-    }
-  });
-
   it("skips auto audio when disabled", async () => {
     const originalPath = process.env.PATH;
     process.env.PATH = "/usr/bin:/bin";

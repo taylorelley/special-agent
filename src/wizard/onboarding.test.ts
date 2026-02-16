@@ -129,8 +129,8 @@ describe("runOnboardingWizard", () => {
 
   it("skips prompts and setup steps when flags are set", async () => {
     const select: WizardPrompter["select"] = vi.fn(async (opts) => {
-      if (opts.message === "Endpoint compatibility") {
-        return "openai-completions";
+      if (opts.message === "Endpoint type") {
+        return "openai";
       }
       if (opts.message === "Default model") {
         return "__keep__";
@@ -184,6 +184,9 @@ describe("runOnboardingWizard", () => {
     await fs.writeFile(path.join(workspaceDir, DEFAULT_BOOTSTRAP_FILENAME), "{}");
 
     const select: WizardPrompter["select"] = vi.fn(async (opts) => {
+      if (opts.message === "Endpoint type") {
+        return "openai";
+      }
       if (opts.message === "How do you want to hatch your bot?") {
         return "tui";
       }
@@ -241,6 +244,9 @@ describe("runOnboardingWizard", () => {
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-onboard-"));
 
     const select: WizardPrompter["select"] = vi.fn(async (opts) => {
+      if (opts.message === "Endpoint type") {
+        return "openai";
+      }
       if (opts.message === "How do you want to hatch your bot?") {
         return "tui";
       }
@@ -302,7 +308,12 @@ describe("runOnboardingWizard", () => {
         intro: vi.fn(async () => {}),
         outro: vi.fn(async () => {}),
         note,
-        select: vi.fn(async () => "quickstart"),
+        select: vi.fn(async (opts) => {
+          if (opts.message === "Endpoint type") {
+            return "openai";
+          }
+          return "quickstart";
+        }),
         multiselect: vi.fn(async () => []),
         text: vi.fn(async () => ""),
         confirm: vi.fn(async () => false),

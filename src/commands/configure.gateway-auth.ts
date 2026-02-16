@@ -3,7 +3,7 @@ import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import { promptAuthChoiceGrouped } from "./auth-choice-prompt.js";
-import { applyAuthChoice, resolvePreferredProviderForAuthChoice } from "./auth-choice.js";
+import { applyAuthChoice } from "./auth-choice.js";
 import {
   applyModelAllowlist,
   applyModelFallbacksFromSelection,
@@ -72,15 +72,14 @@ export async function promptAuthConfig(
       prompter,
       allowKeep: true,
       ignoreAllowlist: true,
-      preferredProvider: resolvePreferredProviderForAuthChoice(authChoice),
+      preferredProvider: undefined,
     });
     if (modelSelection.model) {
       next = applyPrimaryModel(next, modelSelection.model);
     }
   }
 
-  const anthropicOAuth =
-    authChoice === "setup-token" || authChoice === "token" || authChoice === "oauth";
+  const anthropicOAuth = false;
 
   if (authChoice !== "custom-api-key") {
     const allowlistSelection = await promptModelAllowlist({
