@@ -212,14 +212,6 @@ export async function finalizeOnboardingWizard(
       await healthCommand({ json: false, timeoutMs: 10_000 }, runtime);
     } catch (err) {
       runtime.error(formatHealthCheckFailure(err));
-      await prompter.note(
-        [
-          "Docs:",
-          "https://docs.openclaw.ai/gateway/health",
-          "https://docs.openclaw.ai/gateway/troubleshooting",
-        ].join("\n"),
-        "Health check help",
-      );
     }
   }
 
@@ -231,16 +223,6 @@ export async function finalizeOnboardingWizard(
       runtime.error(controlUiAssets.message);
     }
   }
-
-  await prompter.note(
-    [
-      "Add nodes for extra features:",
-      "- macOS app (system + notifications)",
-      "- iOS app (camera/canvas)",
-      "- Android app (camera/canvas)",
-    ].join("\n"),
-    "Optional apps",
-  );
 
   const controlUiBasePath =
     nextConfig.gateway?.controlUi?.basePath ?? baseConfig.gateway?.controlUi?.basePath;
@@ -379,19 +361,6 @@ export async function finalizeOnboardingWizard(
     await prompter.note("Skipping Control UI/TUI prompts.", "Control UI");
   }
 
-  await prompter.note(
-    [
-      "Back up your agent workspace.",
-      "Docs: https://docs.openclaw.ai/concepts/agent-workspace",
-    ].join("\n"),
-    "Workspace backup",
-  );
-
-  await prompter.note(
-    "Running agents on your computer is risky — harden your setup: https://docs.openclaw.ai/security",
-    "Security",
-  );
-
   await setupOnboardingShellCompletion({ flow, prompter });
 
   const shouldOpenControlUi =
@@ -458,11 +427,6 @@ export async function finalizeOnboardingWizard(
           "Docs: https://docs.openclaw.ai/tools/web",
         ].join("\n"),
     "Web search (optional)",
-  );
-
-  await prompter.note(
-    'What now: https://openclaw.ai/showcase ("What People Are Building").',
-    "What now",
   );
 
   await prompter.outro(

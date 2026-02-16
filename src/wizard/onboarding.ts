@@ -7,18 +7,12 @@ import type {
 import type { SpecialAgentConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { QuickstartGatewayDefaults, WizardFlow } from "./onboarding.types.js";
-import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
-import { promptAuthChoiceGrouped } from "../commands/auth-choice-prompt.js";
-import {
-  applyAuthChoice,
-  resolvePreferredProviderForAuthChoice,
-  warnIfModelConfigLooksOff,
-} from "../commands/auth-choice.js";
+import { warnIfModelConfigLooksOff } from "../commands/auth-choice.js";
 import { applyPrimaryModel, promptDefaultModel } from "../commands/model-picker.js";
 import { setupChannels } from "../commands/onboard-channels.js";
-import { promptCustomApiConfig } from "../commands/onboard-custom.js";
+import { buildEndpointIdFromUrl } from "../commands/onboard-custom.js";
 import {
   applyWizardMetadata,
   DEFAULT_WORKSPACE,
@@ -54,26 +48,11 @@ async function requireRiskAcknowledgement(params: {
 
   await params.prompter.note(
     [
-      "Security warning — please read.",
+      "Security warning.",
       "",
-      "SpecialAgent is a hobby project and still in beta. Expect sharp edges.",
-      "This bot can read files and run actions if tools are enabled.",
+      "This agent can read files and run actions on your system.",
       "A bad prompt can trick it into doing unsafe things.",
-      "",
-      "If you’re not comfortable with basic security and access control, don’t run SpecialAgent.",
-      "Ask someone experienced to help before enabling tools or exposing it to the internet.",
-      "",
-      "Recommended baseline:",
-      "- Pairing/allowlists + mention gating.",
-      "- Sandbox + least-privilege tools.",
-      "- Keep secrets out of the agent’s reachable filesystem.",
-      "- Use the strongest available model for any bot with tools or untrusted inboxes.",
-      "",
-      "Run regularly:",
-      "special-agent security audit --deep",
-      "special-agent security audit --fix",
-      "",
-      "Must read: https://docs.openclaw.ai/gateway/security",
+      "Use allowlists, sandboxing, and least-privilege tools.",
     ].join("\n"),
     "Security",
   );
@@ -367,50 +346,68 @@ export async function runOnboardingWizard(
     },
   };
 
-  const authStore = ensureAuthProfileStore(undefined, {
-    allowKeychainPrompt: false,
+  // Endpoint configuration: base URL, API key, compatibility
+  const endpointBaseUrl = await prompter.text({
+    message: "Endpoint base URL",
+    initialValue: "http://127.0.0.1:11434/v1",
+    placeholder: "http://127.0.0.1:11434/v1",
+    validate: (val) => {
+      try {
+        new URL(val);
+        return undefined;
+      } catch {
+        return "Please enter a valid URL (e.g. http://...)";
+      }
+    },
   });
-  const authChoiceFromPrompt = opts.authChoice === undefined;
-  const authChoice =
-    opts.authChoice ??
-    (await promptAuthChoiceGrouped({
-      prompter,
-      store: authStore,
-      includeSkip: true,
-    }));
-
-  let customPreferredProvider: string | undefined;
-  if (authChoice === "custom-api-key") {
-    const customResult = await promptCustomApiConfig({
-      prompter,
-      runtime,
-      config: nextConfig,
-    });
-    nextConfig = customResult.config;
-    customPreferredProvider = customResult.providerId;
-  } else {
-    const authResult = await applyAuthChoice({
-      authChoice,
-      config: nextConfig,
-      prompter,
-      runtime,
-      setDefaultModel: true,
-      opts: {
-        tokenProvider: opts.tokenProvider,
-        token: opts.authChoice === "apiKey" && opts.token ? opts.token : undefined,
+  const endpointApiKey = await prompter.text({
+    message: "API Key (leave blank if not required)",
+    initialValue: "",
+    placeholder: "sk-...",
+  });
+  const endpointCompat = await prompter.select({
+    message: "Endpoint compatibility",
+    options: [
+      {
+        value: "openai-completions",
+        label: "OpenAI-compatible",
+        hint: "Uses /chat/completions",
       },
-    });
-    nextConfig = authResult.config;
-  }
+      {
+        value: "anthropic-messages",
+        label: "Anthropic-compatible",
+        hint: "Uses /messages",
+      },
+    ],
+  });
 
-  if (authChoiceFromPrompt && authChoice !== "custom-api-key") {
+  const endpointId = buildEndpointIdFromUrl(endpointBaseUrl.trim());
+  const normalizedApiKey = endpointApiKey.trim() || undefined;
+  nextConfig = {
+    ...nextConfig,
+    models: {
+      ...nextConfig.models,
+      mode: nextConfig.models?.mode ?? "merge",
+      providers: {
+        ...nextConfig.models?.providers,
+        [endpointId]: {
+          baseUrl: endpointBaseUrl.trim(),
+          api: endpointCompat as "openai-completions" | "anthropic-messages",
+          ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+          models: [],
+        },
+      },
+    },
+  };
+
+  {
     const modelSelection = await promptDefaultModel({
       config: nextConfig,
       prompter,
       allowKeep: true,
       ignoreAllowlist: true,
-      preferredProvider:
-        customPreferredProvider ?? resolvePreferredProviderForAuthChoice(authChoice),
+      endpointBaseUrl: endpointBaseUrl.trim(),
+      endpointApiKey: endpointApiKey.trim(),
     });
     if (modelSelection.model) {
       nextConfig = applyPrimaryModel(nextConfig, modelSelection.model);

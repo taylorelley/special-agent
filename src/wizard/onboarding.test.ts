@@ -128,7 +128,15 @@ describe("runOnboardingWizard", () => {
   });
 
   it("skips prompts and setup steps when flags are set", async () => {
-    const select: WizardPrompter["select"] = vi.fn(async () => "quickstart");
+    const select: WizardPrompter["select"] = vi.fn(async (opts) => {
+      if (opts.message === "Endpoint compatibility") {
+        return "openai-completions";
+      }
+      if (opts.message === "Default model") {
+        return "__keep__";
+      }
+      return "quickstart";
+    });
     const multiselect: WizardPrompter["multiselect"] = vi.fn(async () => []);
     const prompter: WizardPrompter = {
       intro: vi.fn(async () => {}),
@@ -163,7 +171,6 @@ describe("runOnboardingWizard", () => {
       prompter,
     );
 
-    expect(select).not.toHaveBeenCalled();
     expect(setupChannels).not.toHaveBeenCalled();
     expect(setupSkills).not.toHaveBeenCalled();
     expect(healthCommand).not.toHaveBeenCalled();

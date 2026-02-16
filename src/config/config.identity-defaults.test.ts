@@ -129,7 +129,7 @@ describe("config identity defaults", () => {
                   identity: {
                     name: "Samantha Sloth",
                     theme: "space lobster",
-                    emoji: "🦞",
+                    emoji: "✈️",
                   },
                   groupChat: { mentionPatterns: ["@special-agent"] },
                 },
@@ -164,7 +164,7 @@ describe("config identity defaults", () => {
           {
             messages: {
               messagePrefix: "[special-agent]",
-              responsePrefix: "🦞",
+              responsePrefix: "✈️",
             },
             channels: {
               msteams: {
@@ -319,7 +319,7 @@ describe("config identity defaults", () => {
                   identity: {
                     name: "SpecialAgent",
                     theme: "space lobster",
-                    emoji: "🦞",
+                    emoji: "✈️",
                   },
                 },
               ],

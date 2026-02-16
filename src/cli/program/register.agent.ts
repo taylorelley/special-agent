@@ -156,7 +156,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/agent", "docs.openclaw.ai/cli/age
 ${theme.heading("Examples:")}
 ${formatHelpExamples([
   [
-    'special-agent agents set-identity --agent main --name "SpecialAgent" --emoji "🦞"',
+    'special-agent agents set-identity --agent main --name "SpecialAgent" --emoji "✈️"',
     "Set name + emoji.",
   ],
   [

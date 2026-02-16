@@ -51,7 +51,7 @@ special-agent agents set-identity --workspace ~/.special-agent/workspace --from-
 Override fields explicitly:
 
 ```bash
-special-agent agents set-identity --agent main --name "Special Agent" --emoji "🦞" --avatar avatars/special-agent.png
+special-agent agents set-identity --agent main --name "Special Agent" --emoji "✈️" --avatar avatars/special-agent.png
 ```
 
 Config sample:
@@ -65,7 +65,7 @@ Config sample:
         identity: {
           name: "Special Agent",
           theme: "space lobster",
-          emoji: "🦞",
+          emoji: "✈️",
           avatar: "avatars/special-agent.png",
         },
       },

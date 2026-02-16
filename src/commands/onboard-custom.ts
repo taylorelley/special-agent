@@ -54,7 +54,7 @@ function normalizeEndpointId(raw: string): string {
   return trimmed.replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-function buildEndpointIdFromUrl(baseUrl: string): string {
+export function buildEndpointIdFromUrl(baseUrl: string): string {
   try {
     const url = new URL(baseUrl);
     const host = url.hostname.replace(/[^a-z0-9]+/gi, "-").toLowerCase();

@@ -31,7 +31,7 @@ Save to `~/.special-agent/special-agent.json` and you can DM the bot from that n
   identity: {
     name: "Clawd",
     theme: "helpful assistant",
-    emoji: "🦞",
+    emoji: "✈️",
   },
   agent: {
     workspace: "~/.special-agent/workspace",

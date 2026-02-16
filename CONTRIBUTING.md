@@ -1,6 +1,6 @@
 # Contributing to Special Agent
 
-Welcome to the lobster tank! 🦞
+Welcome to the lobster tank! ✈️
 
 ## Quick Links
 

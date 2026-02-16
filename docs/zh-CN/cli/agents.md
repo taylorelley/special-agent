@@ -58,7 +58,7 @@ special-agent agents set-identity --workspace ~/.special-agent/workspace --from-
 显式覆盖字段：
 
 ```bash
-special-agent agents set-identity --agent main --name "Special Agent" --emoji "🦞" --avatar avatars/special-agent.png
+special-agent agents set-identity --agent main --name "Special Agent" --emoji "✈️" --avatar avatars/special-agent.png
 ```
 
 配置示例：
@@ -72,7 +72,7 @@ special-agent agents set-identity --agent main --name "Special Agent" --emoji "�
         identity: {
           name: "Special Agent",
           theme: "space lobster",
-          emoji: "🦞",
+          emoji: "✈️",
           avatar: "avatars/special-agent.png",
         },
       },

@@ -11,12 +11,12 @@ import {
   normalizeProviderId,
   resolveConfiguredModelRef,
 } from "../agents/model-selection.js";
+import { fetchWithTimeout } from "../utils/fetch-timeout.js";
 import { formatTokenK } from "./models/shared.js";
 import { OPENAI_CODEX_DEFAULT_MODEL } from "./openai-codex-model-default.js";
 
 const KEEP_VALUE = "__keep__";
 const MANUAL_VALUE = "__manual__";
-const PROVIDER_FILTER_THRESHOLD = 30;
 
 // Models that are internal routing features and should not be shown in selection lists.
 // These may be valid as defaults (e.g., set automatically during auth flow) but are not
@@ -32,6 +32,8 @@ type PromptDefaultModelParams = {
   preferredProvider?: string;
   agentDir?: string;
   message?: string;
+  endpointBaseUrl?: string;
+  endpointApiKey?: string;
 };
 
 type PromptDefaultModelResult = { model?: string };
@@ -101,6 +103,36 @@ async function promptManualModel(params: {
   return { model };
 }
 
+const FETCH_MODELS_TIMEOUT_MS = 10_000;
+
+export async function fetchEndpointModels(
+  baseUrl: string,
+  apiKey: string,
+): Promise<{ id: string; name?: string }[]> {
+  const url = new URL("models", baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).href;
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+  const res = await fetchWithTimeout(url, { method: "GET", headers }, FETCH_MODELS_TIMEOUT_MS);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch models: HTTP ${res.status}`);
+  }
+  const body = (await res.json()) as {
+    data?: { id: string; name?: string }[];
+    models?: { name?: string; model?: string }[];
+  };
+  // OpenAI-style: { data: [{ id, ... }] }
+  if (Array.isArray(body.data)) {
+    return body.data.map((m) => ({ id: m.id, name: m.name }));
+  }
+  // Ollama-style: { models: [{ name, model, ... }] }
+  if (Array.isArray(body.models)) {
+    return body.models.map((m) => ({ id: m.model ?? m.name ?? "unknown", name: m.name }));
+  }
+  return [];
+}
+
 export async function promptDefaultModel(
   params: PromptDefaultModelParams,
 ): Promise<PromptDefaultModelResult> {
@@ -121,6 +153,71 @@ export async function promptDefaultModel(
   });
   const resolvedKey = modelKey(resolved.provider, resolved.model);
   const configuredKey = configuredRaw ? resolvedKey : "";
+
+  // When an endpoint URL is provided, fetch models from the endpoint instead of the catalog.
+  if (params.endpointBaseUrl) {
+    const progress = params.prompter.progress("Fetching models from endpoint...");
+    let endpointModels: { id: string; name?: string }[] = [];
+    try {
+      endpointModels = await fetchEndpointModels(
+        params.endpointBaseUrl,
+        params.endpointApiKey ?? "",
+      );
+      progress.stop(
+        `Found ${endpointModels.length} model${endpointModels.length === 1 ? "" : "s"}.`,
+      );
+    } catch {
+      progress.stop("Failed to fetch models from endpoint.");
+      return promptManualModel({
+        prompter: params.prompter,
+        allowBlank: allowKeep,
+        initialValue: configuredRaw || resolvedKey || undefined,
+      });
+    }
+
+    if (endpointModels.length === 0) {
+      return promptManualModel({
+        prompter: params.prompter,
+        allowBlank: allowKeep,
+        initialValue: configuredRaw || resolvedKey || undefined,
+      });
+    }
+
+    const options: WizardSelectOption[] = [];
+    if (allowKeep) {
+      options.push({
+        value: KEEP_VALUE,
+        label: configuredRaw
+          ? `Keep current (${configuredRaw})`
+          : `Keep current (default: ${resolvedKey})`,
+      });
+    }
+    if (includeManual) {
+      options.push({ value: MANUAL_VALUE, label: "Enter model manually" });
+    }
+    for (const m of endpointModels) {
+      const hint = m.name && m.name !== m.id ? m.name : undefined;
+      options.push({ value: m.id, label: m.id, hint });
+    }
+
+    const selection = await params.prompter.select({
+      message: params.message ?? "Default model",
+      options,
+      initialValue: allowKeep ? KEEP_VALUE : undefined,
+    });
+
+    if (selection === KEEP_VALUE) {
+      return {};
+    }
+    if (selection === MANUAL_VALUE) {
+      return promptManualModel({
+        prompter: params.prompter,
+        allowBlank: false,
+        initialValue: configuredRaw || resolvedKey || undefined,
+      });
+    }
+    return { model: String(selection) };
+  }
 
   const catalog = await loadModelCatalog({ config: cfg, useCache: false });
   if (catalog.length === 0) {
@@ -151,37 +248,6 @@ export async function promptDefaultModel(
       allowBlank: allowKeep,
       initialValue: configuredRaw || resolvedKey || undefined,
     });
-  }
-
-  const providers = Array.from(new Set(models.map((entry) => entry.provider))).toSorted((a, b) =>
-    a.localeCompare(b),
-  );
-
-  const hasPreferredProvider = preferredProvider ? providers.includes(preferredProvider) : false;
-  const shouldPromptProvider =
-    !hasPreferredProvider && providers.length > 1 && models.length > PROVIDER_FILTER_THRESHOLD;
-  if (shouldPromptProvider) {
-    const selection = await params.prompter.select({
-      message: "Filter models by provider",
-      options: [
-        { value: "*", label: "All providers" },
-        ...providers.map((provider) => {
-          const count = models.filter((entry) => entry.provider === provider).length;
-          return {
-            value: provider,
-            label: provider,
-            hint: `${count} model${count === 1 ? "" : "s"}`,
-          };
-        }),
-      ],
-    });
-    if (selection !== "*") {
-      models = models.filter((entry) => entry.provider === selection);
-    }
-  }
-
-  if (hasPreferredProvider && preferredProvider) {
-    models = models.filter((entry) => entry.provider === preferredProvider);
   }
 
   const authStore = ensureAuthProfileStore(params.agentDir, {
@@ -266,18 +332,7 @@ export async function promptDefaultModel(
     });
   }
 
-  let initialValue: string | undefined = allowKeep ? KEEP_VALUE : configuredKey || undefined;
-  if (
-    allowKeep &&
-    hasPreferredProvider &&
-    preferredProvider &&
-    resolved.provider !== preferredProvider
-  ) {
-    const firstModel = models[0];
-    if (firstModel) {
-      initialValue = modelKey(firstModel.provider, firstModel.id);
-    }
-  }
+  const initialValue: string | undefined = allowKeep ? KEEP_VALUE : configuredKey || undefined;
 
   const selection = await params.prompter.select({
     message: params.message ?? "Default model",

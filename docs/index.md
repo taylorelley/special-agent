@@ -5,7 +5,7 @@ read_when:
 title: "Special Agent"
 ---
 
-# Special Agent 🦞
+# Special Agent ✈️
 
 <p align="center">
     <img

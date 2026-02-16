@@ -12,7 +12,7 @@ x-i18n:
   workflow: 15
 ---
 
-# Special Agent 🦞
+# Special Agent ✈️
 
 <p align="center">
     <img

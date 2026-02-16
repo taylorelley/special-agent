@@ -266,7 +266,7 @@ export async function launchSpecialAgentChrome(
         name: profile.name,
         color: profile.color,
       });
-      log.info(`🦞 special-agent browser profile decorated (${profile.color})`);
+      log.info(`✈️ special-agent browser profile decorated (${profile.color})`);
     } catch (err) {
       log.warn(`special-agent browser profile decoration failed: ${String(err)}`);
     }
@@ -301,7 +301,7 @@ export async function launchSpecialAgentChrome(
 
   const pid = proc.pid ?? -1;
   log.info(
-    `🦞 special-agent browser started (${exe.kind}) profile "${profile.name}" on 127.0.0.1:${profile.cdpPort} (pid ${pid})`,
+    `✈️ special-agent browser started (${exe.kind}) profile "${profile.name}" on 127.0.0.1:${profile.cdpPort} (pid ${pid})`,
   );
 
   return {

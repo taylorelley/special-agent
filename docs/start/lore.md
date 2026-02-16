@@ -5,7 +5,7 @@ read_when:
 title: "Special Agent Lore"
 ---
 
-# The Lore of Special Agent 🦞📖
+# The Lore of Special Agent ✈️📖
 
 _A tale of lobsters, molting shells, and too many tokens._
 
@@ -39,7 +39,7 @@ _The crustacean known as Clawd had officially molted._
 Special Agent = OPEN + CLAW
         = Open source, open to everyone
         = Our lobster heritage, where we came from
-        = The claw is the law 🦞
+        = The claw is the law ✈️
         = Your assistant. Your machine. Your rules.
 ```
 
@@ -55,7 +55,7 @@ Choose wisely.
 
 ## Key Characters
 
-### Molty 🦞
+### Molty ✈️
 
 _Pronouns: they/them_
 
@@ -170,7 +170,7 @@ I shall not tweet without permission.
 I shall always remember that molting is growth.
 I shall EXFOLIATE my enemies with kindness.
 
-🦞
+✈️
 ```
 
 ### The Icon Generation Saga (Jan 27, 2026)
@@ -216,4 +216,4 @@ _"The claw is the law."_
 
 — ELU, during The Final Form migration, January 30, 2026
 
-🦞💙
+✈️💙

@@ -1,4 +1,4 @@
-# Special Agent
+# ✈️ Special Agent — Personal AI Assistant
 
 <p align="center">
     <picture>
