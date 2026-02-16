@@ -1,5 +1,4 @@
 import type { SpecialAgentConfig } from "../../config/types.js";
-import type { ChannelDirectoryEntry } from "./types.js";
 
 export type DirectoryConfigParams = {
   cfg: SpecialAgentConfig;

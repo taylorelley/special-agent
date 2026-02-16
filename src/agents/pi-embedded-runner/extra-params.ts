@@ -215,7 +215,7 @@ function createNonStreamingStreamFn(): StreamFn {
       timestamp: Date.now(),
     };
 
-    (async () => {
+    void (async () => {
       try {
         const baseUrl = model.baseUrl.endsWith("/") ? model.baseUrl : `${model.baseUrl}/`;
         const url = new URL("chat/completions", baseUrl).href;
@@ -308,7 +308,7 @@ function createNonStreamingStreamFn(): StreamFn {
             }
             const toolCall = {
               type: "toolCall" as const,
-              id: String(tc.id ?? ""),
+              id: typeof tc.id === "string" ? tc.id : "",
               name: fn?.name ?? "",
               arguments: parsedArgs,
             };
@@ -333,7 +333,7 @@ function createNonStreamingStreamFn(): StreamFn {
 
         stream.push({
           type: "done",
-          reason: output.stopReason as "stop" | "length" | "toolUse",
+          reason: output.stopReason,
           message: output,
         });
       } catch (err) {

@@ -12,9 +12,7 @@ export function resolveUsageProviderId(provider?: string | null): UsageProviderI
     return undefined;
   }
   const normalized = normalizeProviderId(provider);
-  return usageProviders.includes(normalized as UsageProviderId)
-    ? (normalized as UsageProviderId)
-    : undefined;
+  return usageProviders.includes(normalized) ? normalized : undefined;
 }
 
 export const ignoredErrors = new Set([

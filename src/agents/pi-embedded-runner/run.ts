@@ -303,7 +303,6 @@ export async function runEmbeddedPiAgent(
 
       const applyApiKeyInfo = async (candidate?: string): Promise<void> => {
         apiKeyInfo = await resolveApiKeyForCandidate(candidate);
-        const resolvedProfileId = apiKeyInfo.profileId ?? candidate;
         if (!apiKeyInfo.apiKey) {
           throw new Error(
             `No API key resolved for provider "${model.provider}" (auth mode: ${apiKeyInfo.mode}).`,

@@ -313,9 +313,6 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
     let dmAllowFrom: string[] = [];
     let groupAllowFrom: string[] = [];
     let groupOverrides: Array<{ label: string; entries: string[] }> = [];
-    let dmPolicy: string | undefined;
-    let groupPolicy: string | undefined;
-
     // Channel-specific allowlist resolution is handled by channel plugins.
     // Deleted channel implementations (telegram, whatsapp, signal, imessage, slack, discord)
     // are no longer available.
@@ -332,24 +329,11 @@ export const handleAllowlistCommand: CommandHandler = async (params, allowTextCo
       accountId,
       values: groupAllowFrom,
     });
-    const groupOverrideEntries = groupOverrides.flatMap((entry) => entry.entries);
-    const groupOverrideDisplay = normalizeAllowFrom({
-      cfg: params.cfg,
-      channelId,
-      accountId,
-      values: groupOverrideEntries,
-    });
     const resolvedDm: Map<string, string> | undefined = undefined;
     const resolvedGroup: Map<string, string> | undefined = undefined;
 
     const lines: string[] = ["🧾 Allowlist"];
     lines.push(`Channel: ${channelId}${accountId ? ` (account ${accountId})` : ""}`);
-    if (dmPolicy) {
-      lines.push(`DM policy: ${dmPolicy}`);
-    }
-    if (groupPolicy) {
-      lines.push(`Group policy: ${groupPolicy}`);
-    }
 
     const showDm = scope === "dm" || scope === "all";
     const showGroup = scope === "group" || scope === "all";

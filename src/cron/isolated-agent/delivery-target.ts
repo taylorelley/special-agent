@@ -17,7 +17,7 @@ export async function resolveDeliveryTarget(
   cfg: SpecialAgentConfig,
   agentId: string,
   jobPayload: {
-    channel?: "last" | ChannelId;
+    channel?: ChannelId;
     to?: string;
   },
 ): Promise<{

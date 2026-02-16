@@ -1,5 +1,4 @@
 import type { SpecialAgentConfig } from "../../config/config.js";
-import type { GroupToolPolicyConfig } from "../../config/types.tools.js";
 import {
   resolveChannelGroupRequireMention,
   resolveChannelGroupToolsPolicy,

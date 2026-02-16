@@ -10,14 +10,14 @@ export async function promptAuthChoiceGrouped(params: {
 }): Promise<AuthChoice> {
   const options = buildAuthChoiceOptions(params);
 
-  const selection = (await params.prompter.select({
+  const selection = await params.prompter.select({
     message: "Model/auth provider",
     options: options.map((opt) => ({
       value: opt.value,
       label: opt.label,
       hint: opt.hint,
     })),
-  })) as AuthChoice;
+  });
 
   return selection;
 }

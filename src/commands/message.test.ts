@@ -24,11 +24,6 @@ vi.mock("../gateway/call.js", () => ({
   randomIdempotencyKey: () => "idem-1",
 }));
 
-const webAuthExists = vi.fn(async () => false);
-vi.mock("../web/session.js", () => ({
-  webAuthExists: (...args: unknown[]) => webAuthExists(...args),
-}));
-
 const handleDiscordAction = vi.fn(async () => ({ details: { ok: true } }));
 vi.mock("../agents/tools/discord-actions.js", () => ({
   handleDiscordAction: (...args: unknown[]) => handleDiscordAction(...args),
@@ -64,7 +59,6 @@ beforeEach(async () => {
   vi.resetModules();
   await setRegistry(createTestRegistry([]));
   callGatewayMock.mockReset();
-  webAuthExists.mockReset().mockResolvedValue(false);
   handleDiscordAction.mockReset();
   handleSlackAction.mockReset();
   handleTelegramAction.mockReset();
@@ -84,15 +78,7 @@ const runtime: RuntimeEnv = {
   }),
 };
 
-const makeDeps = (overrides: Partial<CliDeps> = {}): CliDeps => ({
-  sendMessageWhatsApp: vi.fn(),
-  sendMessageTelegram: vi.fn(),
-  sendMessageDiscord: vi.fn(),
-  sendMessageSlack: vi.fn(),
-  sendMessageSignal: vi.fn(),
-  sendMessageIMessage: vi.fn(),
-  ...overrides,
-});
+const makeDeps = (): CliDeps => ({}) as CliDeps;
 
 const createStubPlugin = (params: {
   id: ChannelPlugin["id"];

@@ -465,7 +465,10 @@ export default function register(api: SpecialAgentPluginApi) {
               channelKeys.join(",") || "none"
             }`,
           );
-          const send = api.runtime?.channel?.telegram?.sendMessageTelegram;
+          const telegramRuntime = api.runtime?.channel?.telegram as
+            | { sendMessageTelegram?: (...args: unknown[]) => Promise<unknown> }
+            | undefined;
+          const send = telegramRuntime?.sendMessageTelegram;
           if (!send) {
             throw new Error(
               `telegram runtime unavailable (runtime keys: ${runtimeKeys.join(",")}; channel keys: ${channelKeys.join(

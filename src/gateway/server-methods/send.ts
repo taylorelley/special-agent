@@ -2,7 +2,7 @@ import type { GatewayRequestContext, GatewayRequestHandlers } from "./types.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { DEFAULT_CHAT_CHANNEL, resolveDefaultChatChannel } from "../../channels/registry.js";
-import { createOutboundSendDeps } from "../../cli/deps.js";
+import { createOutboundSendDeps } from "../../cli/outbound-send-deps.js";
 import { loadConfig } from "../../config/config.js";
 import { deliverOutboundPayloads } from "../../infra/outbound/deliver.js";
 import {

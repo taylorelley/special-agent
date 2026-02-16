@@ -620,7 +620,7 @@ export async function setupChannels(
         },
       ],
       initialValue: quickstartDefault,
-    })) as ChannelChoice | "__skip__";
+    })) as ChannelChoice;
     if (choice !== "__skip__") {
       await handleChannelChoice(choice);
     }
@@ -640,7 +640,7 @@ export async function setupChannels(
           },
         ],
         initialValue,
-      })) as ChannelChoice | typeof doneValue;
+      })) as ChannelChoice;
       if (choice === doneValue) {
         break;
       }

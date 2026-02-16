@@ -32,18 +32,6 @@ async function main() {
     process.exit(0);
   }
 
-  const { parseRelaySmokeTest, runRelaySmokeTest } = await import("./relay-smoke.js");
-  const smokeTest = parseRelaySmokeTest(args, process.env);
-  if (smokeTest) {
-    try {
-      await runRelaySmokeTest(smokeTest);
-      process.exit(0);
-    } catch (err) {
-      console.error(`Relay smoke test failed (${smokeTest}):`, err);
-      process.exit(1);
-    }
-  }
-
   await patchBunLongForProtobuf();
 
   const { loadDotEnv } = await import("../infra/dotenv.js");

@@ -1,6 +1,3 @@
-import type { SpecialAgentConfig } from "./config.js";
-import type { WhatsAppConfig } from "./types.js";
-
 export type MergeSectionOptions<T> = {
   unsetOnUndefined?: Array<keyof T>;
 };
@@ -21,18 +18,4 @@ export function mergeConfigSection<T extends Record<string, unknown>>(
     next[key as string] = value as unknown;
   }
   return next as T;
-}
-
-export function mergeWhatsAppConfig(
-  cfg: SpecialAgentConfig,
-  patch: Partial<WhatsAppConfig>,
-  options?: MergeSectionOptions<WhatsAppConfig>,
-): SpecialAgentConfig {
-  return {
-    ...cfg,
-    channels: {
-      ...cfg.channels,
-      whatsapp: mergeConfigSection(cfg.channels?.whatsapp, patch, options),
-    },
-  };
 }

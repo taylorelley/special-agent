@@ -1,7 +1,7 @@
 import { type Api, type Model } from "@mariozechner/pi-ai";
 import path from "node:path";
 import type { SpecialAgentConfig } from "../config/config.js";
-import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
+import type { ModelProviderConfig } from "../config/types.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
 import {
@@ -48,28 +48,6 @@ export function getCustomProviderApiKey(
 ): string | undefined {
   const entry = resolveProviderConfig(cfg, provider);
   return normalizeOptionalSecretInput(entry?.apiKey);
-}
-
-function resolveProviderAuthOverride(
-  cfg: SpecialAgentConfig | undefined,
-  provider: string,
-): ModelProviderAuthMode | undefined {
-  const entry = resolveProviderConfig(cfg, provider);
-  const auth = entry?.auth;
-  if (auth === "api-key" || auth === "oauth" || auth === "token") {
-    return auth;
-  }
-  return undefined;
-}
-
-function resolveEnvSourceLabel(params: {
-  applied: Set<string>;
-  envVars: string[];
-  label: string;
-}): string {
-  const shellApplied = params.envVars.some((envVar) => params.applied.has(envVar));
-  const prefix = shellApplied ? "shell env: " : "env: ";
-  return `${prefix}${params.label}`;
 }
 
 export type ResolvedProviderAuth = {

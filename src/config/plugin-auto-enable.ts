@@ -16,10 +16,6 @@ const CHANNEL_PLUGIN_IDS: string[] = [];
 
 const PROVIDER_PLUGIN_IDS: Array<{ pluginId: string; providerId: string }> = [];
 
-function hasNonEmptyString(value: unknown): boolean {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
 function recordHasKeys(value: unknown): boolean {
   return isRecord(value) && Object.keys(value).length > 0;
 }

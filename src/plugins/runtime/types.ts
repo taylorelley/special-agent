@@ -191,6 +191,8 @@ export type PluginRuntime = {
       shouldComputeCommandAuthorized: ShouldComputeCommandAuthorized;
       shouldHandleTextCommands: ShouldHandleTextCommands;
     };
+    // Channel-specific runtime extensions (e.g. telegram, discord) are injected dynamically.
+    [key: string]: unknown;
   };
   logging: {
     shouldLogVerbose: ShouldLogVerbose;
