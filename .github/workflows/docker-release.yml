@@ -18,15 +18,21 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Build amd64 image
-  build-amd64:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            suffix: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            suffix: arm64
+    runs-on: ${{ matrix.runner }}
     permissions:
       packages: write
       contents: read
-    outputs:
-      image-digest: ${{ steps.build.outputs.digest }}
-      image-metadata: ${{ steps.meta.outputs.json }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,72 +53,19 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{version}},suffix=-amd64
-            type=semver,pattern={{version}},suffix=-arm64
-            type=ref,event=branch,suffix=-amd64
-            type=ref,event=branch,suffix=-arm64
+            type=ref,event=branch,suffix=-${{ matrix.suffix }}
+            type=semver,pattern={{version}},suffix=-${{ matrix.suffix }}
 
-      - name: Build and push amd64 image
+      - name: Build and push ${{ matrix.suffix }} image
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cache:amd64
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cache:amd64,mode=max
-          provenance: false
-          push: true
-
-  # Build arm64 image
-  build-arm64:
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      packages: write
-      contents: read
-    outputs:
-      image-digest: ${{ steps.build.outputs.digest }}
-      image-metadata: ${{ steps.meta.outputs.json }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{version}},suffix=-amd64
-            type=semver,pattern={{version}},suffix=-arm64
-            type=ref,event=branch,suffix=-amd64
-            type=ref,event=branch,suffix=-arm64
-
-      - name: Build and push arm64 image
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/arm64
-          labels: ${{ steps.meta.outputs.labels }}
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cache:arm64
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cache:arm64,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cache:${{ matrix.suffix }}
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cache:${{ matrix.suffix }},mode=max
           provenance: false
           push: true
 
@@ -122,7 +75,7 @@ jobs:
     permissions:
       packages: write
       contents: read
-    needs: [build-amd64, build-arm64]
+    needs: [build]
     steps:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -142,8 +95,10 @@ jobs:
 
       - name: Create and push manifest
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            ${{ needs.build-amd64.outputs.image-digest }} \
-            ${{ needs.build-arm64.outputs.image-digest }}
+          MANIFEST_TAGS=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          FIRST_TAG=$(jq -cr '.tags[0]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          docker buildx imagetools create $MANIFEST_TAGS \
+            "${FIRST_TAG}-amd64" \
+            "${FIRST_TAG}-arm64"
         env:
           DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
