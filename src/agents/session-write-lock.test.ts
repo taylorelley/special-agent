@@ -80,17 +80,15 @@ describe("acquireSessionWriteLock", () => {
         const sessionFile = path.join(root, "sessions.json");
         const lockPath = `${sessionFile}.lock`;
         await acquireSessionWriteLock({ sessionFile, timeoutMs: 500 });
+        // Prevent handleTerminationSignal from re-raising the signal
+        // (which would kill the worker process).
         const keepAlive = () => {};
-        if (signal === "SIGINT") {
-          process.on(signal, keepAlive);
-        }
+        process.on(signal, keepAlive);
 
         __testing.handleTerminationSignal(signal);
 
         await expect(fs.stat(lockPath)).rejects.toThrow();
-        if (signal === "SIGINT") {
-          process.off(signal, keepAlive);
-        }
+        process.off(signal, keepAlive);
       } finally {
         await fs.rm(root, { recursive: true, force: true });
       }

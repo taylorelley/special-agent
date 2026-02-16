@@ -37,9 +37,15 @@ function isAlive(pid: number): boolean {
 function releaseAllLocksSync(): void {
   for (const [sessionFile, held] of HELD_LOCKS) {
     try {
-      if (typeof held.handle.close === "function") {
-        void held.handle.close().catch(() => {});
-      }
+      // Close the fd synchronously for immediate release, then trigger
+      // FileHandle.close() to unref the internal event-loop handle so
+      // the worker process can exit cleanly.
+      fsSync.closeSync(held.handle.fd);
+    } catch {
+      // fd may already be closed — ignore
+    }
+    try {
+      held.handle.close().catch(() => {});
     } catch {
       // Ignore errors during cleanup - best effort
     }
