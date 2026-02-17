@@ -48,9 +48,9 @@ export async function resolveGatewayRuntimeConfig(params: {
   const openAiChatCompletionsEnabled =
     params.openAiChatCompletionsEnabled ??
     params.cfg.gateway?.http?.endpoints?.chatCompletions?.enabled ??
-    false;
+    true;
   const openResponsesConfig = params.cfg.gateway?.http?.endpoints?.responses;
-  const openResponsesEnabled = params.openResponsesEnabled ?? openResponsesConfig?.enabled ?? false;
+  const openResponsesEnabled = params.openResponsesEnabled ?? openResponsesConfig?.enabled ?? true;
   const controlUiBasePath = normalizeControlUiBasePath(params.cfg.gateway?.controlUi?.basePath);
   const controlUiRootRaw = params.cfg.gateway?.controlUi?.root;
   const controlUiRoot =

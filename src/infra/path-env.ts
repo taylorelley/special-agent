@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { resolveBrewPathDirs } from "./brew.js";
 import { isTruthyEnvValue } from "./env.js";
+import { resolveSpecialAgentPackageRootSync } from "./special-agent-root.js";
 
 type EnsureSpecialAgentPathOpts = {
   execPath?: string;
@@ -64,6 +65,19 @@ function candidateBinDirs(opts: EnsureSpecialAgentPathOpts): string[] {
     }
   } catch {
     // ignore
+  }
+
+  // Bundled tools: expose node_modules/.bin from the Special Agent package root
+  // so that bundled CLI binaries (e.g., `pi` from pi-coding-agent) are on PATH.
+  const packageRoot = resolveSpecialAgentPackageRootSync({
+    moduleUrl: import.meta.url,
+    cwd,
+  });
+  if (packageRoot) {
+    const packageBinDir = path.join(packageRoot, "node_modules", ".bin");
+    if (isDirectory(packageBinDir)) {
+      candidates.push(packageBinDir);
+    }
   }
 
   // Project-local installs (best effort): if a `node_modules/.bin/special-agent` exists near cwd,

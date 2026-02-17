@@ -174,6 +174,7 @@ const FIELD_LABELS: Record<string, string> = {
   "gateway.controlUi.allowInsecureAuth": "Allow Insecure Control UI Auth",
   "gateway.controlUi.dangerouslyDisableDeviceAuth": "Dangerously Disable Control UI Device Auth",
   "gateway.http.endpoints.chatCompletions.enabled": "OpenAI Chat Completions Endpoint",
+  "gateway.http.endpoints.responses.enabled": "OpenResponses Endpoint",
   "gateway.reload.mode": "Config Reload Mode",
   "gateway.reload.debounceMs": "Config Reload Debounce (ms)",
   "gateway.nodes.browser.mode": "Gateway Node Browser Mode",
@@ -398,7 +399,9 @@ const FIELD_HELP: Record<string, string> = {
   "gateway.controlUi.dangerouslyDisableDeviceAuth":
     "DANGEROUS. Disable Control UI device identity checks (token/password only).",
   "gateway.http.endpoints.chatCompletions.enabled":
-    "Enable the OpenAI-compatible `POST /v1/chat/completions` endpoint (default: false).",
+    "Enable the OpenAI-compatible `POST /v1/chat/completions` endpoint (default: true).",
+  "gateway.http.endpoints.responses.enabled":
+    "Enable the OpenResponses `POST /v1/responses` endpoint (default: true).",
   "gateway.reload.mode": 'Hot reload strategy for config changes ("hybrid" recommended).',
   "gateway.reload.debounceMs": "Debounce window (ms) before applying config changes.",
   "gateway.nodes.browser.mode":

@@ -150,8 +150,12 @@ describe("ensureSpecialAgentCliOnPath", () => {
 
       const updated = process.env.PATH ?? "";
       const parts = updated.split(path.delimiter);
-      expect(parts[0]).toBe(linuxbrewBin);
-      expect(parts[1]).toBe(linuxbrewSbin);
+      const brewBinIndex = parts.indexOf(linuxbrewBin);
+      const brewSbinIndex = parts.indexOf(linuxbrewSbin);
+      const usrBinIndex = parts.indexOf("/usr/bin");
+      expect(brewBinIndex).toBeGreaterThanOrEqual(0);
+      expect(brewSbinIndex).toBe(brewBinIndex + 1);
+      expect(usrBinIndex).toBeGreaterThan(brewSbinIndex);
     } finally {
       process.env.PATH = originalPath;
       if (originalFlag === undefined) {

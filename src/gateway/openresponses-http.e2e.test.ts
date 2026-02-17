@@ -24,6 +24,7 @@ async function startServerWithDefaultConfig(port: number) {
     host: "127.0.0.1",
     auth: { mode: "token", token: "secret" },
     controlUiEnabled: false,
+    openResponsesEnabled: false,
   });
 }
 
@@ -83,7 +84,7 @@ async function ensureResponseConsumed(res: Response) {
 }
 
 describe("OpenResponses HTTP API (e2e)", () => {
-  it("rejects when disabled (default + config)", { timeout: 120_000 }, async () => {
+  it("rejects when explicitly disabled", { timeout: 120_000 }, async () => {
     const port = await getFreePort();
     const _server = await startServerWithDefaultConfig(port);
     try {

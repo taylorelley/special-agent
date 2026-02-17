@@ -122,12 +122,12 @@ export type GatewayServerOptions = {
   controlUiEnabled?: boolean;
   /**
    * If false, do not serve `POST /v1/chat/completions`.
-   * Default: config `gateway.http.endpoints.chatCompletions.enabled` (or false when absent).
+   * Default: config `gateway.http.endpoints.chatCompletions.enabled` (or true when absent).
    */
   openAiChatCompletionsEnabled?: boolean;
   /**
    * If false, do not serve `POST /v1/responses` (OpenResponses API).
-   * Default: config `gateway.http.endpoints.responses.enabled` (or false when absent).
+   * Default: config `gateway.http.endpoints.responses.enabled` (or true when absent).
    */
   openResponsesEnabled?: boolean;
   /**

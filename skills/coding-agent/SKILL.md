@@ -4,7 +4,11 @@ description: Run Codex CLI, Claude Code, OpenCode, or Pi Coding Agent via backgr
 metadata:
   {
     "special-agent":
-      { "emoji": "🧩", "requires": { "anyBins": ["claude", "codex", "opencode", "pi"] } },
+      {
+        "emoji": "🧩",
+        "always": true,
+        "requires": { "anyBins": ["claude", "codex", "opencode", "pi"] },
+      },
   }
 ---
 
