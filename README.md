@@ -43,6 +43,14 @@ The onboarding wizard guides you through setting up the gateway, workspace, chan
 
 Works on **macOS, Linux, and Windows (via WSL2)**.
 
+> **nvm users (Linux):** The Gateway daemon runs as a systemd service with a minimal `PATH` that cannot source your shell profile. nvm does not create a `current` symlink by default, so the service won't find `node`. Create the symlink after installing or switching Node versions:
+>
+> ```bash
+> ln -sf "$NVM_DIR/versions/node/$(node -v)" "$NVM_DIR/current"
+> ```
+>
+> Then reinstall the daemon: `special-agent gateway install --force`
+
 ## Quick start
 
 ```bash
