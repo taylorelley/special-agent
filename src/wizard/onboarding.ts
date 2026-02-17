@@ -12,11 +12,13 @@ import {
   CONTEXT_WINDOW_HARD_MIN_TOKENS,
   CONTEXT_WINDOW_WARN_BELOW_TOKENS,
 } from "../agents/context-window-guard.js";
+import { ensureSpecialAgentModelsJson } from "../agents/models-config.js";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { warnIfModelConfigLooksOff } from "../commands/auth-choice.js";
 import { applyPrimaryModel, promptDefaultModel } from "../commands/model-picker.js";
 import { formatTokenK } from "../commands/models/shared.js";
+import { setProviderApiKey } from "../commands/onboard-auth.credentials.js";
 import { setupChannels } from "../commands/onboard-channels.js";
 import { buildEndpointIdFromUrl } from "../commands/onboard-custom.js";
 import {
@@ -450,6 +452,10 @@ export async function runOnboardingWizard(
       },
     };
 
+    if (normalizedApiKey) {
+      await setProviderApiKey(endpointId, normalizedApiKey);
+    }
+
     const modelSelection = await promptDefaultModel({
       config: nextConfig,
       prompter,
@@ -664,6 +670,7 @@ export async function runOnboardingWizard(
 
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await writeConfigFile(nextConfig);
+  await ensureSpecialAgentModelsJson(nextConfig);
 
   const { launchedTui } = await finalizeOnboardingWizard({
     flow,
