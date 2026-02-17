@@ -8,6 +8,14 @@ vi.mock("./compact.js", () => ({
   compactEmbeddedPiSessionDirect: vi.fn(),
 }));
 
+vi.mock("./preflight-compaction.js", () => ({
+  checkPreflightCompaction: vi.fn(() => ({
+    shouldCompact: false,
+    estimatedTokens: 0,
+    thresholdTokens: 170000,
+  })),
+}));
+
 vi.mock("./model.js", () => ({
   resolveModel: vi.fn(() => ({
     model: {
@@ -160,6 +168,7 @@ vi.mock("../pi-embedded-helpers.js", async () => {
 import type { EmbeddedRunAttemptResult } from "./run/types.js";
 import { compactEmbeddedPiSessionDirect } from "./compact.js";
 import { log } from "./logger.js";
+import { checkPreflightCompaction } from "./preflight-compaction.js";
 import { runEmbeddedPiAgent } from "./run.js";
 import { runEmbeddedAttempt } from "./run/attempt.js";
 import {
@@ -169,6 +178,7 @@ import {
 
 const mockedRunEmbeddedAttempt = vi.mocked(runEmbeddedAttempt);
 const mockedCompactDirect = vi.mocked(compactEmbeddedPiSessionDirect);
+const mockedCheckPreflight = vi.mocked(checkPreflightCompaction);
 const mockedSessionLikelyHasOversizedToolResults = vi.mocked(sessionLikelyHasOversizedToolResults);
 const mockedTruncateOversizedToolResultsInSession = vi.mocked(
   truncateOversizedToolResultsInSession,
@@ -207,6 +217,11 @@ const baseParams = {
 describe("overflow compaction in run loop", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedCheckPreflight.mockReturnValue({
+      shouldCompact: false,
+      estimatedTokens: 0,
+      thresholdTokens: 170000,
+    });
     mockedSessionLikelyHasOversizedToolResults.mockReturnValue(false);
     mockedTruncateOversizedToolResultsInSession.mockResolvedValue({
       truncated: false,
@@ -432,5 +447,148 @@ describe("overflow compaction in run loop", () => {
 
     expect(mockedCompactDirect).not.toHaveBeenCalled();
     expect(log.warn).not.toHaveBeenCalledWith(expect.stringContaining("source=assistantError"));
+  });
+});
+
+describe("proactive pre-flight compaction in run loop", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedCheckPreflight.mockReturnValue({
+      shouldCompact: false,
+      estimatedTokens: 0,
+      thresholdTokens: 170000,
+    });
+    mockedSessionLikelyHasOversizedToolResults.mockReturnValue(false);
+    mockedTruncateOversizedToolResultsInSession.mockResolvedValue({
+      truncated: false,
+      truncatedCount: 0,
+      reason: "no oversized tool results",
+    });
+  });
+
+  it("triggers compaction when pre-flight says shouldCompact: true, then proceeds to attempt", async () => {
+    mockedCheckPreflight.mockReturnValue({
+      shouldCompact: true,
+      estimatedTokens: 180000,
+      thresholdTokens: 170000,
+    });
+
+    mockedCompactDirect.mockResolvedValueOnce({
+      ok: true,
+      compacted: true,
+      result: {
+        summary: "Proactively compacted session",
+        firstKeptEntryId: "entry-5",
+        tokensBefore: 180000,
+      },
+    });
+
+    mockedRunEmbeddedAttempt.mockResolvedValueOnce(makeAttemptResult({ promptError: null }));
+
+    const result = await runEmbeddedPiAgent(baseParams);
+
+    expect(mockedCheckPreflight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionFile: "/tmp/session.json",
+        contextWindowTokens: 200000,
+      }),
+    );
+    expect(mockedCompactDirect).toHaveBeenCalledTimes(1);
+    expect(mockedCompactDirect).toHaveBeenCalledWith(
+      expect.objectContaining({ authProfileId: "test-profile" }),
+    );
+    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(1);
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("proactive compaction triggered"),
+    );
+    expect(log.info).toHaveBeenCalledWith(
+      expect.stringContaining("proactive compaction succeeded"),
+    );
+    expect(result.meta.error).toBeUndefined();
+  });
+
+  it("proceeds normally when pre-flight compaction fails", async () => {
+    mockedCheckPreflight.mockReturnValue({
+      shouldCompact: true,
+      estimatedTokens: 180000,
+      thresholdTokens: 170000,
+    });
+
+    mockedCompactDirect.mockRejectedValueOnce(new Error("compaction blew up"));
+
+    mockedRunEmbeddedAttempt.mockResolvedValueOnce(makeAttemptResult({ promptError: null }));
+
+    const result = await runEmbeddedPiAgent(baseParams);
+
+    expect(mockedCompactDirect).toHaveBeenCalledTimes(1);
+    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(1);
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("proactive compaction failed"));
+    expect(result.meta.error).toBeUndefined();
+  });
+
+  it("does not call compaction when pre-flight says shouldCompact: false", async () => {
+    mockedCheckPreflight.mockReturnValue({
+      shouldCompact: false,
+      estimatedTokens: 50000,
+      thresholdTokens: 170000,
+    });
+
+    mockedRunEmbeddedAttempt.mockResolvedValueOnce(makeAttemptResult({ promptError: null }));
+
+    const result = await runEmbeddedPiAgent(baseParams);
+
+    expect(mockedCheckPreflight).toHaveBeenCalled();
+    expect(mockedCompactDirect).not.toHaveBeenCalled();
+    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(1);
+    expect(result.meta.error).toBeUndefined();
+  });
+
+  it("increments autoCompactionCount on successful proactive compaction", async () => {
+    mockedCheckPreflight.mockReturnValue({
+      shouldCompact: true,
+      estimatedTokens: 180000,
+      thresholdTokens: 170000,
+    });
+
+    mockedCompactDirect.mockResolvedValueOnce({
+      ok: true,
+      compacted: true,
+      result: {
+        summary: "Proactively compacted",
+        firstKeptEntryId: "entry-5",
+        tokensBefore: 180000,
+      },
+    });
+
+    mockedRunEmbeddedAttempt.mockResolvedValueOnce(makeAttemptResult({ promptError: null }));
+
+    const result = await runEmbeddedPiAgent(baseParams);
+
+    expect(result.meta.agentMeta?.compactionCount).toBe(1);
+  });
+
+  it("proceeds to attempt even when proactive compaction reports not compacted", async () => {
+    mockedCheckPreflight.mockReturnValue({
+      shouldCompact: true,
+      estimatedTokens: 180000,
+      thresholdTokens: 170000,
+    });
+
+    mockedCompactDirect.mockResolvedValueOnce({
+      ok: false,
+      compacted: false,
+      reason: "nothing to compact",
+    });
+
+    mockedRunEmbeddedAttempt.mockResolvedValueOnce(makeAttemptResult({ promptError: null }));
+
+    const result = await runEmbeddedPiAgent(baseParams);
+
+    expect(mockedCompactDirect).toHaveBeenCalledTimes(1);
+    expect(mockedRunEmbeddedAttempt).toHaveBeenCalledTimes(1);
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("proactive compaction did not compact"),
+    );
+    expect(result.meta.error).toBeUndefined();
   });
 });

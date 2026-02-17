@@ -50,6 +50,7 @@ import { compactEmbeddedPiSessionDirect } from "./compact.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
 import { resolveModel } from "./model.js";
+import { checkPreflightCompaction } from "./preflight-compaction.js";
 import { runEmbeddedAttempt } from "./run/attempt.js";
 import { buildEmbeddedRunPayloads } from "./run/payloads.js";
 import {
@@ -381,6 +382,58 @@ export async function runEmbeddedPiAgent(
 
           const prompt =
             provider === "anthropic" ? scrubAnthropicRefusalMagic(params.prompt) : params.prompt;
+
+          // Proactive pre-flight compaction: estimate session tokens and compact
+          // before the API call if we're approaching the context window limit.
+          // This prevents hangs when providers don't return usage data or when
+          // the API times out on oversized requests.
+          const preflight = checkPreflightCompaction({
+            sessionFile: params.sessionFile,
+            contextWindowTokens: ctxInfo.tokens,
+          });
+          if (preflight.shouldCompact) {
+            log.warn(
+              `proactive compaction triggered: estimated ${preflight.estimatedTokens} tokens ` +
+                `exceeds threshold ${preflight.thresholdTokens} for ${provider}/${modelId}`,
+            );
+            try {
+              const compactResult = await compactEmbeddedPiSessionDirect({
+                sessionId: params.sessionId,
+                sessionKey: params.sessionKey,
+                messageChannel: params.messageChannel,
+                messageProvider: params.messageProvider,
+                agentAccountId: params.agentAccountId,
+                authProfileId: lastProfileId,
+                sessionFile: params.sessionFile,
+                workspaceDir: resolvedWorkspace,
+                agentDir,
+                config: params.config,
+                skillsSnapshot: params.skillsSnapshot,
+                senderIsOwner: params.senderIsOwner,
+                provider,
+                model: modelId,
+                thinkLevel,
+                reasoningLevel: params.reasoningLevel,
+                bashElevated: params.bashElevated,
+                extraSystemPrompt: params.extraSystemPrompt,
+                ownerNumbers: params.ownerNumbers,
+              });
+              if (compactResult.compacted) {
+                autoCompactionCount += 1;
+                log.info(
+                  `proactive compaction succeeded for ${provider}/${modelId}; proceeding to attempt`,
+                );
+              } else {
+                log.warn(
+                  `proactive compaction did not compact for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
+                );
+              }
+            } catch (err) {
+              log.warn(
+                `proactive compaction failed for ${provider}/${modelId}: ${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
+          }
 
           const attempt = await runEmbeddedAttempt({
             sessionId: params.sessionId,
