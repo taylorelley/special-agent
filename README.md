@@ -1,20 +1,11 @@
-# ✈️ Special Agent — Personal AI Assistant
-
-<p align="center">
-    <picture>
-        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/special-agent/special-agent/main/docs/assets/special-agent-logo-text-dark.png">
-        <img src="https://raw.githubusercontent.com/special-agent/special-agent/main/docs/assets/special-agent-logo-text.png" alt="Special Agent" width="500">
-    </picture>
-</p>
-
-<p align="center">
-  <a href="https://github.com/special-agent/special-agent/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/special-agent/special-agent/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
-  <a href="https://github.com/special-agent/special-agent/releases"><img src="https://img.shields.io/github/v/release/special-agent/special-agent?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
-  <a href="https://discord.gg/clawd"><img src="https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge" alt="Discord"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
-</p>
+# ✈️ Special Agent ✈️ — Personal AI Assistant
 
 **Special Agent** is a personal AI assistant you run on your own devices. It connects to messaging channels via a plugin-based architecture, provides a built-in WebChat UI, and supports voice interaction on macOS/iOS/Android. The Gateway is the control plane — the product is the assistant.
+
+**Special Agent** is a minimal fork of the OpenClaw project designed for enterprise environments. It provides a controlled baseline with a small, curated set of core skills and plugins.
+The project is built to be extended. It is intended to paired with an internally hosted SkillHub, where organizations can create and make available use case–specific skills and plugins.
+
+By default, the configuration is more restricted than OpenClaw to support governance and security requirements. However, all OpenClaw functionality can be enabled through configuration changes or by adding the appropriate skills and plugins.
 
 ## Features
 
@@ -28,7 +19,7 @@
 - **Companion apps** — macOS menu bar app, iOS and Android nodes
 - **Cron, webhooks, and Gmail Pub/Sub** — automation triggers
 
-**Supported model APIs:** [Anthropic](https://www.anthropic.com/) (Claude), [OpenAI](https://openai.com/) (GPT), [Google](https://ai.google.dev/) (Gemini)
+**Supported models:** — Any OpenAI, Anthropic, or Ollama compatible endpoint.
 
 ## Install
 
@@ -97,35 +88,6 @@ Channel plugins (Microsoft Teams, WebChat, custom extensions)
                +-- iOS / Android nodes
 ```
 
-## Documentation
-
-Full documentation is available at **[docs.openclaw.ai](https://docs.openclaw.ai)**.
-
-| Topic           | Link                                                                                           |
-| --------------- | ---------------------------------------------------------------------------------------------- |
-| Getting started | [docs.openclaw.ai/start/getting-started](https://docs.openclaw.ai/start/getting-started)       |
-| Architecture    | [docs.openclaw.ai/concepts/architecture](https://docs.openclaw.ai/concepts/architecture)       |
-| Configuration   | [docs.openclaw.ai/gateway/configuration](https://docs.openclaw.ai/gateway/configuration)       |
-| Channels        | [docs.openclaw.ai/channels](https://docs.openclaw.ai/channels)                                 |
-| Security        | [docs.openclaw.ai/gateway/security](https://docs.openclaw.ai/gateway/security)                 |
-| Skills          | [docs.openclaw.ai/tools/skills](https://docs.openclaw.ai/tools/skills)                         |
-| Troubleshooting | [docs.openclaw.ai/channels/troubleshooting](https://docs.openclaw.ai/channels/troubleshooting) |
-| FAQ             | [docs.openclaw.ai/start/faq](https://docs.openclaw.ai/start/faq)                               |
-
-**Platform guides:** [macOS](https://docs.openclaw.ai/platforms/macos) · [Linux](https://docs.openclaw.ai/platforms/linux) · [Windows (WSL2)](https://docs.openclaw.ai/platforms/windows) · [iOS](https://docs.openclaw.ai/platforms/ios) · [Android](https://docs.openclaw.ai/platforms/android) · [Docker](https://docs.openclaw.ai/install/docker) · [Nix](https://github.com/special-agent/nix-special-agent)
-
-Upgrading? See the [updating guide](https://docs.openclaw.ai/install/updating) and run `special-agent doctor`.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and how to submit PRs.
-
-## Community
-
-- [Discord](https://discord.gg/clawd)
-- [Website](https://openclaw.ai)
-- [DeepWiki](https://deepwiki.com/special-agent/special-agent)
-
 ## License
 
-[MIT](LICENSE) — Copyright 2025 Peter Steinberger
+[MIT](LICENSE)
