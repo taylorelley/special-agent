@@ -3,7 +3,7 @@
 **Special Agent** is a personal AI assistant you run on your own devices. It connects to messaging channels via a plugin-based architecture, provides a built-in WebChat UI, and supports voice interaction on macOS/iOS/Android. The Gateway is the control plane — the product is the assistant.
 
 **Special Agent** is a minimal fork of the OpenClaw project designed for enterprise environments. It provides a controlled baseline with a small, curated set of core skills and plugins.
-The project is built to be extended. It is intended to paired with an internally hosted SkillHub, where organizations can create and make available use case–specific skills and plugins.
+The project is built to be extended. It is intended to be paired with an internally hosted SkillHub, where organizations can create and make available use case–specific skills and plugins.
 
 By default, the configuration is more restricted than OpenClaw to support governance and security requirements. However, all OpenClaw functionality can be enabled through configuration changes or by adding the appropriate skills and plugins.
 
@@ -66,8 +66,8 @@ Sandboxed containers run with hardened defaults:
 | `sandbox.docker.memory`       | `"1g"`    | Memory limit                                     |
 | `sandbox.docker.memorySwap`   | `"1g"`    | Memory+swap limit (same as memory disables swap) |
 | `sandbox.docker.cpus`         | `1`       | CPU limit                                        |
-| `sandbox.prune.idleHours`     | `4`       | Prune containers idle for this long              |
-| `sandbox.prune.maxAgeDays`    | `2`       | Max container age before pruning                 |
+| `sandbox.prune.idleHours`     | `24`      | Prune containers idle for this long              |
+| `sandbox.prune.maxAgeDays`    | `7`       | Max container age before pruning                 |
 
 Additional options: `sandbox.docker.image`, `sandbox.docker.user`, `sandbox.docker.seccompProfile`, `sandbox.docker.apparmorProfile`.
 
@@ -101,7 +101,7 @@ Per-agent overrides are available via `agents.list[].tools.elevated`.
 
 | Setting                                           | Default | Description                                  |
 | ------------------------------------------------- | ------- | -------------------------------------------- |
-| `tools.message.crossContext.allowWithinProvider`  | `false` | Cross-channel messaging within same provider |
+| `tools.message.crossContext.allowWithinProvider`  | `true`  | Cross-channel messaging within same provider |
 | `tools.message.crossContext.allowAcrossProviders` | `false` | Cross-channel messaging across providers     |
 | `tools.message.broadcast.enabled`                 | `true`  | Broadcast action support                     |
 
@@ -136,6 +136,12 @@ Dangerous node commands (camera, SMS, screen recording) are blocked by default. 
 | Setting                         | Default  | Description                               |
 | ------------------------------- | -------- | ----------------------------------------- |
 | `agents.defaults.contextTokens` | `128000` | Context window token limit (cost control) |
+
+## Upgrade Notes
+
+**Sandbox pruning defaults restored:** `DEFAULT_SANDBOX_IDLE_HOURS` is `24` and `DEFAULT_SANDBOX_MAX_AGE_DAYS` is `7`. If you previously relied on the shorter values (4 hours / 2 days), set `sandbox.prune.idleHours` and `sandbox.prune.maxAgeDays` explicitly in your config.
+
+**Cross-context messaging default:** `tools.message.crossContext.allowWithinProvider` defaults to `true` (within-provider sends are allowed unless explicitly disabled). To block same-provider cross-channel sends, set `crossContext.allowWithinProvider: false` in your config.
 
 ## Install
 
