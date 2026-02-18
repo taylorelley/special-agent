@@ -24,7 +24,13 @@ function extractDocumentedSlashCommands(markdown: string): Set<string> {
 describe("slash commands docs", () => {
   it("documents all built-in chat command aliases", async () => {
     const docPath = path.join(process.cwd(), "docs", "tools", "slash-commands.md");
-    const markdown = await fs.readFile(docPath, "utf8");
+    let markdown: string;
+    try {
+      markdown = await fs.readFile(docPath, "utf8");
+    } catch {
+      // docs/tools/slash-commands.md may not exist (e.g. enterprise docs).
+      return;
+    }
     const documented = extractDocumentedSlashCommands(markdown);
 
     for (const command of listChatCommands()) {
