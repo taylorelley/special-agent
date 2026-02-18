@@ -7,8 +7,13 @@ export const DEFAULT_SANDBOX_WORKSPACE_ROOT = path.join(STATE_DIR, "sandboxes");
 export const DEFAULT_SANDBOX_IMAGE = "special-agent-sandbox:bookworm-slim";
 export const DEFAULT_SANDBOX_CONTAINER_PREFIX = "special-agent-sbx-";
 export const DEFAULT_SANDBOX_WORKDIR = "/workspace";
-export const DEFAULT_SANDBOX_IDLE_HOURS = 24;
-export const DEFAULT_SANDBOX_MAX_AGE_DAYS = 7;
+export const DEFAULT_SANDBOX_IDLE_HOURS = 4;
+export const DEFAULT_SANDBOX_MAX_AGE_DAYS = 2;
+
+export const DEFAULT_SANDBOX_PIDS_LIMIT = 256;
+export const DEFAULT_SANDBOX_MEMORY = "1g";
+export const DEFAULT_SANDBOX_MEMORY_SWAP = "1g";
+export const DEFAULT_SANDBOX_CPUS = 1;
 
 export const DEFAULT_TOOL_ALLOW = [
   "exec",

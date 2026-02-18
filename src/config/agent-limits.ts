@@ -1,7 +1,7 @@
 import type { SpecialAgentConfig } from "./types.js";
 
-export const DEFAULT_AGENT_MAX_CONCURRENT = 4;
-export const DEFAULT_SUBAGENT_MAX_CONCURRENT = 8;
+export const DEFAULT_AGENT_MAX_CONCURRENT = 2;
+export const DEFAULT_SUBAGENT_MAX_CONCURRENT = 4;
 
 export function resolveAgentMaxConcurrent(cfg?: SpecialAgentConfig): number {
   const raw = cfg?.agents?.defaults?.maxConcurrent;

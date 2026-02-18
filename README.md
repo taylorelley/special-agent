@@ -21,6 +21,122 @@ By default, the configuration is more restricted than OpenClaw to support govern
 
 **Supported models:** — Any OpenAI, Anthropic, or Ollama compatible endpoint.
 
+## Enterprise Security Configuration
+
+All settings live in `~/.special-agent/special-agent.json` (JSON5 format). Every field is optional — Special Agent uses safe defaults when omitted. Explicit values always override defaults.
+
+Run `special-agent security audit` regularly to check for misconfigurations.
+
+### Tool Profiles
+
+The `tools.profile` setting controls which tools the agent can use. Special Agent defaults to the **coding** profile.
+
+| Profile            | Allowed Tools                              | Config                                |
+| ------------------ | ------------------------------------------ | ------------------------------------- |
+| `minimal`          | `session_status` only                      | `"tools": { "profile": "minimal" }`   |
+| `coding` (default) | File I/O, exec, sessions, memory, image    | `"tools": { "profile": "coding" }`    |
+| `messaging`        | Message, session list/history/send, status | `"tools": { "profile": "messaging" }` |
+| `full`             | All tools (no restrictions)                | `"tools": { "profile": "full" }`      |
+
+Fine-grained control is available via `tools.allow`, `tools.deny`, and `tools.alsoAllow`.
+
+### Exec Security
+
+Commands run inside a Docker sandbox by default. The exec approval system adds a second layer of control:
+
+| Setting                  | Default                                                     | Description                                                                                 |
+| ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `tools.exec.security`    | `"deny"`                                                    | `"deny"` blocks all commands, `"allowlist"` permits approved commands, `"full"` permits all |
+| `tools.exec.ask`         | `"on-miss"`                                                 | `"always"` prompts for every command, `"off"` never prompts                                 |
+| `tools.exec.askFallback` | `"deny"`                                                    | Fallback when approval prompt is unavailable                                                |
+| `tools.exec.host`        | `"sandbox"`                                                 | Where commands run: `"sandbox"`, `"gateway"` (host), or `"node"`                            |
+| `tools.exec.safeBins`    | `["jq","grep","cut","sort","uniq","head","tail","tr","wc"]` | Stdin-only binaries that bypass exec approval                                               |
+| `tools.exec.timeoutSec`  | (none)                                                      | Auto-kill timeout for commands                                                              |
+
+### Sandbox Configuration
+
+Sandboxed containers run with hardened defaults:
+
+| Setting                       | Default   | Description                                      |
+| ----------------------------- | --------- | ------------------------------------------------ |
+| `sandbox.docker.readOnlyRoot` | `true`    | Read-only root filesystem                        |
+| `sandbox.docker.network`      | `"none"`  | No network access                                |
+| `sandbox.docker.capDrop`      | `["ALL"]` | All Linux capabilities dropped                   |
+| `sandbox.docker.pidsLimit`    | `256`     | Max processes per container                      |
+| `sandbox.docker.memory`       | `"1g"`    | Memory limit                                     |
+| `sandbox.docker.memorySwap`   | `"1g"`    | Memory+swap limit (same as memory disables swap) |
+| `sandbox.docker.cpus`         | `1`       | CPU limit                                        |
+| `sandbox.prune.idleHours`     | `4`       | Prune containers idle for this long              |
+| `sandbox.prune.maxAgeDays`    | `2`       | Max container age before pruning                 |
+
+Additional options: `sandbox.docker.image`, `sandbox.docker.user`, `sandbox.docker.seccompProfile`, `sandbox.docker.apparmorProfile`.
+
+### Elevated Exec
+
+Elevated exec allows agents to run commands outside the sandbox on the host machine. **Disabled by default** — requires explicit opt-in:
+
+```json5
+{
+  tools: {
+    elevated: {
+      enabled: true,
+      allowFrom: {
+        telegram: ["+15555550123"],
+      },
+    },
+  },
+}
+```
+
+Per-agent overrides are available via `agents.list[].tools.elevated`.
+
+### Agent Concurrency
+
+| Setting                                   | Default | Description                        |
+| ----------------------------------------- | ------- | ---------------------------------- |
+| `agents.defaults.maxConcurrent`           | `2`     | Max concurrent main agent sessions |
+| `agents.defaults.subagents.maxConcurrent` | `4`     | Max concurrent sub-agent sessions  |
+
+### Messaging Security
+
+| Setting                                           | Default | Description                                  |
+| ------------------------------------------------- | ------- | -------------------------------------------- |
+| `tools.message.crossContext.allowWithinProvider`  | `false` | Cross-channel messaging within same provider |
+| `tools.message.crossContext.allowAcrossProviders` | `false` | Cross-channel messaging across providers     |
+| `tools.message.broadcast.enabled`                 | `true`  | Broadcast action support                     |
+
+### Channel Access Control
+
+| Setting                           | Default       | Description                                           |
+| --------------------------------- | ------------- | ----------------------------------------------------- |
+| `channels.<provider>.dmPolicy`    | `"pairing"`   | `"pairing"`, `"allowlist"`, `"open"`, or `"disabled"` |
+| `channels.<provider>.groupPolicy` | `"allowlist"` | `"allowlist"`, `"open"`, or `"disabled"`              |
+| `channels.<provider>.allowFrom`   | (none)        | Sender allowlist (phone numbers, user IDs)            |
+
+### Plugin Security
+
+| Setting           | Default | Description                                |
+| ----------------- | ------- | ------------------------------------------ |
+| `plugins.enabled` | `true`  | Set to `false` to disable all plugins      |
+| `plugins.allow`   | (none)  | Explicit allowlist of permitted plugin IDs |
+| `plugins.deny`    | (none)  | Blocklist of denied plugin IDs             |
+
+### Logging
+
+| Setting                   | Default   | Description                                      |
+| ------------------------- | --------- | ------------------------------------------------ |
+| `logging.redactSensitive` | `"tools"` | Redacts API keys and secrets in tool output logs |
+
+### Node Command Policy
+
+Dangerous node commands (camera, SMS, screen recording) are blocked by default. Use `gateway.nodes.allowCommands` to permit specific commands and `gateway.nodes.denyCommands` to block additional ones.
+
+### Context and Cost
+
+| Setting                         | Default  | Description                               |
+| ------------------------------- | -------- | ----------------------------------------- |
+| `agents.defaults.contextTokens` | `128000` | Context window token limit (cost control) |
+
 ## Install
 
 Requires **Node.js 22+**. Works with npm, pnpm, or bun.
