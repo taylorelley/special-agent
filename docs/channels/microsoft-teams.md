@@ -56,6 +56,7 @@ tailscale funnel 18789
 ```
 
 Set the ngrok/Tailscale URL as the messaging endpoint:
+
 ```
 https://your-tunnel-url/api/msteams/webhook
 ```
@@ -77,8 +78,8 @@ Add the Teams credentials to your config:
       appPassword: "your-client-secret",
       // Optional: webhook path override
       // webhookPath: "/api/msteams/webhook"
-    }
-  }
+    },
+  },
 }
 ```
 
@@ -100,10 +101,10 @@ Control who can send direct messages to the bot:
   channels: {
     msteams: {
       dm: {
-        policy: "pairing"  // pairing | allowlist | open | disabled
-      }
-    }
-  }
+        policy: "pairing", // pairing | allowlist | open | disabled
+      },
+    },
+  },
 }
 ```
 
@@ -116,12 +117,12 @@ Control bot behavior in Teams channels and group chats:
   channels: {
     msteams: {
       groups: {
-        policy: "mention"  // mention | all | disabled
+        policy: "mention", // mention | all | disabled
         // "mention" = bot responds only when @mentioned
         // "all" = bot responds to every message in allowed groups
-      }
-    }
-  }
+      },
+    },
+  },
 }
 ```
 
@@ -134,13 +135,13 @@ Restrict which users or groups can interact with the bot:
   channels: {
     msteams: {
       dm: {
-        allowlist: ["user-aad-id-1", "user-aad-id-2"]
+        allowlist: ["user-aad-id-1", "user-aad-id-2"],
       },
       groups: {
-        allowlist: ["team-id-1", "channel-id-1"]
-      }
-    }
-  }
+        allowlist: ["team-id-1", "channel-id-1"],
+      },
+    },
+  },
 }
 ```
 
@@ -187,9 +188,9 @@ By default, the bot replies in threads. Configure reply behavior:
 {
   channels: {
     msteams: {
-      replyStyle: "thread"  // "thread" | "post"
-    }
-  }
+      replyStyle: "thread", // "thread" | "post"
+    },
+  },
 }
 ```
 
@@ -208,26 +209,26 @@ In multi-agent setups, route Teams conversations to specific agents:
       {
         id: "support-agent",
         routing: {
-          bindings: [{ channel: "msteams" }]
-        }
-      }
-    ]
-  }
+          bindings: [{ channel: "msteams" }],
+        },
+      },
+    ],
+  },
 }
 ```
 
 ## Capabilities
 
-| Feature | Support |
-|---------|---------|
-| Text messages | Full |
-| Images (inbound) | Full |
-| Images (outbound) | Full |
-| File attachments | Via Graph API (requires additional permissions) |
-| Adaptive Cards | Supported (outbound) |
-| Threads | Supported |
-| Reactions | Not supported |
-| Typing indicators | Supported |
+| Feature           | Support                                         |
+| ----------------- | ----------------------------------------------- |
+| Text messages     | Full                                            |
+| Images (inbound)  | Full                                            |
+| Images (outbound) | Full                                            |
+| File attachments  | Via Graph API (requires additional permissions) |
+| Adaptive Cards    | Supported (outbound)                            |
+| Threads           | Supported                                       |
+| Reactions         | Not supported                                   |
+| Typing indicators | Supported                                       |
 
 ## Troubleshooting
 

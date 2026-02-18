@@ -37,21 +37,27 @@ Special Agent is a self-hosted AI assistant gateway designed for enterprise depl
 ## Key components
 
 ### Gateway
+
 The control plane. A single Node.js process that owns all channel connections, agent sessions, tool execution, and configuration. Communicates with clients over WebSocket (port 18789 by default).
 
 ### Channels
+
 Message transport adapters. **Microsoft Teams** ships as a bundled plugin. **WebChat** is built into the Gateway. Additional channels can be added via the plugin system.
 
 ### Agent Runtime
+
 Manages conversations with AI models. Handles session scoping, context assembly (bootstrap files like AGENTS.md, SOUL.md, TOOLS.md), extended thinking, streaming responses, and tool invocation.
 
 ### Skills
+
 The primary extension mechanism. A skill is a directory containing a `SKILL.md` file with YAML frontmatter and natural-language instructions that teach the agent how to use tools. Skills are loaded from bundled, managed, workspace, and extra directories with configurable precedence.
 
 ### Plugins
+
 TypeScript extensions that register tools, hooks, channels, services, commands, HTTP routes, and gateway methods. More powerful than skills but require code. The 10 bundled extensions (including Teams, memory, diagnostics, and workflow tools) are all implemented as plugins.
 
 ### Hooks
+
 Event-driven callbacks that fire on agent lifecycle events, messages, tool calls, sessions, and gateway events. Used for audit logging, memory management, and custom automation.
 
 ## Model provider support
@@ -65,14 +71,14 @@ The runtime supports OpenAI Completions, OpenAI Responses, Anthropic Messages, a
 
 ## What ships out of the box
 
-| Category | Included |
-|----------|----------|
-| Channels | Microsoft Teams (plugin), WebChat (built-in) |
-| Extensions | 10 bundled (memory, workflow, diagnostics, device control, voice, prose) |
-| Skills | 12 bundled (GitHub, coding agent, health check, summarize, session logs, and more) |
-| Hooks | 4 bundled (session memory, command logger, boot-md, soul-evil) |
-| HTTP APIs | OpenAI-compatible, OpenResponses, Tools Invoke, Webhooks |
-| Agent tools | ~17 built-in (exec, browser, canvas, cron, sessions, web search/fetch, and more) |
+| Category    | Included                                                                           |
+| ----------- | ---------------------------------------------------------------------------------- |
+| Channels    | Microsoft Teams (plugin), WebChat (built-in)                                       |
+| Extensions  | 10 bundled (memory, workflow, diagnostics, device control, voice, prose)           |
+| Skills      | 12 bundled (GitHub, coding agent, health check, summarize, session logs, and more) |
+| Hooks       | 4 bundled (session memory, command logger, boot-md, soul-evil)                     |
+| HTTP APIs   | OpenAI-compatible, OpenResponses, Tools Invoke, Webhooks                           |
+| Agent tools | ~17 built-in (exec, browser, canvas, cron, sessions, web search/fetch, and more)   |
 
 ## Designed for enterprise extension
 

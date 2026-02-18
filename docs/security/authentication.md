@@ -18,9 +18,9 @@ A shared secret token required for all WebSocket and HTTP connections.
   gateway: {
     auth: {
       mode: "token",
-      token: "your-secret-token-here"
-    }
-  }
+      token: "your-secret-token-here",
+    },
+  },
 }
 ```
 
@@ -41,9 +41,9 @@ Username/password authentication for the Control UI and WebSocket connections.
   gateway: {
     auth: {
       mode: "password",
-      password: "your-password-here"
-    }
-  }
+      password: "your-password-here",
+    },
+  },
 }
 ```
 
@@ -76,12 +76,12 @@ The onboarding wizard configures model provider credentials:
   models: {
     providers: {
       "my-provider": {
-        type: "openai",          // or "anthropic"
+        type: "openai", // or "anthropic"
         baseUrl: "https://api.example.com/v1",
-        apiKey: "sk-..."
-      }
-    }
-  }
+        apiKey: "sk-...",
+      },
+    },
+  },
 }
 ```
 
@@ -93,10 +93,10 @@ The onboarding wizard configures model provider credentials:
     providers: {
       ollama: {
         type: "openai",
-        baseUrl: "http://localhost:11434/v1"
-      }
-    }
-  }
+        baseUrl: "http://localhost:11434/v1",
+      },
+    },
+  },
 }
 ```
 
@@ -122,14 +122,14 @@ In multi-agent setups, different agents can use different model providers:
     list: [
       {
         id: "team-a",
-        model: { provider: "provider-a" }
+        model: { provider: "provider-a" },
       },
       {
         id: "team-b",
-        model: { provider: "provider-b" }
-      }
-    ]
-  }
+        model: { provider: "provider-b" },
+      },
+    ],
+  },
 }
 ```
 
@@ -140,8 +140,8 @@ When running behind a reverse proxy (nginx, Caddy, etc.), configure trusted prox
 ```json5
 {
   gateway: {
-    trustedProxies: ["10.0.0.0/8", "172.16.0.0/12"]
-  }
+    trustedProxies: ["10.0.0.0/8", "172.16.0.0/12"],
+  },
 }
 ```
 

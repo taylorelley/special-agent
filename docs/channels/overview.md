@@ -39,12 +39,12 @@ In multi-agent setups, routing bindings map these dimensions to specific agents:
         id: "support-agent",
         routing: {
           bindings: [
-            { channel: "msteams" }  // All Teams messages go to this agent
-          ]
-        }
-      }
-    ]
-  }
+            { channel: "msteams" }, // All Teams messages go to this agent
+          ],
+        },
+      },
+    ],
+  },
 }
 ```
 
@@ -52,12 +52,12 @@ In multi-agent setups, routing bindings map these dimensions to specific agents:
 
 Each channel supports configurable access control:
 
-| Policy | Behavior |
-|--------|----------|
-| `pairing` | New senders need approval before getting responses |
-| `allowlist` | Only pre-approved senders get responses |
-| `open` | Anyone can message the agent |
-| `disabled` | Channel ignores messages |
+| Policy      | Behavior                                           |
+| ----------- | -------------------------------------------------- |
+| `pairing`   | New senders need approval before getting responses |
+| `allowlist` | Only pre-approved senders get responses            |
+| `open`      | Anyone can message the agent                       |
+| `disabled`  | Channel ignores messages                           |
 
 Configure per channel:
 
@@ -66,19 +66,19 @@ Configure per channel:
   channels: {
     msteams: {
       dm: { policy: "pairing" },
-      groups: { policy: "mention" }
-    }
-  }
+      groups: { policy: "mention" },
+    },
+  },
 }
 ```
 
 ## Session scoping
 
-| Conversation type | Default session behavior |
-|-------------------|------------------------|
-| Direct messages | Shared `main` session per user |
-| Group chats | Isolated session per group |
-| Team channels | Isolated session per channel |
+| Conversation type | Default session behavior       |
+| ----------------- | ------------------------------ |
+| Direct messages   | Shared `main` session per user |
+| Group chats       | Isolated session per group     |
+| Team channels     | Isolated session per channel   |
 
 Override with `dmScope` in agent config to change how DM sessions are scoped.
 

@@ -10,6 +10,7 @@ description: "Gateway architecture, components, and client flows for Special Age
 The Gateway is a single long-lived Node.js process that serves as the control plane for all Special Agent operations. One Gateway per host.
 
 **Responsibilities:**
+
 - Maintain channel connections (Microsoft Teams via plugin, WebChat built-in)
 - Expose a typed WebSocket API (requests, responses, server-push events)
 - Manage agent sessions, tool execution, and memory
@@ -17,6 +18,7 @@ The Gateway is a single long-lived Node.js process that serves as the control pl
 - Host the canvas server (A2UI) on a separate port (default 18793)
 
 **Default ports:**
+
 - `18789` — Gateway WebSocket + HTTP API + WebChat UI
 - `18793` — Canvas host (A2UI agent-editable workspace)
 
@@ -89,6 +91,7 @@ When a message arrives (from Teams, WebChat, or API):
 ### Multi-agent routing
 
 A single Gateway can host multiple agents, each with its own:
+
 - Workspace directory and bootstrap files
 - Session isolation and memory
 - Sandbox configuration and tool policies
@@ -121,14 +124,14 @@ See [Security Overview](/security/overview) for details.
 
 ## Data flow
 
-| Data | Location | Persistence |
-|------|----------|-------------|
-| Configuration | `~/.special-agent/special-agent.json` | JSON5 file, hot-reloadable |
-| Sessions | `~/.special-agent/agents/<agentId>/sessions/` | Per-agent, per-session directories |
-| Workspace | `~/.special-agent/workspace/` | Skills, bootstrap files, memory |
-| Credentials | `~/.special-agent/` (various files) | Model API keys, channel tokens |
-| Logs | `~/.special-agent/logs/` | Gateway logs, command audit log |
-| Sandboxes | `~/.special-agent/sandboxes/` | Per-agent Docker workspace volumes |
+| Data          | Location                                      | Persistence                        |
+| ------------- | --------------------------------------------- | ---------------------------------- |
+| Configuration | `~/.special-agent/special-agent.json`         | JSON5 file, hot-reloadable         |
+| Sessions      | `~/.special-agent/agents/<agentId>/sessions/` | Per-agent, per-session directories |
+| Workspace     | `~/.special-agent/workspace/`                 | Skills, bootstrap files, memory    |
+| Credentials   | `~/.special-agent/` (various files)           | Model API keys, channel tokens     |
+| Logs          | `~/.special-agent/logs/`                      | Gateway logs, command audit log    |
+| Sandboxes     | `~/.special-agent/sandboxes/`                 | Per-agent Docker workspace volumes |
 
 ## HTTP APIs
 

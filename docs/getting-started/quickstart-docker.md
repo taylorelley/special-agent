@@ -23,6 +23,7 @@ From the repository root:
 ```
 
 This script:
+
 1. Builds the Gateway Docker image
 2. Runs the onboarding wizard (provider setup, gateway auth, channels)
 3. Generates a gateway token and writes it to `.env`
@@ -56,6 +57,7 @@ docker compose run --rm special-agent-cli dashboard --no-open
 During onboarding, the wizard offers two options:
 
 **Custom Provider** — any OpenAI-compatible or Anthropic-compatible endpoint:
+
 ```bash
 # When prompted, select "Custom Provider" and enter:
 # - API type: openai-compatible or anthropic-compatible
@@ -64,6 +66,7 @@ During onboarding, the wizard offers two options:
 ```
 
 **Ollama** — local model inference:
+
 ```bash
 # When prompted, select "Ollama"
 # Ensure Ollama is accessible from the Docker network
@@ -90,12 +93,12 @@ docker compose run --rm special-agent-cli agent \
 
 ## Environment variables
 
-| Variable | Description |
-|----------|-------------|
-| `SPECIAL_AGENT_GATEWAY_TOKEN` | Auth token for Gateway access |
+| Variable                            | Description                               |
+| ----------------------------------- | ----------------------------------------- |
+| `SPECIAL_AGENT_GATEWAY_TOKEN`       | Auth token for Gateway access             |
 | `SPECIAL_AGENT_DOCKER_APT_PACKAGES` | Extra apt packages to bake into the image |
-| `SPECIAL_AGENT_EXTRA_MOUNTS` | Comma-separated Docker bind mounts |
-| `SPECIAL_AGENT_HOME_VOLUME` | Named volume for `/home/node` persistence |
+| `SPECIAL_AGENT_EXTRA_MOUNTS`        | Comma-separated Docker bind mounts        |
+| `SPECIAL_AGENT_HOME_VOLUME`         | Named volume for `/home/node` persistence |
 
 ## Permissions
 

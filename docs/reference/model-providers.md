@@ -27,11 +27,11 @@ Connect to any API that implements the OpenAI or Anthropic protocol. This covers
       "corp-openai": {
         type: "openai",
         baseUrl: "https://api-gateway.example.com/v1",
-        apiKey: "sk-corp-key-here"
-      }
+        apiKey: "sk-corp-key-here",
+      },
     },
-    default: "corp-openai:gpt-4o"
-  }
+    default: "corp-openai:gpt-4o",
+  },
 }
 ```
 
@@ -44,11 +44,11 @@ Connect to any API that implements the OpenAI or Anthropic protocol. This covers
       "corp-anthropic": {
         type: "anthropic",
         baseUrl: "https://api-gateway.example.com",
-        apiKey: "sk-ant-key-here"
-      }
+        apiKey: "sk-ant-key-here",
+      },
     },
-    default: "corp-anthropic:claude-sonnet-4-5-20250929"
-  }
+    default: "corp-anthropic:claude-sonnet-4-5-20250929",
+  },
 }
 ```
 
@@ -62,11 +62,11 @@ For local inference without sending data to external APIs:
     providers: {
       ollama: {
         type: "openai",
-        baseUrl: "http://localhost:11434/v1"
-      }
+        baseUrl: "http://localhost:11434/v1",
+      },
     },
-    default: "ollama:llama3.1"
-  }
+    default: "ollama:llama3.1",
+  },
 }
 ```
 
@@ -78,10 +78,10 @@ When running the Gateway in Docker, use `host.docker.internal` to reach Ollama o
     providers: {
       ollama: {
         type: "openai",
-        baseUrl: "http://host.docker.internal:11434/v1"
-      }
-    }
-  }
+        baseUrl: "http://host.docker.internal:11434/v1",
+      },
+    },
+  },
 }
 ```
 
@@ -89,12 +89,12 @@ When running the Gateway in Docker, use `host.docker.internal` to reach Ollama o
 
 Under the hood, Special Agent supports four model API protocols:
 
-| Protocol | Used for |
-|----------|----------|
-| `openai-completions` | OpenAI Chat Completions API (`/v1/chat/completions`) |
-| `openai-responses` | OpenAI Responses API (`/v1/responses`) |
-| `anthropic-messages` | Anthropic Messages API |
-| `google-generative-ai` | Google Generative AI (Gemini) |
+| Protocol               | Used for                                             |
+| ---------------------- | ---------------------------------------------------- |
+| `openai-completions`   | OpenAI Chat Completions API (`/v1/chat/completions`) |
+| `openai-responses`     | OpenAI Responses API (`/v1/responses`)               |
+| `anthropic-messages`   | Anthropic Messages API                               |
+| `google-generative-ai` | Google Generative AI (Gemini)                        |
 
 The provider `type` determines which protocol is used. Most OpenAI-compatible proxies work with the `openai` type.
 
@@ -109,16 +109,16 @@ Configure multiple providers and select per agent or per request:
       fast: {
         type: "openai",
         baseUrl: "https://api.example.com/v1",
-        apiKey: "key-fast"
+        apiKey: "key-fast",
       },
       smart: {
         type: "anthropic",
         baseUrl: "https://api.example.com",
-        apiKey: "key-smart"
-      }
+        apiKey: "key-smart",
+      },
     },
-    default: "fast:gpt-4o-mini"
-  }
+    default: "fast:gpt-4o-mini",
+  },
 }
 ```
 
@@ -129,9 +129,9 @@ Configure multiple providers and select per agent or per request:
   agents: {
     list: [
       { id: "quick-help", model: { default: "fast:gpt-4o-mini" } },
-      { id: "deep-analysis", model: { default: "smart:claude-sonnet-4-5-20250929" } }
-    ]
-  }
+      { id: "deep-analysis", model: { default: "smart:claude-sonnet-4-5-20250929" } },
+    ],
+  },
 }
 ```
 
@@ -144,9 +144,9 @@ Configure fallback providers for resilience:
   models: {
     failover: {
       enabled: true,
-      providers: ["primary", "backup"]
-    }
-  }
+      providers: ["primary", "backup"],
+    },
+  },
 }
 ```
 
@@ -156,12 +156,12 @@ If the primary provider fails (timeout, rate limit, error), the Gateway automati
 
 For the memory/RAG system (used by the `memory-lancedb` extension), embedding providers generate vector representations:
 
-| Provider | Configuration |
-|----------|--------------|
-| OpenAI | `embedding.provider: "openai"` with API key |
-| Google Gemini | `embedding.provider: "gemini"` with API key |
-| Voyage AI | `embedding.provider: "voyage"` with API key |
-| Local GGUF | `embedding.provider: "local"` with model path (llama.cpp) |
+| Provider      | Configuration                                             |
+| ------------- | --------------------------------------------------------- |
+| OpenAI        | `embedding.provider: "openai"` with API key               |
+| Google Gemini | `embedding.provider: "gemini"` with API key               |
+| Voyage AI     | `embedding.provider: "voyage"` with API key               |
+| Local GGUF    | `embedding.provider: "local"` with model path (llama.cpp) |
 
 Configure in `memory.embedding` or per the `memory-lancedb` extension config.
 
@@ -177,10 +177,10 @@ Override the default context window size for custom providers:
         type: "openai",
         baseUrl: "https://api.example.com/v1",
         apiKey: "sk-...",
-        contextWindow: 128000
-      }
-    }
-  }
+        contextWindow: 128000,
+      },
+    },
+  },
 }
 ```
 

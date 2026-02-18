@@ -77,12 +77,12 @@ The TUI provides a chat interface directly in your terminal.
 
 ## Configuration
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `gateway.port` | Gateway port (WebChat + API) | `18789` |
-| `gateway.bind` | Bind address (`loopback`, `lan`, `tailnet`) | `loopback` |
-| `gateway.auth.mode` | Authentication mode (`token`, `password`) | — |
-| `gateway.auth.token` | Auth token | — |
+| Setting              | Description                                 | Default    |
+| -------------------- | ------------------------------------------- | ---------- |
+| `gateway.port`       | Gateway port (WebChat + API)                | `18789`    |
+| `gateway.bind`       | Bind address (`loopback`, `lan`, `tailnet`) | `loopback` |
+| `gateway.auth.mode`  | Authentication mode (`token`, `password`)   | —          |
+| `gateway.auth.token` | Auth token                                  | —          |
 
 ## Embedding in internal portals
 

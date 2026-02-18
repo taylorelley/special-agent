@@ -48,6 +48,7 @@ A directory (`~/.special-agent/workspace/` by default) that contains an agent's 
 ## Bootstrap Files
 
 Markdown files in the workspace that configure the agent's behavior:
+
 - **AGENTS.md** — agent definitions and routing rules
 - **SOUL.md** — personality and behavioral instructions
 - **TOOLS.md** — tool usage guidance
