@@ -22,6 +22,7 @@ import {
   applyModelDefaults,
   applySessionDefaults,
   applyTalkApiKey,
+  applyToolDefaults,
 } from "./defaults.js";
 import { MissingEnvVarError, resolveConfigEnvVars } from "./env-substitution.js";
 import { collectConfigEnvVars } from "./env-vars.js";
@@ -290,8 +291,10 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       warnIfConfigFromFuture(validated.config, deps.logger);
       const cfg = applyModelDefaults(
         applyCompactionDefaults(
-          applyAgentDefaults(
-            applySessionDefaults(applyLoggingDefaults(applyMessageDefaults(validated.config))),
+          applyToolDefaults(
+            applyAgentDefaults(
+              applySessionDefaults(applyLoggingDefaults(applyMessageDefaults(validated.config))),
+            ),
           ),
         ),
       );
@@ -341,7 +344,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       const config = applyTalkApiKey(
         applyModelDefaults(
           applyCompactionDefaults(
-            applyAgentDefaults(applySessionDefaults(applyMessageDefaults({}))),
+            applyToolDefaults(applyAgentDefaults(applySessionDefaults(applyMessageDefaults({})))),
           ),
         ),
       );
@@ -462,8 +465,12 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         config: normalizeConfigPaths(
           applyTalkApiKey(
             applyModelDefaults(
-              applyAgentDefaults(
-                applySessionDefaults(applyLoggingDefaults(applyMessageDefaults(validated.config))),
+              applyToolDefaults(
+                applyAgentDefaults(
+                  applySessionDefaults(
+                    applyLoggingDefaults(applyMessageDefaults(validated.config)),
+                  ),
+                ),
               ),
             ),
           ),

@@ -282,6 +282,20 @@ export function applyLoggingDefaults(cfg: SpecialAgentConfig): SpecialAgentConfi
   };
 }
 
+export function applyToolDefaults(cfg: SpecialAgentConfig): SpecialAgentConfig {
+  const existingProfile = cfg.tools?.profile;
+  if (existingProfile) {
+    return cfg;
+  }
+  return {
+    ...cfg,
+    tools: {
+      ...cfg.tools,
+      profile: "coding",
+    },
+  };
+}
+
 export function applyCompactionDefaults(cfg: SpecialAgentConfig): SpecialAgentConfig {
   const defaults = cfg.agents?.defaults;
   if (!defaults) {
