@@ -19,12 +19,16 @@ import {
   normalizeDeliveryContext,
 } from "../utils/delivery-context.js";
 import {
+  buildAnnounceIdFromChildRun,
+  buildAnnounceIdempotencyKey,
+} from "./announce-idempotency.js";
+import {
   isEmbeddedPiRunActive,
   queueEmbeddedPiMessage,
   waitForEmbeddedPiRunEnd,
 } from "./pi-embedded.js";
 import { type AnnounceQueueItem, enqueueAnnounce } from "./subagent-announce-queue.js";
-import { readLatestAssistantReply } from "./tools/agent-step.js";
+import { readLatestSubagentOutput } from "./tools/agent-step.js";
 
 function formatTokenCount(value?: number) {
   if (!value || !Number.isFinite(value)) {
@@ -112,10 +116,13 @@ function resolveAnnounceOrigin(
   return mergeDeliveryContext(requesterOrigin, deliveryContextFromSession(entry));
 }
 
-async function sendAnnounce(item: AnnounceQueueItem) {
+async function sendAnnounce(item: AnnounceQueueItem & { announceId?: string }) {
   const origin = item.origin;
   const threadId =
     origin?.threadId != null && origin.threadId !== "" ? String(origin.threadId) : undefined;
+  const idempotencyKey = item.announceId
+    ? buildAnnounceIdempotencyKey(item.announceId)
+    : crypto.randomUUID();
   await callGateway({
     method: "agent",
     params: {
@@ -126,7 +133,7 @@ async function sendAnnounce(item: AnnounceQueueItem) {
       to: origin?.to,
       threadId,
       deliver: true,
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey,
     },
     expectFinal: true,
     timeoutMs: 60_000,
@@ -284,7 +291,7 @@ function loadSessionEntryByKey(sessionKey: string) {
   return store[sessionKey];
 }
 
-async function readLatestAssistantReplyWithRetry(params: {
+async function readLatestSubagentOutputWithRetry(params: {
   sessionKey: string;
   initialReply?: string;
   maxWaitMs: number;
@@ -297,7 +304,8 @@ async function readLatestAssistantReplyWithRetry(params: {
   const deadline = Date.now() + Math.max(0, Math.min(params.maxWaitMs, 15_000));
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    const latest = await readLatestAssistantReply({ sessionKey: params.sessionKey });
+    // Read both assistant and tool role messages for comprehensive subagent output
+    const latest = await readLatestSubagentOutput({ sessionKey: params.sessionKey });
     if (latest?.trim()) {
       return latest;
     }
@@ -441,15 +449,16 @@ export async function runSubagentAnnounceFlow(params: {
           outcome = { status: "timeout" };
         }
       }
-      reply = await readLatestAssistantReply({ sessionKey: params.childSessionKey });
+      // Read both assistant and tool role messages for comprehensive output
+      reply = await readLatestSubagentOutput({ sessionKey: params.childSessionKey });
     }
 
     if (!reply) {
-      reply = await readLatestAssistantReply({ sessionKey: params.childSessionKey });
+      reply = await readLatestSubagentOutput({ sessionKey: params.childSessionKey });
     }
 
     if (!reply?.trim()) {
-      reply = await readLatestAssistantReplyWithRetry({
+      reply = await readLatestSubagentOutputWithRetry({
         sessionKey: params.childSessionKey,
         initialReply: reply,
         maxWaitMs: params.timeoutMs,
@@ -520,6 +529,10 @@ export async function runSubagentAnnounceFlow(params: {
       const { entry } = loadRequesterSessionEntry(params.requesterSessionKey);
       directOrigin = deliveryContextFromSession(entry);
     }
+    const announceId = buildAnnounceIdFromChildRun({
+      childSessionKey: params.childSessionKey,
+      childRunId: params.childRunId,
+    });
     await callGateway({
       method: "agent",
       params: {
@@ -533,7 +546,7 @@ export async function runSubagentAnnounceFlow(params: {
           directOrigin?.threadId != null && directOrigin.threadId !== ""
             ? String(directOrigin.threadId)
             : undefined,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: buildAnnounceIdempotencyKey(announceId),
       },
       expectFinal: true,
       timeoutMs: 60_000,

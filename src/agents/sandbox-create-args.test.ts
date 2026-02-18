@@ -102,7 +102,7 @@ describe("buildSandboxCreateArgs", () => {
       tmpfs: [],
       network: "none",
       capDrop: [],
-      binds: ["/home/user/source:/source:rw", "/var/run/docker.sock:/var/run/docker.sock"],
+      binds: ["/home/user/source:/source:rw", "/home/user/data:/data:ro"],
     };
 
     const args = buildSandboxCreateArgs({
@@ -123,7 +123,29 @@ describe("buildSandboxCreateArgs", () => {
       }
     }
     expect(vFlags).toContain("/home/user/source:/source:rw");
-    expect(vFlags).toContain("/var/run/docker.sock:/var/run/docker.sock");
+    expect(vFlags).toContain("/home/user/data:/data:ro");
+  });
+
+  it("rejects dangerous bind mounts", () => {
+    const cfg: SandboxDockerConfig = {
+      image: "special-agent-sandbox:bookworm-slim",
+      containerPrefix: "special-agent-sbx-",
+      workdir: "/workspace",
+      readOnlyRoot: false,
+      tmpfs: [],
+      network: "none",
+      capDrop: [],
+      binds: ["/var/run/docker.sock:/var/run/docker.sock"],
+    };
+
+    expect(() =>
+      buildSandboxCreateArgs({
+        name: "special-agent-sbx-dangerous",
+        cfg,
+        scopeKey: "main",
+        createdAtMs: 1700000000000,
+      }),
+    ).toThrow(/docker\.sock/);
   });
 
   it("omits -v flags when binds is empty or undefined", () => {

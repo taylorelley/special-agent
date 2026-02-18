@@ -4,6 +4,7 @@ import {
   type Skill,
 } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { SpecialAgentConfig } from "../../config/config.js";
 import type {
@@ -188,6 +189,31 @@ function loadSkillEntries(
   return skillEntries;
 }
 
+/**
+ * Replace the user's home directory prefix with ~ in skill paths
+ * to reduce prompt token usage. Models understand ~ expansion and
+ * the read tool resolves it, so this is safe and backward-compatible.
+ */
+function compactSkillPaths(skills: Skill[]): Skill[] {
+  const home = os.homedir();
+  if (!home) {
+    return skills;
+  }
+  const prefix = home.endsWith("/") ? home : home + "/";
+  return skills.map((skill) => {
+    const filePath = skill.filePath?.startsWith(prefix)
+      ? "~/" + skill.filePath.slice(prefix.length)
+      : skill.filePath;
+    const baseDir = skill.baseDir?.startsWith(prefix)
+      ? "~/" + skill.baseDir.slice(prefix.length)
+      : skill.baseDir;
+    if (filePath === skill.filePath && baseDir === skill.baseDir) {
+      return skill;
+    }
+    return { ...skill, filePath, baseDir };
+  });
+}
+
 export function buildWorkspaceSkillSnapshot(
   workspaceDir: string,
   opts?: {
@@ -213,7 +239,9 @@ export function buildWorkspaceSkillSnapshot(
   );
   const resolvedSkills = promptEntries.map((entry) => entry.skill);
   const remoteNote = opts?.eligibility?.remote?.note?.trim();
-  const prompt = [remoteNote, formatSkillsForPrompt(resolvedSkills)].filter(Boolean).join("\n");
+  const prompt = [remoteNote, formatSkillsForPrompt(compactSkillPaths(resolvedSkills))]
+    .filter(Boolean)
+    .join("\n");
   return {
     prompt,
     skills: eligible.map((entry) => ({
@@ -248,7 +276,10 @@ export function buildWorkspaceSkillsPrompt(
     (entry) => entry.invocation?.disableModelInvocation !== true,
   );
   const remoteNote = opts?.eligibility?.remote?.note?.trim();
-  return [remoteNote, formatSkillsForPrompt(promptEntries.map((entry) => entry.skill))]
+  return [
+    remoteNote,
+    formatSkillsForPrompt(compactSkillPaths(promptEntries.map((entry) => entry.skill))),
+  ]
     .filter(Boolean)
     .join("\n");
 }
