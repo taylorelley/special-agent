@@ -60,12 +60,12 @@ In multi-agent setups:
 
 ## Skills vs plugins
 
-| | Skills | Plugins |
-|-|--------|---------|
-| **Format** | Markdown (`SKILL.md`) | TypeScript/JavaScript |
-| **Capabilities** | Teach the agent to use existing tools | Register new tools, hooks, channels, services |
-| **Complexity** | No code required | Requires code |
-| **Use when** | Adding tool usage patterns, integrating CLIs, defining workflows | Adding new tool types, custom channels, background services |
+|                  | Skills                                                           | Plugins                                                     |
+| ---------------- | ---------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Format**       | Markdown (`SKILL.md`)                                            | TypeScript/JavaScript                                       |
+| **Capabilities** | Teach the agent to use existing tools                            | Register new tools, hooks, channels, services               |
+| **Complexity**   | No code required                                                 | Requires code                                               |
+| **Use when**     | Adding tool usage patterns, integrating CLIs, defining workflows | Adding new tool types, custom channels, background services |
 
 **Start with skills.** Only build a plugin when you need capabilities skills cannot provide (custom tool types, event hooks, new channels).
 
@@ -73,20 +73,20 @@ In multi-agent setups:
 
 Special Agent ships with 12 bundled skills. These are loaded by default and can be disabled or overridden:
 
-| Skill | Description | Requirement |
-|-------|-------------|-------------|
-| `blogwatcher` | Monitor RSS/Atom feeds | `blogwatcher` binary |
-| `clawhub` | Skill marketplace CLI | `clawhub` binary |
-| `coding-agent` | Delegate to coding agents (Claude Code, Codex, etc.) | `claude`, `codex`, `opencode`, or `pi` |
-| `github` | GitHub CLI for issues, PRs, CI | `gh` binary |
-| `healthcheck` | Host security hardening | Built-in |
-| `mcporter` | MCP server management | `mcporter` binary |
-| `model-usage` | Per-model usage summaries | `codexbar` (macOS) |
-| `session-logs` | Search and analyze session logs | `jq`, `rg` |
-| `skill-creator` | Create and update skills | Built-in |
-| `summarize` | Summarize URLs, podcasts, files | `summarize` |
-| `tmux` | Remote-control tmux sessions | `tmux` |
-| `weather` | Weather forecasts | `curl` |
+| Skill           | Description                                          | Requirement                            |
+| --------------- | ---------------------------------------------------- | -------------------------------------- |
+| `blogwatcher`   | Monitor RSS/Atom feeds                               | `blogwatcher` binary                   |
+| `clawhub`       | Skill marketplace CLI                                | `clawhub` binary                       |
+| `coding-agent`  | Delegate to coding agents (Claude Code, Codex, etc.) | `claude`, `codex`, `opencode`, or `pi` |
+| `github`        | GitHub CLI for issues, PRs, CI                       | `gh` binary                            |
+| `healthcheck`   | Host security hardening                              | Built-in                               |
+| `mcporter`      | MCP server management                                | `mcporter` binary                      |
+| `model-usage`   | Per-model usage summaries                            | `codexbar` (macOS)                     |
+| `session-logs`  | Search and analyze session logs                      | `jq`, `rg`                             |
+| `skill-creator` | Create and update skills                             | Built-in                               |
+| `summarize`     | Summarize URLs, podcasts, files                      | `summarize`                            |
+| `tmux`          | Remote-control tmux sessions                         | `tmux`                                 |
+| `weather`       | Weather forecasts                                    | `curl`                                 |
 
 Skills with unmet requirements (missing binaries, wrong OS) are automatically filtered out at load time.
 
@@ -101,10 +101,10 @@ description: Query the internal database
 metadata:
   special-agent:
     requires:
-      bins: ["psql"]           # Required binaries in PATH
-      env: ["DATABASE_URL"]    # Required environment variables
-      config: ["db.host"]      # Required config keys
-      os: ["linux", "darwin"]  # Required OS
+      bins: ["psql"] # Required binaries in PATH
+      env: ["DATABASE_URL"] # Required environment variables
+      config: ["db.host"] # Required config keys
+      os: ["linux", "darwin"] # Required OS
 ---
 ```
 
@@ -118,14 +118,14 @@ Enable, disable, or configure skills in `~/.special-agent/special-agent.json`:
 {
   skills: {
     load: {
-      allowBundled: true,          // Load bundled skills (default: true)
-      extraDirs: ["/opt/company-skills"]  // Additional skill directories
+      allowBundled: true, // Load bundled skills (default: true)
+      extraDirs: ["/opt/company-skills"], // Additional skill directories
     },
     entries: {
       github: { enabled: true, env: { GITHUB_TOKEN: "ghp_..." } },
-      weather: { enabled: false }  // Disable a bundled skill
-    }
-  }
+      weather: { enabled: false }, // Disable a bundled skill
+    },
+  },
 }
 ```
 

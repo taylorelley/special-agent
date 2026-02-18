@@ -9,27 +9,27 @@ Sandboxing runs agent tool execution inside Docker containers, reducing the blas
 
 ## Modes
 
-| Mode | Behavior |
-|------|----------|
-| `off` | No sandboxing. Tools run directly on the host. (Default) |
+| Mode       | Behavior                                                                  |
+| ---------- | ------------------------------------------------------------------------- |
+| `off`      | No sandboxing. Tools run directly on the host. (Default)                  |
 | `non-main` | Non-main sessions run tools in containers. Main sessions run on the host. |
-| `all` | All sessions run tools in containers. |
+| `all`      | All sessions run tools in containers.                                     |
 
 ## Scopes
 
-| Scope | Isolation |
-|-------|-----------|
-| `session` | One container + workspace per session. Maximum isolation. |
-| `agent` | One container + workspace per agent. Sessions share the container. (Default when enabled) |
-| `shared` | All sessions share one container and workspace. Minimal isolation. |
+| Scope     | Isolation                                                                                 |
+| --------- | ----------------------------------------------------------------------------------------- |
+| `session` | One container + workspace per session. Maximum isolation.                                 |
+| `agent`   | One container + workspace per agent. Sessions share the container. (Default when enabled) |
+| `shared`  | All sessions share one container and workspace. Minimal isolation.                        |
 
 ## Workspace access
 
-| Level | Behavior |
-|-------|----------|
+| Level  | Behavior                                                                                   |
+| ------ | ------------------------------------------------------------------------------------------ |
 | `none` | Sandbox workspace at `~/.special-agent/sandboxes/`. Agent workspace not mounted. (Default) |
-| `ro` | Agent workspace mounted read-only at `/agent`. Sandbox workspace at `/workspace`. |
-| `rw` | Agent workspace mounted read-write at `/workspace`. |
+| `ro`   | Agent workspace mounted read-only at `/agent`. Sandbox workspace at `/workspace`.          |
+| `rw`   | Agent workspace mounted read-write at `/workspace`.                                        |
 
 ## Enable sandboxing
 
@@ -38,12 +38,12 @@ Sandboxing runs agent tool execution inside Docker containers, reducing the blas
   agents: {
     defaults: {
       sandbox: {
-        mode: "non-main",       // off | non-main | all
-        scope: "agent",         // session | agent | shared
-        workspaceAccess: "none" // none | ro | rw
-      }
-    }
-  }
+        mode: "non-main", // off | non-main | all
+        scope: "agent", // session | agent | shared
+        workspaceAccess: "none", // none | ro | rw
+      },
+    },
+  },
 }
 ```
 
@@ -77,7 +77,7 @@ Fine-grained control over container resources and security:
           workdir: "/workspace",
           readOnlyRoot: true,
           tmpfs: ["/tmp", "/var/tmp", "/run"],
-          network: "none",          // No network access by default
+          network: "none", // No network access by default
           user: "1000:1000",
           capDrop: ["ALL"],
           env: { LANG: "C.UTF-8" },
@@ -87,31 +87,31 @@ Fine-grained control over container resources and security:
           cpus: 1,
           ulimits: {
             nofile: { soft: 1024, hard: 2048 },
-            nproc: 256
+            nproc: 256,
           },
           seccompProfile: "/path/to/seccomp.json",
           apparmorProfile: "special-agent-sandbox",
           dns: ["1.1.1.1", "8.8.8.8"],
-          extraHosts: ["internal.service:10.0.0.5"]
-        }
-      }
-    }
-  }
+          extraHosts: ["internal.service:10.0.0.5"],
+        },
+      },
+    },
+  },
 }
 ```
 
 ### Key hardening knobs
 
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `network` | `"none"` | No egress. Opt-in for network access. |
-| `readOnlyRoot` | `true` | Immutable root filesystem |
-| `capDrop` | `["ALL"]` | Drop all Linux capabilities |
-| `pidsLimit` | `256` | Limit process count (fork bomb protection) |
-| `memory` | `"1g"` | Container memory limit |
-| `cpus` | `1` | CPU limit |
-| `seccompProfile` | — | Custom seccomp filter |
-| `apparmorProfile` | — | AppArmor profile for MAC |
+| Setting           | Default   | Purpose                                    |
+| ----------------- | --------- | ------------------------------------------ |
+| `network`         | `"none"`  | No egress; opt-in for network access       |
+| `readOnlyRoot`    | `true`    | Immutable root filesystem                  |
+| `capDrop`         | `["ALL"]` | Drop all Linux capabilities                |
+| `pidsLimit`       | `256`     | Limit process count (fork bomb protection) |
+| `memory`          | `"1g"`    | Container memory limit                     |
+| `cpus`            | `1`       | CPU limit                                  |
+| `seccompProfile`  | —         | Custom seccomp filter                      |
+| `apparmorProfile` | —         | AppArmor profile for MAC                   |
 
 ## Tool policy (sandbox tools)
 
@@ -123,14 +123,21 @@ Control which tools are available inside the sandbox:
     sandbox: {
       tools: {
         allow: [
-          "exec", "process", "read", "write", "edit",
-          "sessions_list", "sessions_history", "sessions_send",
-          "sessions_spawn", "session_status"
+          "exec",
+          "process",
+          "read",
+          "write",
+          "edit",
+          "sessions_list",
+          "sessions_history",
+          "sessions_send",
+          "sessions_spawn",
+          "session_status",
         ],
-        deny: ["browser", "canvas", "nodes", "cron", "gateway"]
-      }
-    }
-  }
+        deny: ["browser", "canvas", "nodes", "cron", "gateway"],
+      },
+    },
+  },
 }
 ```
 
@@ -151,16 +158,16 @@ In multi-agent setups, override sandbox config per agent:
         sandbox: {
           mode: "all",
           scope: "session",
-          docker: { network: "none", memory: "512m" }
+          docker: { network: "none", memory: "512m" },
         },
         tools: {
           sandbox: {
-            tools: { allow: ["read", "exec"], deny: ["write", "edit"] }
-          }
-        }
-      }
-    ]
-  }
+            tools: { allow: ["read", "exec"], deny: ["write", "edit"] },
+          },
+        },
+      },
+    ],
+  },
 }
 ```
 
@@ -179,10 +186,10 @@ Enable in config:
   agents: {
     defaults: {
       sandbox: {
-        browser: { enabled: true }
-      }
-    }
-  }
+        browser: { enabled: true },
+      },
+    },
+  },
 }
 ```
 
@@ -206,11 +213,11 @@ Run one-time setup when a container is created:
       sandbox: {
         docker: {
           setupCommand: "apt-get update && apt-get install -y git curl jq",
-          user: "0:0"  // Root required for apt-get
-        }
-      }
-    }
-  }
+          user: "0:0", // Root required for apt-get
+        },
+      },
+    },
+  },
 }
 ```
 

@@ -40,14 +40,14 @@ Least trusted
 
 ### Attack surfaces
 
-| Surface | Risk | Mitigation |
-|---------|------|------------|
-| Gateway WebSocket/HTTP | Unauthorized access to agent and tools | Token or password auth, bind to loopback/tailnet |
-| Channel messages | Prompt injection, unauthorized commands | DM policies, tool policies, sandbox |
-| Tool execution | Arbitrary code execution, data exfiltration | Sandbox isolation, tool allow/deny lists, network restrictions |
-| Credentials on disk | API key theft | File permissions (600), env var injection, secret rotation |
-| Model provider API | Data sent to external API | Choose provider carefully, use on-prem models (Ollama) for sensitive data |
-| Plugin/skill code | Malicious extensions | Review all custom code, restrict skill directories |
+| Surface                | Risk                                        | Mitigation                                                                |
+| ---------------------- | ------------------------------------------- | ------------------------------------------------------------------------- |
+| Gateway WebSocket/HTTP | Unauthorized access to agent and tools      | Token or password auth, bind to loopback/tailnet                          |
+| Channel messages       | Prompt injection, unauthorized commands     | DM policies, tool policies, sandbox                                       |
+| Tool execution         | Arbitrary code execution, data exfiltration | Sandbox isolation, tool allow/deny lists, network restrictions            |
+| Credentials on disk    | API key theft                               | File permissions (600), env var injection, secret rotation                |
+| Model provider API     | Data sent to external API                   | Choose provider carefully, use on-prem models (Ollama) for sensitive data |
+| Plugin/skill code      | Malicious extensions                        | Review all custom code, restrict skill directories                        |
 
 ## Security audit
 
@@ -80,12 +80,12 @@ The audit checks gateway auth, bind mode, DM policies, tool policies, credential
 
 Controls who can interact with the agent through messaging channels:
 
-| Mode | Behavior |
-|------|----------|
-| `pairing` | New senders must be approved before getting responses (recommended) |
-| `allowlist` | Only pre-approved sender IDs get responses |
-| `open` | Anyone who can message the channel gets responses (not recommended for production) |
-| `disabled` | Channel ignores all DMs |
+| Mode        | Behavior                                                                           |
+| ----------- | ---------------------------------------------------------------------------------- |
+| `pairing`   | New senders must be approved before getting responses (recommended)                |
+| `allowlist` | Only pre-approved sender IDs get responses                                         |
+| `open`      | Anyone who can message the channel gets responses (not recommended for production) |
+| `disabled`  | Channel ignores all DMs                                                            |
 
 Configure per channel in `channels.<channelId>.dm.policy`.
 

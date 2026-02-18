@@ -68,23 +68,23 @@ special-agent agent --message "Hello, what can you help me with?"
 
 ## Key file locations
 
-| Path | Contents |
-|------|----------|
-| `~/.special-agent/special-agent.json` | Configuration file (JSON5) |
-| `~/.special-agent/workspace/` | Agent workspace (skills, bootstrap files, memory) |
-| `~/.special-agent/agents/` | Per-agent sessions and state |
-| `~/.special-agent/logs/` | Gateway logs and command audit log |
-| `~/.special-agent/skills/` | Managed (local) skills directory |
+| Path                                  | Contents                                          |
+| ------------------------------------- | ------------------------------------------------- |
+| `~/.special-agent/special-agent.json` | Configuration file (JSON5)                        |
+| `~/.special-agent/workspace/`         | Agent workspace (skills, bootstrap files, memory) |
+| `~/.special-agent/agents/`            | Per-agent sessions and state                      |
+| `~/.special-agent/logs/`              | Gateway logs and command audit log                |
+| `~/.special-agent/skills/`            | Managed (local) skills directory                  |
 
 ## Environment variables
 
 Override default paths when running as a service account:
 
-| Variable | Description |
-|----------|-------------|
-| `SPECIAL_AGENT_HOME` | Home directory for internal path resolution |
-| `SPECIAL_AGENT_STATE_DIR` | Override the state directory |
-| `SPECIAL_AGENT_CONFIG_PATH` | Override the config file path |
+| Variable                    | Description                                 |
+| --------------------------- | ------------------------------------------- |
+| `SPECIAL_AGENT_HOME`        | Home directory for internal path resolution |
+| `SPECIAL_AGENT_STATE_DIR`   | Override the state directory                |
+| `SPECIAL_AGENT_CONFIG_PATH` | Override the config file path               |
 
 ## nvm users (Linux)
 

@@ -52,31 +52,19 @@
               },
               {
                 "group": "Security & Compliance",
-                "pages": [
-                  "security/overview",
-                  "security/authentication",
-                  "security/sandboxing"
-                ]
+                "pages": ["security/overview", "security/authentication", "security/sandboxing"]
               },
               {
                 "group": "Channels",
-                "pages": [
-                  "channels/overview",
-                  "channels/microsoft-teams",
-                  "channels/webchat"
-                ]
+                "pages": ["channels/overview", "channels/microsoft-teams", "channels/webchat"]
               },
               {
                 "group": "Custom Skill Development",
-                "pages": [
-                  "skills/overview"
-                ]
+                "pages": ["skills/overview"]
               },
               {
                 "group": "Reference",
-                "pages": [
-                  "reference/model-providers"
-                ]
+                "pages": ["reference/model-providers"]
               }
             ]
           }
