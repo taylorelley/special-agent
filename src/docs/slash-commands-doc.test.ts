@@ -22,9 +22,18 @@ function extractDocumentedSlashCommands(markdown: string): Set<string> {
   return documented;
 }
 
-const docPath = path.join(process.cwd(), "docs", "tools", "slash-commands.md");
-const docExists = existsSync(docPath);
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
+import fs from "node:fs/promises";
+import path from "node:path";
 
+const docPath = path.join(
+  fileURLToPath(new URL("../..", import.meta.url)),
+  "docs",
+  "tools",
+  "slash-commands.md",
+);
+const docExists = existsSync(docPath);
 describe("slash commands docs", () => {
   it.skipIf(!docExists)("documents all built-in chat command aliases", async () => {
     const markdown = await fs.readFile(docPath, "utf8");
