@@ -158,20 +158,13 @@ enum AgentWorkspace {
 
         This folder is the assistant's working directory.
 
-        ## First run (one-time)
-        - If BOOTSTRAP.md exists, follow its ritual and delete it once complete.
-        - Your agent identity lives in IDENTITY.md.
-        - Your profile lives in USER.md.
-
-        ## Backup tip (recommended)
-        If you treat this workspace as the agent's "memory", make it a git repo (ideally private) so identity
-        and notes are backed up.
-
-        ```bash
-        git init
-        git add AGENTS.md
-        git commit -m "Add agent workspace"
-        ```
+        ## Workspace files
+        - IDENTITY.md: your agent identity (name, creature, vibe, emoji).
+        - USER.md: your user's profile.
+        - SOUL.md: persona, tone, and behavioral boundaries.
+        - TOOLS.md: user tool notes and guidance.
+        - HEARTBEAT.md: heartbeat checklist (keep small or empty).
+        - MEMORY.md / memory/: daily logs and durable facts.
 
         ## Safety defaults
         - Don't exfiltrate secrets or private data.

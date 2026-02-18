@@ -1,6 +1,8 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { makeTempWorkspace, writeWorkspaceFile } from "../test-helpers/workspace.js";
+import { resolveWorkspaceTemplateDir } from "./workspace-templates.js";
 import {
   DEFAULT_MEMORY_ALT_FILENAME,
   DEFAULT_MEMORY_FILENAME,
@@ -59,5 +61,26 @@ describe("loadWorkspaceBootstrapFiles", () => {
     );
 
     expect(memoryEntries).toHaveLength(0);
+  });
+});
+
+function stripFrontMatter(content: string): string {
+  if (!content.startsWith("---")) {
+    return content;
+  }
+  const endIndex = content.indexOf("\n---", 3);
+  if (endIndex === -1) {
+    return content;
+  }
+  return content.slice(endIndex + "\n---".length).replace(/^\s+/, "");
+}
+
+describe("AGENTS.md template", () => {
+  it("does not reference BOOTSTRAP.md or first-run instructions", async () => {
+    const templateDir = await resolveWorkspaceTemplateDir();
+    const raw = await fs.readFile(path.join(templateDir, "AGENTS.md"), "utf-8");
+    const body = stripFrontMatter(raw).toLowerCase();
+    expect(body).not.toContain("bootstrap");
+    expect(body).not.toContain("first run");
   });
 });
