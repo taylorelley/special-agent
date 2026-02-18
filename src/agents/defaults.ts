@@ -2,5 +2,5 @@
 // These are empty sentinels; the actual provider/model are set during onboarding.
 export const DEFAULT_PROVIDER = "";
 export const DEFAULT_MODEL = "";
-// Conservative fallback used when model metadata is unavailable.
-export const DEFAULT_CONTEXT_TOKENS = 128_000;
+// Default context window for open premise models.
+export const DEFAULT_CONTEXT_TOKENS = 200_000;
