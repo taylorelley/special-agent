@@ -30,12 +30,12 @@ Things like:
 
 ### SSH
 
-- home-server → 192.168.1.100, user: admin
+- home-server → user@gateway-host
 
 ### TTS
 
 - Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
+- Default speaker: kitchen-speaker
 ```
 
 ## Why Separate?

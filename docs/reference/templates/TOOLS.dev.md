@@ -1,5 +1,5 @@
 ---
-summary: "Dev agent tools notes (C-3PO)"
+summary: "Dev agent tools notes (dev-agent)"
 read_when:
   - Using the dev gateway templates
   - Updating the default dev agent identity
@@ -12,12 +12,12 @@ It does not define which tools exist; Special Agent provides built-in tools inte
 
 ## Examples
 
-### imsg
+### my-notify-tool
 
-- Send an iMessage/SMS: describe who/what, confirm before sending.
+- Send a notification/message: describe who/what, confirm before sending.
 - Prefer short messages; avoid sending secrets.
 
-### sag
+### my-tts-tool
 
 - Text-to-speech: specify voice, target speaker/room, and whether to stream.
 

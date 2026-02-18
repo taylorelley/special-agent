@@ -15,7 +15,7 @@ A message transport adapter that connects the Gateway to an external messaging p
 
 ## Agent
 
-A configured AI assistant identity within the Gateway. Each agent has its own workspace directory, bootstrap files (AGENTS.md, SOUL.md, TOOLS.md), model configuration, tool policies, and session isolation. A single Gateway can host multiple agents via multi-agent routing.
+A configured AI assistant identity within the Gateway. Each agent has its own workspace directory, [bootstrap files](#bootstrap-files), model configuration, tool policies, and session isolation. A single Gateway can host multiple agents via multi-agent routing.
 
 ## Session
 

@@ -8,6 +8,8 @@ enum AgentWorkspace {
     static let identityFilename = "IDENTITY.md"
     static let userFilename = "USER.md"
     static let bootstrapFilename = "BOOTSTRAP.md"
+    static let heartbeatFilename = "HEARTBEAT.md"
+    static let toolsFilename = "TOOLS.md"
     private static let templateDirname = "templates"
     private static let ignoredEntries: Set<String> = [".DS_Store", ".git", ".gitignore"]
     private static let templateEntries: Set<String> = [
@@ -16,6 +18,8 @@ enum AgentWorkspace {
         AgentWorkspace.identityFilename,
         AgentWorkspace.userFilename,
         AgentWorkspace.bootstrapFilename,
+        AgentWorkspace.heartbeatFilename,
+        AgentWorkspace.toolsFilename,
     ]
     enum BootstrapSafety: Equatable {
         case safe
@@ -110,6 +114,16 @@ enum AgentWorkspace {
         if !FileManager().fileExists(atPath: userURL.path) {
             try self.defaultUserTemplate().write(to: userURL, atomically: true, encoding: .utf8)
             self.logger.info("Created USER.md at \(userURL.path, privacy: .public)")
+        }
+        let heartbeatURL = workspaceURL.appendingPathComponent(self.heartbeatFilename)
+        if !FileManager().fileExists(atPath: heartbeatURL.path) {
+            try self.defaultHeartbeatTemplate().write(to: heartbeatURL, atomically: true, encoding: .utf8)
+            self.logger.info("Created HEARTBEAT.md at \(heartbeatURL.path, privacy: .public)")
+        }
+        let toolsURL = workspaceURL.appendingPathComponent(self.toolsFilename)
+        if !FileManager().fileExists(atPath: toolsURL.path) {
+            try self.defaultToolsTemplate().write(to: toolsURL, atomically: true, encoding: .utf8)
+            self.logger.info("Created TOOLS.md at \(toolsURL.path, privacy: .public)")
         }
         let bootstrapURL = workspaceURL.appendingPathComponent(self.bootstrapFilename)
         if shouldSeedBootstrap, !FileManager().fileExists(atPath: bootstrapURL.path) {
@@ -218,6 +232,37 @@ enum AgentWorkspace {
         - Notes:
         """
         return self.loadTemplate(named: self.userFilename, fallback: fallback)
+    }
+
+    static func defaultHeartbeatTemplate() -> String {
+        let fallback = """
+        # HEARTBEAT.md
+
+        # Keep this file empty (or with only comments) to skip heartbeat API calls.
+
+        # Add tasks below when you want the agent to check something periodically.
+        """
+        return self.loadTemplate(named: self.heartbeatFilename, fallback: fallback)
+    }
+
+    static func defaultToolsTemplate() -> String {
+        let fallback = """
+        # TOOLS.md - Local Notes
+
+        Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
+
+        ## What Goes Here
+
+        Things like:
+
+        - Camera names and locations
+        - SSH hosts and aliases
+        - Preferred voices for TTS
+        - Speaker/room names
+        - Device nicknames
+        - Anything environment-specific
+        """
+        return self.loadTemplate(named: self.toolsFilename, fallback: fallback)
     }
 
     static func defaultBootstrapTemplate() -> String {

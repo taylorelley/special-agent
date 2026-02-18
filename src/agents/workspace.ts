@@ -30,7 +30,7 @@ export const DEFAULT_BOOTSTRAP_FILENAME = "BOOTSTRAP.md";
 export const DEFAULT_MEMORY_FILENAME = "MEMORY.md";
 export const DEFAULT_MEMORY_ALT_FILENAME = "memory.md";
 
-function stripFrontMatter(content: string): string {
+export function stripFrontMatter(content: string): string {
   if (!content.startsWith("---")) {
     return content;
   }

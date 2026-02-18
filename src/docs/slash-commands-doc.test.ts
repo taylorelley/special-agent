@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -21,16 +22,12 @@ function extractDocumentedSlashCommands(markdown: string): Set<string> {
   return documented;
 }
 
+const docPath = path.join(process.cwd(), "docs", "tools", "slash-commands.md");
+const docExists = existsSync(docPath);
+
 describe("slash commands docs", () => {
-  it("documents all built-in chat command aliases", async () => {
-    const docPath = path.join(process.cwd(), "docs", "tools", "slash-commands.md");
-    let markdown: string;
-    try {
-      markdown = await fs.readFile(docPath, "utf8");
-    } catch {
-      // docs/tools/slash-commands.md may not exist (e.g. enterprise docs).
-      return;
-    }
+  it.skipIf(!docExists)("documents all built-in chat command aliases", async () => {
+    const markdown = await fs.readFile(docPath, "utf8");
     const documented = extractDocumentedSlashCommands(markdown);
 
     for (const command of listChatCommands()) {

@@ -104,7 +104,7 @@ Fine-grained control over container resources and security:
 
 | Setting           | Default   | Purpose                                    |
 | ----------------- | --------- | ------------------------------------------ |
-| `network`         | `"none"`  | No egress. Opt-in for network access.      |
+| `network`         | `"none"`  | No egress; opt-in for network access       |
 | `readOnlyRoot`    | `true`    | Immutable root filesystem                  |
 | `capDrop`         | `["ALL"]` | Drop all Linux capabilities                |
 | `pidsLimit`       | `256`     | Limit process count (fork bomb protection) |

@@ -8,6 +8,7 @@ import {
   DEFAULT_MEMORY_FILENAME,
   loadWorkspaceBootstrapFiles,
   resolveDefaultAgentWorkspaceDir,
+  stripFrontMatter,
 } from "./workspace.js";
 
 describe("resolveDefaultAgentWorkspaceDir", () => {
@@ -63,17 +64,6 @@ describe("loadWorkspaceBootstrapFiles", () => {
     expect(memoryEntries).toHaveLength(0);
   });
 });
-
-function stripFrontMatter(content: string): string {
-  if (!content.startsWith("---")) {
-    return content;
-  }
-  const endIndex = content.indexOf("\n---", 3);
-  if (endIndex === -1) {
-    return content;
-  }
-  return content.slice(endIndex + "\n---".length).replace(/^\s+/, "");
-}
 
 describe("AGENTS.md template", () => {
   it("does not reference BOOTSTRAP.md or first-run instructions", async () => {
