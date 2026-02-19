@@ -45,18 +45,18 @@ export async function readLatestSubagentOutput(params: {
     if (role === "assistant") {
       const text = extractTextFromChatContent(msg.content as string | ContentBlock[] | undefined, {
         sanitize: true,
-      });
-      if (text?.trim()) {
-        parts.unshift(text.trim());
+      }).trim();
+      if (text) {
+        parts.unshift(text);
       }
       break;
     }
-    if (role === "tool") {
+    if (role === "toolResult") {
       const text = extractTextFromChatContent(msg.content as string | ContentBlock[] | undefined, {
         sanitize: true,
-      });
-      if (text?.trim()) {
-        parts.unshift(text.trim());
+      }).trim();
+      if (text) {
+        parts.unshift(text);
       }
       // Keep looking for the preceding assistant message
       continue;

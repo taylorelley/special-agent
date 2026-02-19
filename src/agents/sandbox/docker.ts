@@ -7,7 +7,11 @@ import { DEFAULT_SANDBOX_IMAGE, SANDBOX_AGENT_WORKSPACE_MOUNT } from "./constant
 import { readRegistry, updateRegistry } from "./registry.js";
 import { sanitizeEnvVars } from "./sanitize-env-vars.js";
 import { resolveSandboxAgentId, resolveSandboxScopeKey, slugifySessionKey } from "./shared.js";
-import { validateSandboxSecurity } from "./validate-sandbox-security.js";
+import {
+  getBlockedReasonForSourcePath,
+  normalizeHostPath,
+  validateSandboxSecurity,
+} from "./validate-sandbox-security.js";
 
 type ExecDockerRawOptions = {
   allowFailure?: boolean;
@@ -206,7 +210,7 @@ export async function dockerContainerState(name: string) {
 }
 
 function normalizeDockerLimit(value?: string | number) {
-  if (value === undefined || value === null) {
+  if (value === undefined) {
     return undefined;
   }
   if (typeof value === "number") {
@@ -358,9 +362,17 @@ async function createSandboxContainer(params: {
     configHash: params.configHash,
   });
   args.push("--workdir", cfg.workdir);
-  // workspaceDir and agentWorkspaceDir are internally resolved/trusted paths (validated
-  // by the caller before reaching this point), so they are intentionally not passed
-  // through validateSandboxSecurity (which runs inside buildSandboxCreateArgs above).
+  // Validate workspace paths against the same blocked-path denylist used for cfg.binds.
+  for (const wsPath of [workspaceDir, params.agentWorkspaceDir]) {
+    const normalized = normalizeHostPath(wsPath);
+    const reason = getBlockedReasonForSourcePath(normalized);
+    if (reason && reason.kind !== "non_absolute") {
+      const verb = reason.kind === "covers" ? "covers" : "targets";
+      throw new Error(
+        `Sandbox security: workspace path "${wsPath}" ${verb} blocked path "${reason.blockedPath}".`,
+      );
+    }
+  }
   const mainMountSuffix =
     params.workspaceAccess === "ro" && workspaceDir === params.agentWorkspaceDir ? ":ro" : "";
   args.push("-v", `${workspaceDir}:${cfg.workdir}${mainMountSuffix}`);

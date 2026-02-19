@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { CronJob, CronJobPatch } from "./types.js";
+import * as scheduleModule from "./schedule.js";
 import { computeNextRunAtMs } from "./schedule.js";
 import { applyJobPatch, computeJobNextRunAtMs } from "./service/jobs.js";
 
@@ -106,8 +107,8 @@ describe("applyJobPatch", () => {
 describe("computeJobNextRunAtMs", () => {
   it("returns next run for a cron schedule with mid-second nowMs", () => {
     const noonMs = Date.parse("2026-02-08T12:00:00.000Z");
-    // Use mid-second nowMs (500ms offset); the fallback path bumps to the
-    // next second when computeNextRunAtMs returns undefined.
+    // Mid-second nowMs (500ms offset) is handled by computeNextRunAtMs
+    // flooring to the second boundary — no fallback is exercised here.
     const nowMs = noonMs + 500;
     const schedule = { kind: "cron" as const, expr: "0 0 12 * * *", tz: "UTC" };
     const job: CronJob = {
@@ -146,5 +147,35 @@ describe("computeJobNextRunAtMs", () => {
     };
 
     expect(computeJobNextRunAtMs(job, nowMs)).toBeUndefined();
+  });
+
+  it("exercises retry fallback when computeNextRunAtMs returns undefined for cron", () => {
+    const noonMs = Date.parse("2026-02-08T12:00:00.000Z");
+    const nowMs = noonMs + 500;
+    const schedule = { kind: "cron" as const, expr: "0 0 12 * * *", tz: "UTC" };
+    const job: CronJob = {
+      id: "cron-3",
+      name: "cron-3",
+      enabled: true,
+      createdAtMs: noonMs - 86_400_000,
+      updatedAtMs: noonMs - 86_400_000,
+      schedule,
+      sessionTarget: "main",
+      wakeMode: "now",
+      payload: { kind: "systemEvent", text: "ping" },
+      state: {},
+    };
+
+    // First call returns undefined, second call (next-second bump) succeeds.
+    const nextSecondMs = Math.floor(nowMs / 1000) * 1000 + 1000;
+    const expectedNextRun = computeNextRunAtMs(schedule, nextSecondMs);
+    const spy = vi.spyOn(scheduleModule, "computeNextRunAtMs");
+    spy.mockReturnValueOnce(undefined);
+    spy.mockReturnValueOnce(expectedNextRun);
+
+    const result = computeJobNextRunAtMs(job, nowMs);
+    expect(result).toBe(expectedNextRun);
+    expect(spy).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
   });
 });

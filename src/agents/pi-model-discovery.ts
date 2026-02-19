@@ -9,7 +9,11 @@ export { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 export function createAuthStorage(AuthStorageLike: unknown, filePath: string): AuthStorage {
   const withFactory = AuthStorageLike as { create?: (path: string) => unknown };
   if (typeof withFactory.create === "function") {
-    return withFactory.create(filePath) as AuthStorage;
+    const result = withFactory.create(filePath);
+    if (result == null) {
+      throw new Error(`AuthStorage.create returned ${result} for path: ${filePath}`);
+    }
+    return result as AuthStorage;
   }
   return new (AuthStorageLike as { new (path: string): unknown })(filePath) as AuthStorage;
 }

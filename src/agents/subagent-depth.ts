@@ -80,7 +80,7 @@ export function getSubagentDepthFromSessionStore(sessionKey: string): number {
 
     const explicitDepth = normalizeSpawnDepth(entry.spawnDepth);
     if (explicitDepth > 0) {
-      return explicitDepth;
+      return explicitDepth + depth;
     }
 
     const spawnedBy = normalizeSessionKey(entry.spawnedBy);

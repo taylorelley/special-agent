@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, symlinkSync, unlinkSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -80,9 +80,10 @@ describe("validateBindMounts", () => {
 
   it("blocks symlink escapes into blocked directories", () => {
     const dir = mkdtempSync(join(tmpdir(), "special-agent-sbx-"));
-    const link = join(dir, "etc-link");
-    symlinkSync("/etc", link);
     try {
+      const link = join(dir, "etc-link");
+      symlinkSync("/etc", link);
+
       const run = () => validateBindMounts([`${link}/passwd:/mnt/passwd:ro`]);
 
       if (process.platform === "win32") {
@@ -93,7 +94,6 @@ describe("validateBindMounts", () => {
 
       expect(run).toThrow(/blocked path/);
     } finally {
-      unlinkSync(link);
       rmSync(dir, { recursive: true });
     }
   });

@@ -201,12 +201,13 @@ function compactSkillPaths(skills: Skill[]): Skill[] {
   }
   const sep = path.sep;
   const prefix = home.endsWith(sep) ? home : home + sep;
+  const tildePrefix = "~" + sep;
   return skills.map((skill) => {
     const filePath = skill.filePath?.startsWith(prefix)
-      ? "~/" + skill.filePath.slice(prefix.length)
+      ? tildePrefix + skill.filePath.slice(prefix.length)
       : skill.filePath;
     const baseDir = skill.baseDir?.startsWith(prefix)
-      ? "~/" + skill.baseDir.slice(prefix.length)
+      ? tildePrefix + skill.baseDir.slice(prefix.length)
       : skill.baseDir;
     if (filePath === skill.filePath && baseDir === skill.baseDir) {
       return skill;
