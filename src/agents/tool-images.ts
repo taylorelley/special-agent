@@ -8,12 +8,13 @@ type ImageContentBlock = Extract<ToolContentBlock, { type: "image" }>;
 type TextContentBlock = Extract<ToolContentBlock, { type: "text" }>;
 
 // Anthropic Messages API limitations (observed in SpecialAgent sessions):
-// - Images over ~2000px per side can fail in multi-image requests.
+// - Images over ~1200px per side can fail in multi-image requests.
 // - Images over 5MB are rejected by the API.
 //
-// To keep sessions resilient (and avoid "silent" WhatsApp non-replies), we auto-downscale
-// and recompress base64 image blocks when they exceed these limits.
-const MAX_IMAGE_DIMENSION_PX = 2000;
+// To keep sessions resilient, we auto-downscale and recompress base64 image
+// blocks when they exceed these limits. Reduced from 2000 to 1200 to lower
+// token usage and improve reliability in multi-image requests.
+const MAX_IMAGE_DIMENSION_PX = 1200;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const log = createSubsystemLogger("agents/tool-images");
 

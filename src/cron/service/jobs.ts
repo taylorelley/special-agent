@@ -84,7 +84,14 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
             : null;
     return atMs !== null ? atMs : undefined;
   }
-  return computeNextRunAtMs(job.schedule, nowMs);
+  const next = computeNextRunAtMs(job.schedule, nowMs);
+  // Defensive: the "every" and "at" branches return early, so schedule.kind is
+  // "cron" here, but the guard future-proofs against new schedule kinds.
+  if (next === undefined && job.schedule.kind === "cron") {
+    const nextSecondMs = Math.floor(nowMs / 1000) * 1000 + 1000;
+    return computeNextRunAtMs(job.schedule, nextSecondMs);
+  }
+  return next;
 }
 
 export function recomputeNextRuns(state: CronServiceState): boolean {

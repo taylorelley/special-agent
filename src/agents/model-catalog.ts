@@ -70,12 +70,17 @@ export async function loadModelCatalog(params?: {
       const piSdk = await importPiSdk();
       const agentDir = resolveSpecialAgentAgentDir();
       const { join } = await import("node:path");
-      const authStorage = new piSdk.AuthStorage(join(agentDir, "auth.json"));
-      const registry = new piSdk.ModelRegistry(authStorage, join(agentDir, "models.json")) as
-        | {
-            getAll: () => Array<DiscoveredModel>;
-          }
-        | Array<DiscoveredModel>;
+      const authStorage = piSdk.createAuthStorage(piSdk.AuthStorage, join(agentDir, "auth.json"));
+      const registry = new (piSdk.ModelRegistry as unknown as {
+        new (
+          authStorage: unknown,
+          modelsFile: string,
+        ):
+          | Array<DiscoveredModel>
+          | {
+              getAll: () => Array<DiscoveredModel>;
+            };
+      })(authStorage, join(agentDir, "models.json"));
       const entries = Array.isArray(registry) ? registry : registry.getAll();
       for (const entry of entries) {
         const id = String(entry?.id ?? "").trim();

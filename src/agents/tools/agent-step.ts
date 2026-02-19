@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
+import type { ContentBlock } from "../../shared/chat-content.js";
 import { callGateway } from "../../gateway/call.js";
+import { extractTextFromChatContent } from "../../shared/chat-content.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
 import { extractAssistantText, stripToolMessages } from "./sessions-helpers.js";
@@ -15,6 +17,56 @@ export async function readLatestAssistantReply(params: {
   const filtered = stripToolMessages(Array.isArray(history?.messages) ? history.messages : []);
   const last = filtered.length > 0 ? filtered[filtered.length - 1] : undefined;
   return last ? extractAssistantText(last) : undefined;
+}
+
+/**
+ * Read the latest subagent output, including both assistant and tool role messages.
+ * More comprehensive than readLatestAssistantReply — also captures tool result text
+ * that may appear after the last assistant message.
+ */
+export async function readLatestSubagentOutput(params: {
+  sessionKey: string;
+  limit?: number;
+}): Promise<string | undefined> {
+  const history = await callGateway<{ messages: Array<unknown> }>({
+    method: "chat.history",
+    params: { sessionKey: params.sessionKey, limit: params.limit ?? 50 },
+  });
+  const messages = Array.isArray(history?.messages) ? history.messages : [];
+
+  // Walk backwards to find the last assistant or toolResult message
+  const parts: string[] = [];
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i] as Record<string, unknown> | undefined;
+    if (!msg) {
+      continue;
+    }
+
+    const role = msg.role;
+    if (role === "assistant") {
+      const text = extractTextFromChatContent(msg.content as string | ContentBlock[] | undefined, {
+        sanitize: true,
+      }).trim();
+      if (text) {
+        parts.unshift(text);
+      }
+      break;
+    }
+    if (role === "toolResult") {
+      const text = extractTextFromChatContent(msg.content as string | ContentBlock[] | undefined, {
+        sanitize: true,
+      }).trim();
+      if (text) {
+        parts.unshift(text);
+      }
+      // Keep looking for the preceding assistant message
+      continue;
+    }
+    // Stop at any other role (user, system)
+    break;
+  }
+
+  return parts.length > 0 ? parts.join("\n") : undefined;
 }
 
 export async function runAgentStep(params: {

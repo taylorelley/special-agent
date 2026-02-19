@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const agentSpy = vi.fn(async () => ({ runId: "run-main", status: "ok" }));
 const sessionsDeleteSpy = vi.fn();
-const readLatestAssistantReplyMock = vi.fn(async () => "raw subagent reply");
+const readLatestSubagentOutputMock = vi.fn(async () => "raw subagent reply");
 const embeddedRunMock = {
   isEmbeddedPiRunActive: vi.fn(() => false),
   isEmbeddedPiRunStreaming: vi.fn(() => false),
@@ -38,7 +38,7 @@ vi.mock("../gateway/call.js", () => ({
 }));
 
 vi.mock("./tools/agent-step.js", () => ({
-  readLatestAssistantReply: readLatestAssistantReplyMock,
+  readLatestSubagentOutput: readLatestSubagentOutputMock,
 }));
 
 vi.mock("../config/sessions.js", () => ({
@@ -68,7 +68,7 @@ describe("subagent announce formatting", () => {
     embeddedRunMock.isEmbeddedPiRunStreaming.mockReset().mockReturnValue(false);
     embeddedRunMock.queueEmbeddedPiMessage.mockReset().mockReturnValue(false);
     embeddedRunMock.waitForEmbeddedPiRunEnd.mockReset().mockResolvedValue(true);
-    readLatestAssistantReplyMock.mockReset().mockResolvedValue("raw subagent reply");
+    readLatestSubagentOutputMock.mockReset().mockResolvedValue("raw subagent reply");
     sessionStore = {};
     configOverride = {
       session: {
@@ -365,7 +365,7 @@ describe("subagent announce formatting", () => {
     const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");
     embeddedRunMock.isEmbeddedPiRunActive.mockReturnValueOnce(true).mockReturnValue(false);
     embeddedRunMock.waitForEmbeddedPiRunEnd.mockResolvedValue(true);
-    readLatestAssistantReplyMock
+    readLatestSubagentOutputMock
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce("Read #12 complete.");
     sessionStore = {
