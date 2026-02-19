@@ -247,6 +247,12 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  extensions/memory-cognee:
+    devDependencies:
+      special-agent:
+        specifier: workspace:*
+        version: link:../..
+
   extensions/memory-core:
     devDependencies:
       special-agent:

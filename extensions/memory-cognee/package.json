@@ -1,0 +1,15 @@
+{
+  "name": "@special-agent/memory-cognee",
+  "version": "2026.2.10",
+  "private": true,
+  "description": "Special Agent Cognee-backed knowledge graph memory plugin with auto-recall/index",
+  "type": "module",
+  "devDependencies": {
+    "special-agent": "workspace:*"
+  },
+  "special-agent": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
