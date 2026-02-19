@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { listChatCommands } from "../auto-reply/commands-registry.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
@@ -21,11 +22,6 @@ function extractDocumentedSlashCommands(markdown: string): Set<string> {
   }
   return documented;
 }
-
-import { existsSync } from "node:fs";
-import fs from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const docPath = path.join(
   fileURLToPath(new URL("../..", import.meta.url)),
