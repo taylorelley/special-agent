@@ -16,10 +16,23 @@ function normalizeSessionKey(raw: unknown): string | undefined {
   return typeof raw === "string" && raw.trim() ? raw.trim() : undefined;
 }
 
-function readSessionStore(sessionKey: string) {
-  const cfg = loadConfig();
+function readSessionStore(
+  sessionKey: string,
+  cfg?: ReturnType<typeof loadConfig>,
+  storeCache?: Map<string, ReturnType<typeof loadSessionStore>>,
+) {
+  const resolvedCfg = cfg ?? loadConfig();
   const agentId = resolveAgentIdFromSessionKey(sessionKey);
-  const storePath = resolveStorePath(cfg.session?.store, { agentId });
+  const storePath = resolveStorePath(resolvedCfg.session?.store, { agentId });
+  if (storeCache) {
+    const cached = storeCache.get(storePath);
+    if (cached) {
+      return cached;
+    }
+    const store = loadSessionStore(storePath);
+    storeCache.set(storePath, store);
+    return store;
+  }
   return loadSessionStore(storePath);
 }
 
@@ -32,8 +45,12 @@ function buildKeyCandidates(sessionKey: string): string[] {
   return candidates;
 }
 
-function resolveEntryForSessionKey(sessionKey: string): Record<string, unknown> | undefined {
-  const store = readSessionStore(sessionKey);
+function resolveEntryForSessionKey(
+  sessionKey: string,
+  cfg?: ReturnType<typeof loadConfig>,
+  storeCache?: Map<string, ReturnType<typeof loadSessionStore>>,
+): Record<string, unknown> | undefined {
+  const store = readSessionStore(sessionKey, cfg, storeCache);
   for (const key of buildKeyCandidates(sessionKey)) {
     const entry = store[key];
     if (entry && typeof entry === "object") {
@@ -48,13 +65,15 @@ function resolveEntryForSessionKey(sessionKey: string): Record<string, unknown> 
  * Returns 0 for top-level sessions.
  */
 export function getSubagentDepthFromSessionStore(sessionKey: string): number {
+  const cfg = loadConfig();
+  const storeCache = new Map<string, ReturnType<typeof loadSessionStore>>();
   const visited = new Set<string>();
   let current = sessionKey;
   let depth = 0;
 
   while (current && !visited.has(current)) {
     visited.add(current);
-    const entry = resolveEntryForSessionKey(current);
+    const entry = resolveEntryForSessionKey(current, cfg, storeCache);
     if (!entry) {
       break;
     }

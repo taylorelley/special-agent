@@ -3,7 +3,10 @@ import path from "node:path";
 
 export { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 
-function createAuthStorage(AuthStorageLike: unknown, filePath: string): AuthStorage {
+// Factory-vs-constructor fallback: pi-coding-agent ≥0.50 exposes AuthStorage.create(),
+// while earlier versions only support `new AuthStorage(path)`. This helper tries the
+// factory first and falls back to the constructor so both versions work transparently.
+export function createAuthStorage(AuthStorageLike: unknown, filePath: string): AuthStorage {
   const withFactory = AuthStorageLike as { create?: (path: string) => unknown };
   if (typeof withFactory.create === "function") {
     return withFactory.create(filePath) as AuthStorage;

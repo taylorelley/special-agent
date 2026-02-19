@@ -1,4 +1,4 @@
-type ContentBlock = { type: string; text?: string };
+export type ContentBlock = { type: string; text?: string };
 
 export function extractTextFromChatContent(
   content: string | ContentBlock[] | undefined | null,

@@ -43,9 +43,13 @@ export type BlockedBindReason =
 export function parseBindSourcePath(bind: string): string {
   const trimmed = bind.trim();
   const firstColon = trimmed.indexOf(":");
-  if (firstColon <= 0) {
-    // No colon or starts with colon — treat as source.
+  if (firstColon < 0) {
+    // No colon — treat whole string as source.
     return trimmed;
+  }
+  if (firstColon === 0) {
+    // Starts with colon — no source path.
+    return "";
   }
   return trimmed.slice(0, firstColon);
 }

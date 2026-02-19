@@ -1,4 +1,4 @@
-import { mkdtempSync, symlinkSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -64,6 +64,10 @@ describe("validateBindMounts", () => {
     expect(() => validateBindMounts(["/var:/var"])).not.toThrow();
   });
 
+  it("blocks root mount /", () => {
+    expect(() => validateBindMounts(["/:/mnt"])).toThrow(/blocked path "\/"/);
+  });
+
   it("blocks paths with .. traversal to dangerous directories", () => {
     expect(() => validateBindMounts(["/home/user/../../etc/shadow:/mnt/shadow"])).toThrow(
       /blocked path "\/etc"/,
@@ -78,15 +82,20 @@ describe("validateBindMounts", () => {
     const dir = mkdtempSync(join(tmpdir(), "special-agent-sbx-"));
     const link = join(dir, "etc-link");
     symlinkSync("/etc", link);
-    const run = () => validateBindMounts([`${link}/passwd:/mnt/passwd:ro`]);
+    try {
+      const run = () => validateBindMounts([`${link}/passwd:/mnt/passwd:ro`]);
 
-    if (process.platform === "win32") {
-      // Windows source paths (e.g. C:\...) are intentionally rejected as non-POSIX.
-      expect(run).toThrow(/non-absolute source path/);
-      return;
+      if (process.platform === "win32") {
+        // Windows source paths (e.g. C:\...) are intentionally rejected as non-POSIX.
+        expect(run).toThrow(/non-absolute source path/);
+        return;
+      }
+
+      expect(run).toThrow(/blocked path/);
+    } finally {
+      unlinkSync(link);
+      rmSync(dir, { recursive: true });
     }
-
-    expect(run).toThrow(/blocked path/);
   });
 
   it("rejects non-absolute source paths (relative or named volumes)", () => {

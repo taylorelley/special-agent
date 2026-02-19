@@ -199,7 +199,8 @@ function compactSkillPaths(skills: Skill[]): Skill[] {
   if (!home) {
     return skills;
   }
-  const prefix = home.endsWith("/") ? home : home + "/";
+  const sep = path.sep;
+  const prefix = home.endsWith(sep) ? home : home + sep;
   return skills.map((skill) => {
     const filePath = skill.filePath?.startsWith(prefix)
       ? "~/" + skill.filePath.slice(prefix.length)

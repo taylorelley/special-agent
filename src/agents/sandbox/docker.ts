@@ -1,5 +1,13 @@
 import { spawn } from "node:child_process";
+import type { SandboxConfig, SandboxDockerConfig, SandboxWorkspaceAccess } from "./types.js";
+import { formatCliCommand } from "../../cli/command-format.js";
+import { defaultRuntime } from "../../runtime.js";
+import { computeSandboxConfigHash } from "./config-hash.js";
+import { DEFAULT_SANDBOX_IMAGE, SANDBOX_AGENT_WORKSPACE_MOUNT } from "./constants.js";
+import { readRegistry, updateRegistry } from "./registry.js";
 import { sanitizeEnvVars } from "./sanitize-env-vars.js";
+import { resolveSandboxAgentId, resolveSandboxScopeKey, slugifySessionKey } from "./shared.js";
+import { validateSandboxSecurity } from "./validate-sandbox-security.js";
 
 type ExecDockerRawOptions = {
   allowFailure?: boolean;
@@ -105,15 +113,6 @@ export function execDockerRaw(
   });
 }
 
-import type { SandboxConfig, SandboxDockerConfig, SandboxWorkspaceAccess } from "./types.js";
-import { formatCliCommand } from "../../cli/command-format.js";
-import { defaultRuntime } from "../../runtime.js";
-import { computeSandboxConfigHash } from "./config-hash.js";
-import { DEFAULT_SANDBOX_IMAGE, SANDBOX_AGENT_WORKSPACE_MOUNT } from "./constants.js";
-import { readRegistry, updateRegistry } from "./registry.js";
-import { resolveSandboxAgentId, resolveSandboxScopeKey, slugifySessionKey } from "./shared.js";
-import { validateSandboxSecurity } from "./validate-sandbox-security.js";
-
 const HOT_CONTAINER_WINDOW_MS = 5 * 60 * 1000;
 
 export type ExecDockerOptions = ExecDockerRawOptions;
@@ -131,18 +130,26 @@ export async function readDockerContainerLabel(
   containerName: string,
   label: string,
 ): Promise<string | null> {
-  const result = await execDocker(
-    ["inspect", "-f", `{{ index .Config.Labels "${label}" }}`, containerName],
-    { allowFailure: true },
-  );
+  const result = await execDocker(["inspect", "-f", "{{json .Config.Labels}}", containerName], {
+    allowFailure: true,
+  });
   if (result.code !== 0) {
     return null;
   }
   const raw = result.stdout.trim();
-  if (!raw || raw === "<no value>") {
+  if (!raw) {
     return null;
   }
-  return raw;
+  try {
+    const labels = JSON.parse(raw) as Record<string, string> | null;
+    if (!labels || typeof labels !== "object") {
+      return null;
+    }
+    const value = labels[label];
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function readDockerPort(containerName: string, port: number) {
@@ -272,13 +279,14 @@ export function buildSandboxCreateArgs(params: {
   }
   const envSanitization = sanitizeEnvVars(params.cfg.env ?? {});
   if (envSanitization.blocked.length > 0) {
-    console.warn(
-      "[Security] Blocked sensitive environment variables:",
-      envSanitization.blocked.join(", "),
+    defaultRuntime.log(
+      "[Security] Blocked sensitive environment variables: " + envSanitization.blocked.join(", "),
     );
   }
   if (envSanitization.warnings.length > 0) {
-    console.warn("[Security] Suspicious environment variables:", envSanitization.warnings);
+    defaultRuntime.log(
+      "[Security] Suspicious environment variables: " + envSanitization.warnings.join(", "),
+    );
   }
   for (const [key, value] of Object.entries(envSanitization.allowed)) {
     args.push("--env", `${key}=${value}`);
@@ -350,6 +358,9 @@ async function createSandboxContainer(params: {
     configHash: params.configHash,
   });
   args.push("--workdir", cfg.workdir);
+  // workspaceDir and agentWorkspaceDir are internally resolved/trusted paths (validated
+  // by the caller before reaching this point), so they are intentionally not passed
+  // through validateSandboxSecurity (which runs inside buildSandboxCreateArgs above).
   const mainMountSuffix =
     params.workspaceAccess === "ro" && workspaceDir === params.agentWorkspaceDir ? ":ro" : "";
   args.push("-v", `${workspaceDir}:${cfg.workdir}${mainMountSuffix}`);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CronJob, CronJobPatch } from "./types.js";
-import { applyJobPatch } from "./service/jobs.js";
+import { computeNextRunAtMs } from "./schedule.js";
+import { applyJobPatch, computeJobNextRunAtMs } from "./service/jobs.js";
 
 describe("applyJobPatch", () => {
   it("clears delivery when switching to main session", () => {
@@ -72,7 +73,7 @@ describe("applyJobPatch", () => {
     });
   });
 
-  it("treats legacy payload targets as announce requests", () => {
+  it("treats legacy payload targets as announce requests (delivery)", () => {
     const now = Date.now();
     const job: CronJob = {
       id: "job-3",
@@ -99,5 +100,51 @@ describe("applyJobPatch", () => {
       to: "999",
       bestEffort: undefined,
     });
+  });
+});
+
+describe("computeJobNextRunAtMs", () => {
+  it("returns next run for a cron schedule with mid-second nowMs", () => {
+    const noonMs = Date.parse("2026-02-08T12:00:00.000Z");
+    // Use mid-second nowMs (500ms offset); the fallback path bumps to the
+    // next second when computeNextRunAtMs returns undefined.
+    const nowMs = noonMs + 500;
+    const schedule = { kind: "cron" as const, expr: "0 0 12 * * *", tz: "UTC" };
+    const job: CronJob = {
+      id: "cron-1",
+      name: "cron-1",
+      enabled: true,
+      createdAtMs: noonMs - 86_400_000,
+      updatedAtMs: noonMs - 86_400_000,
+      schedule,
+      sessionTarget: "main",
+      wakeMode: "now",
+      payload: { kind: "systemEvent", text: "ping" },
+      state: {},
+    };
+
+    const result = computeJobNextRunAtMs(job, nowMs);
+    // Should equal the direct computeNextRunAtMs result (noon today).
+    const expected = computeNextRunAtMs(schedule, nowMs);
+    expect(result).toBe(expected);
+    expect(result).toBe(noonMs);
+  });
+
+  it("returns undefined for disabled cron job", () => {
+    const nowMs = Date.now();
+    const job: CronJob = {
+      id: "cron-2",
+      name: "cron-2",
+      enabled: false,
+      createdAtMs: nowMs,
+      updatedAtMs: nowMs,
+      schedule: { kind: "cron", expr: "0 0 12 * * *", tz: "UTC" },
+      sessionTarget: "main",
+      wakeMode: "now",
+      payload: { kind: "systemEvent", text: "ping" },
+      state: {},
+    };
+
+    expect(computeJobNextRunAtMs(job, nowMs)).toBeUndefined();
   });
 });

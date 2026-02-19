@@ -43,6 +43,7 @@ describe("loadModelCatalog", () => {
             return [{ id: "gpt-4.1", name: "GPT-4.1", provider: "openai" }];
           }
         },
+        createAuthStorage: (_cls: unknown, _path: string) => ({}),
       } as unknown as PiSdkModule;
     });
 
@@ -77,6 +78,7 @@ describe("loadModelCatalog", () => {
               ];
             }
           },
+          createAuthStorage: (_cls: unknown, _path: string) => ({}),
         }) as unknown as PiSdkModule,
     );
 

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { callGateway } from "../../gateway/call.js";
-import { extractTextFromChatContent } from "../../shared/chat-content.js";
+import { type ContentBlock, extractTextFromChatContent } from "../../shared/chat-content.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
 import { extractAssistantText, stripToolMessages } from "./sessions-helpers.js";
@@ -17,8 +17,6 @@ export async function readLatestAssistantReply(params: {
   const last = filtered.length > 0 ? filtered[filtered.length - 1] : undefined;
   return last ? extractAssistantText(last) : undefined;
 }
-
-type ContentBlock = { type: string; text?: string };
 
 /**
  * Read the latest subagent output, including both assistant and tool role messages.

@@ -39,14 +39,6 @@ export function __setModelCatalogImportForTest(loader?: () => Promise<PiSdkModul
   importPiSdk = loader ?? defaultImportPiSdk;
 }
 
-function createAuthStorage(AuthStorageLike: unknown, path: string) {
-  const withFactory = AuthStorageLike as { create?: (path: string) => unknown };
-  if (typeof withFactory.create === "function") {
-    return withFactory.create(path);
-  }
-  return new (AuthStorageLike as { new (path: string): unknown })(path);
-}
-
 export async function loadModelCatalog(params?: {
   config?: SpecialAgentConfig;
   useCache?: boolean;
@@ -78,7 +70,7 @@ export async function loadModelCatalog(params?: {
       const piSdk = await importPiSdk();
       const agentDir = resolveSpecialAgentAgentDir();
       const { join } = await import("node:path");
-      const authStorage = createAuthStorage(piSdk.AuthStorage, join(agentDir, "auth.json"));
+      const authStorage = piSdk.createAuthStorage(piSdk.AuthStorage, join(agentDir, "auth.json"));
       const registry = new (piSdk.ModelRegistry as unknown as {
         new (
           authStorage: unknown,

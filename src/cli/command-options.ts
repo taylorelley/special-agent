@@ -13,7 +13,7 @@ function getOptionSource(command: Command, name: string): string | undefined {
   if (typeof command.getOptionValueSource !== "function") {
     return undefined;
   }
-  return command.getOptionValueSource(name) ?? undefined;
+  return command.getOptionValueSource(name);
 }
 
 /**

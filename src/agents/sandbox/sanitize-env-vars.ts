@@ -49,7 +49,7 @@ function validateEnvVarValue(value: string): string | undefined {
   if (value.length > 32768) {
     return "Value exceeds maximum length";
   }
-  if (/^[A-Za-z0-9+/=]{80,}$/.test(value)) {
+  if (/^[A-Za-z0-9+/]{80,}={1,2}$/.test(value)) {
     return "Value looks like base64-encoded credential data";
   }
   return undefined;
