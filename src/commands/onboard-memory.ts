@@ -260,7 +260,6 @@ export async function setupMemory(
 
   return applyMemorySlot(cfg, "memory-cognee", {
     baseUrl: COGNEE_BASE_URL,
-    apiKey: "${COGNEE_API_KEY}",
     datasetName: "special-agent",
     autoRecall: true,
     autoIndex: true,

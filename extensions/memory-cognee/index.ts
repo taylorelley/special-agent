@@ -103,11 +103,7 @@ const MEMORY_FILE_PATTERNS = ["MEMORY.md", "memory.md", "memory"];
 
 function resolveEnvVars(value: string): string {
   return value.replace(/\$\{([^}]+)\}/g, (_, envVar: string) => {
-    const envValue = process.env[envVar];
-    if (!envValue) {
-      throw new Error(`Environment variable ${envVar} is not set`);
-    }
-    return envValue;
+    return process.env[envVar] ?? "";
   });
 }
 
@@ -199,6 +195,7 @@ async function saveSyncIndex(state: SyncIndex): Promise<void> {
 
 async function collectMemoryFiles(workspaceDir: string): Promise<MemoryFile[]> {
   const files: MemoryFile[] = [];
+  const seen = new Set<string>();
 
   for (const pattern of MEMORY_FILE_PATTERNS) {
     const target = resolve(workspaceDir, pattern);
@@ -207,6 +204,10 @@ async function collectMemoryFiles(workspaceDir: string): Promise<MemoryFile[]> {
       const stat = await fs.stat(target);
 
       if (stat.isFile() && target.endsWith(".md")) {
+        const realTarget = await fs.realpath(target);
+        if (seen.has(realTarget)) continue;
+        seen.add(realTarget);
+
         const content = await fs.readFile(target, "utf-8");
         files.push({
           path: relative(workspaceDir, target),
@@ -215,7 +216,7 @@ async function collectMemoryFiles(workspaceDir: string): Promise<MemoryFile[]> {
           hash: hashText(content),
         });
       } else if (stat.isDirectory()) {
-        const entries = await scanDir(target, workspaceDir);
+        const entries = await scanDir(target, workspaceDir, seen);
         files.push(...entries);
       }
     } catch (error) {
@@ -228,7 +229,15 @@ async function collectMemoryFiles(workspaceDir: string): Promise<MemoryFile[]> {
   return files;
 }
 
-async function scanDir(dir: string, workspaceDir: string): Promise<MemoryFile[]> {
+async function scanDir(
+  dir: string,
+  workspaceDir: string,
+  seen: Set<string> = new Set(),
+): Promise<MemoryFile[]> {
+  const realDir = await fs.realpath(dir);
+  if (seen.has(realDir)) return [];
+  seen.add(realDir);
+
   const files: MemoryFile[] = [];
 
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -236,9 +245,13 @@ async function scanDir(dir: string, workspaceDir: string): Promise<MemoryFile[]>
     const absPath = join(dir, entry.name);
 
     if (entry.isDirectory()) {
-      const nested = await scanDir(absPath, workspaceDir);
+      const nested = await scanDir(absPath, workspaceDir, seen);
       files.push(...nested);
     } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      const realFile = await fs.realpath(absPath);
+      if (seen.has(realFile)) continue;
+      seen.add(realFile);
+
       const content = await fs.readFile(absPath, "utf-8");
       files.push({
         path: relative(workspaceDir, absPath),
@@ -256,6 +269,16 @@ async function scanDir(dir: string, workspaceDir: string): Promise<MemoryFile[]>
 // Cognee HTTP client
 // ---------------------------------------------------------------------------
 
+class CogneeHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "CogneeHttpError";
+  }
+}
+
 class CogneeClient {
   constructor(
     private readonly baseUrl: string,
@@ -267,7 +290,6 @@ class CogneeClient {
     if (!this.apiKey) return {};
     return {
       Authorization: `Bearer ${this.apiKey}`,
-      "X-Api-Key": this.apiKey,
     };
   }
 
@@ -285,7 +307,10 @@ class CogneeClient {
       });
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Cognee request failed (${response.status}): ${errorText}`);
+        throw new CogneeHttpError(
+          `Cognee request failed (${response.status}): ${errorText}`,
+          response.status,
+        );
       }
       return (await response.json()) as T;
     } finally {
@@ -484,12 +509,14 @@ async function syncFiles(
           logger.info?.(`memory-cognee: updated ${file.path}`);
           continue;
         } catch (updateError) {
-          const errorMsg = updateError instanceof Error ? updateError.message : String(updateError);
-          if (
-            errorMsg.includes("404") ||
-            errorMsg.includes("409") ||
-            errorMsg.includes("not found")
-          ) {
+          const isRecoverable =
+            (updateError instanceof CogneeHttpError &&
+              (updateError.status === 404 || updateError.status === 409)) ||
+            (updateError instanceof Error &&
+              (updateError.message.includes("not found") ||
+                updateError.message.includes("404") ||
+                updateError.message.includes("409")));
+          if (isRecoverable) {
             logger.info?.(`memory-cognee: update failed for ${file.path}, falling back to add`);
             delete existing.dataId;
           } else {
