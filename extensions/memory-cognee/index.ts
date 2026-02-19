@@ -593,7 +593,9 @@ const memoryCogneePlugin = {
     const stateReady = Promise.all([
       loadDatasetState()
         .then((state) => {
-          datasetId = state[cfg.datasetName];
+          if (state[cfg.datasetName]) {
+            datasetId = state[cfg.datasetName];
+          }
         })
         .catch((error) => {
           api.logger.warn?.(`memory-cognee: failed to load dataset state: ${String(error)}`);

@@ -72,16 +72,17 @@ async function startCogneeContainer(llmApiKey: string): Promise<{ ok: boolean; e
 async function waitForCogneeHealth(): Promise<boolean> {
   const deadline = Date.now() + HEALTH_CHECK_TIMEOUT_MS;
   while (Date.now() < deadline) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5_000);
       const response = await fetch(COGNEE_HEALTH_URL, { signal: controller.signal });
-      clearTimeout(timeout);
       if (response.ok) {
         return true;
       }
     } catch {
       // Not ready yet
+    } finally {
+      clearTimeout(timeout);
     }
     await new Promise((resolve) => setTimeout(resolve, HEALTH_CHECK_INTERVAL_MS));
   }
