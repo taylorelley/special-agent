@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
+import type { ContentBlock } from "../../shared/chat-content.js";
 import { callGateway } from "../../gateway/call.js";
-import { type ContentBlock, extractTextFromChatContent } from "../../shared/chat-content.js";
+import { extractTextFromChatContent } from "../../shared/chat-content.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
 import { extractAssistantText, stripToolMessages } from "./sessions-helpers.js";
@@ -33,7 +34,7 @@ export async function readLatestSubagentOutput(params: {
   });
   const messages = Array.isArray(history?.messages) ? history.messages : [];
 
-  // Walk backwards to find the last assistant or tool_result message
+  // Walk backwards to find the last assistant or toolResult message
   const parts: string[] = [];
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i] as Record<string, unknown> | undefined;

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CronJob, CronJobPatch } from "./types.js";
-import * as scheduleModule from "./schedule.js";
-import { computeNextRunAtMs } from "./schedule.js";
-import { applyJobPatch, computeJobNextRunAtMs } from "./service/jobs.js";
+import type { CronJob, CronJobPatch } from "../types.js";
+import * as scheduleModule from "../schedule.js";
+import { computeNextRunAtMs } from "../schedule.js";
+import { applyJobPatch, computeJobNextRunAtMs } from "./jobs.js";
 
 describe("applyJobPatch", () => {
   it("clears delivery when switching to main session", () => {
@@ -173,9 +173,12 @@ describe("computeJobNextRunAtMs", () => {
     spy.mockReturnValueOnce(undefined);
     spy.mockReturnValueOnce(expectedNextRun);
 
-    const result = computeJobNextRunAtMs(job, nowMs);
-    expect(result).toBe(expectedNextRun);
-    expect(spy).toHaveBeenCalledTimes(2);
-    spy.mockRestore();
+    try {
+      const result = computeJobNextRunAtMs(job, nowMs);
+      expect(result).toBe(expectedNextRun);
+      expect(spy).toHaveBeenCalledTimes(2);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

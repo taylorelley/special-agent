@@ -366,10 +366,11 @@ async function createSandboxContainer(params: {
   for (const wsPath of [workspaceDir, params.agentWorkspaceDir]) {
     const normalized = normalizeHostPath(wsPath);
     const reason = getBlockedReasonForSourcePath(normalized);
-    if (reason && reason.kind !== "non_absolute") {
+    if (reason) {
       const verb = reason.kind === "covers" ? "covers" : "targets";
+      const blocked = "blockedPath" in reason ? reason.blockedPath : reason.sourcePath;
       throw new Error(
-        `Sandbox security: workspace path "${wsPath}" ${verb} blocked path "${reason.blockedPath}".`,
+        `Sandbox security: workspace path "${wsPath}" ${verb} blocked path "${blocked}".`,
       );
     }
   }

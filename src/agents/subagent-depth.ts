@@ -18,11 +18,11 @@ function normalizeSessionKey(raw: unknown): string | undefined {
 
 function readSessionStore(
   sessionKey: string,
+  agentId: string,
   cfg?: ReturnType<typeof loadConfig>,
   storeCache?: Map<string, ReturnType<typeof loadSessionStore>>,
 ) {
   const resolvedCfg = cfg ?? loadConfig();
-  const agentId = resolveAgentIdFromSessionKey(sessionKey);
   const storePath = resolveStorePath(resolvedCfg.session?.store, { agentId });
   if (storeCache) {
     const cached = storeCache.get(storePath);
@@ -36,10 +36,9 @@ function readSessionStore(
   return loadSessionStore(storePath);
 }
 
-function buildKeyCandidates(sessionKey: string): string[] {
+function buildKeyCandidates(sessionKey: string, agentId: string): string[] {
   const candidates = [sessionKey];
   if (!sessionKey.startsWith("agent:")) {
-    const agentId = resolveAgentIdFromSessionKey(sessionKey);
     candidates.push(`agent:${agentId}:${sessionKey}`);
   }
   return candidates;
@@ -50,8 +49,9 @@ function resolveEntryForSessionKey(
   cfg?: ReturnType<typeof loadConfig>,
   storeCache?: Map<string, ReturnType<typeof loadSessionStore>>,
 ): Record<string, unknown> | undefined {
-  const store = readSessionStore(sessionKey, cfg, storeCache);
-  for (const key of buildKeyCandidates(sessionKey)) {
+  const agentId = resolveAgentIdFromSessionKey(sessionKey);
+  const store = readSessionStore(sessionKey, agentId, cfg, storeCache);
+  for (const key of buildKeyCandidates(sessionKey, agentId)) {
     const entry = store[key];
     if (entry && typeof entry === "object") {
       return entry as Record<string, unknown>;
