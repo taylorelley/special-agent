@@ -10,10 +10,10 @@
  */
 
 import type { SpecialAgentPluginApi } from "special-agent/plugin-sdk";
-import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
+import { hashText } from "../../src/memory/internal.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -109,10 +109,6 @@ function resolveEnvVars(value: string): string {
     }
     return envValue;
   });
-}
-
-function hashText(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
 }
 
 function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> {

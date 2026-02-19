@@ -4,6 +4,7 @@ import type { SpecialAgentConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardFlow } from "../wizard/onboarding.types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
+import { isDockerAvailable } from "../process/docker.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { CONFIG_DIR } from "../utils.js";
 
@@ -27,15 +28,6 @@ const HEALTH_CHECK_TIMEOUT_MS = 60_000;
 // ---------------------------------------------------------------------------
 // Docker helpers
 // ---------------------------------------------------------------------------
-
-async function isDockerAvailable(): Promise<boolean> {
-  try {
-    const result = await runCommandWithTimeout(["docker", "info"], 10_000);
-    return result.code === 0;
-  } catch {
-    return false;
-  }
-}
 
 async function isCogneeContainerRunning(): Promise<boolean> {
   try {

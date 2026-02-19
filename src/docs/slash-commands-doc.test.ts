@@ -22,10 +22,10 @@ function extractDocumentedSlashCommands(markdown: string): Set<string> {
   return documented;
 }
 
-import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const docPath = path.join(
   fileURLToPath(new URL("../..", import.meta.url)),
