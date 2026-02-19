@@ -1,0 +1,55 @@
+{
+  "id": "beads-tasks",
+  "name": "Beads Tasks",
+  "description": "Git-backed distributed task tracking scoped to personal/project/team tiers",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "personalRepoPath": {
+        "type": "string",
+        "description": "Path to the personal beads task repo"
+      },
+      "teamRepoPath": {
+        "type": "string",
+        "description": "Path to the team backlog beads repo"
+      },
+      "projectRepos": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Map of project ID → beads repo path"
+      },
+      "actorId": {
+        "type": "string",
+        "description": "Actor identifier for audit trails (defaults to agent user ID)"
+      },
+      "syncIntervalMs": {
+        "type": "number",
+        "description": "Git sync interval in milliseconds (default: 300000 = 5 minutes)"
+      }
+    }
+  },
+  "uiHints": {
+    "personalRepoPath": {
+      "label": "Personal Repo",
+      "placeholder": "~/.special-agent/tasks/personal"
+    },
+    "teamRepoPath": {
+      "label": "Team Repo",
+      "placeholder": "~/team-backlog"
+    },
+    "projectRepos": {
+      "label": "Project Repos"
+    },
+    "actorId": {
+      "label": "Actor ID",
+      "placeholder": "agent-alice"
+    },
+    "syncIntervalMs": {
+      "label": "Sync Interval (ms)",
+      "placeholder": "300000"
+    }
+  }
+}

@@ -303,6 +303,12 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  extensions/scope-commands:
+    devDependencies:
+      special-agent:
+        specifier: workspace:*
+        version: link:../..
+
   packages/clawdbot:
     dependencies:
       special-agent:
