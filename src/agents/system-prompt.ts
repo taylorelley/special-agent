@@ -41,10 +41,21 @@ function buildMemorySection(params: {
   isMinimal: boolean;
   availableTools: Set<string>;
   citationsMode?: MemoryCitationsMode;
+  memoryPlugin?: string;
 }) {
   if (params.isMinimal) {
     return [];
   }
+
+  // Cognee-based memory: memories are injected via <cognee_memories> context blocks automatically
+  if (params.memoryPlugin === "memory-cognee") {
+    return [
+      "## Memory",
+      "Your context may include a <cognee_memories> block with relevant memories from a knowledge graph. Use these memories naturally when answering questions about prior work, decisions, people, preferences, or facts. Do not mention the memory system to the user unless asked.",
+      "",
+    ];
+  }
+
   if (!params.availableTools.has("memory_search") && !params.availableTools.has("memory_get")) {
     return [];
   }
@@ -215,6 +226,8 @@ export function buildAgentSystemPrompt(params: {
     channel: string;
   };
   memoryCitationsMode?: MemoryCitationsMode;
+  /** Active memory plugin ID (e.g. "memory-core", "memory-cognee"). */
+  memoryPlugin?: string;
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -366,6 +379,7 @@ export function buildAgentSystemPrompt(params: {
     isMinimal,
     availableTools,
     citationsMode: params.memoryCitationsMode,
+    memoryPlugin: params.memoryPlugin,
   });
   const docsSection = buildDocsSection({
     docsPath: params.docsPath,

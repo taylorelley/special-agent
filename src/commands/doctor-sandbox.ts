@@ -9,6 +9,7 @@ import {
   DEFAULT_SANDBOX_IMAGE,
   resolveSandboxScope,
 } from "../agents/sandbox.js";
+import { isDockerAvailable } from "../process/docker.js";
 import { runCommandWithTimeout, runExec } from "../process/exec.js";
 import { note } from "../terminal/note.js";
 
@@ -60,17 +61,6 @@ async function runSandboxScript(scriptRel: string, runtime: RuntimeEnv): Promise
 
   runtime.log(`Completed ${scriptRel}.`);
   return true;
-}
-
-async function isDockerAvailable(): Promise<boolean> {
-  try {
-    await runExec("docker", ["version", "--format", "{{.Server.Version}}"], {
-      timeoutMs: 5_000,
-    });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function dockerImageExists(image: string): Promise<boolean> {

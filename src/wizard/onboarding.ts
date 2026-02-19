@@ -31,6 +31,7 @@ import {
   summarizeExistingConfig,
 } from "../commands/onboard-helpers.js";
 import { setupInternalHooks } from "../commands/onboard-hooks.js";
+import { setupMemory } from "../commands/onboard-memory.js";
 import {
   applyOllamaProviderConfig,
   buildOllamaModelDefinition,
@@ -663,6 +664,13 @@ export async function runOnboardingWizard(
     await prompter.note("Skipping skills setup.", "Skills");
   } else {
     nextConfig = await setupSkills(nextConfig, workspaceDir, runtime, prompter);
+  }
+
+  // Setup memory system (optional cognee)
+  if (opts.skipMemory) {
+    await prompter.note("Skipping memory setup.", "Memory");
+  } else {
+    nextConfig = await setupMemory(nextConfig, workspaceDir, runtime, prompter, flow);
   }
 
   // Setup hooks (session memory on /new)
