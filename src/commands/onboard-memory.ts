@@ -1,11 +1,14 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import type { SpecialAgentConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardFlow } from "../wizard/onboarding.types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
-import { isDockerAvailable } from "../process/docker.js";
+import { checkDocker } from "../process/docker.js";
 import { runCommandWithTimeout } from "../process/exec.js";
+import { restoreTerminalState } from "../terminal/restore.js";
 import { CONFIG_DIR } from "../utils.js";
 
 const COGNEE_COMPOSE_SOURCE = path.resolve(
@@ -28,6 +31,72 @@ const HEALTH_CHECK_TIMEOUT_MS = 60_000;
 // ---------------------------------------------------------------------------
 // Docker helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Offers to add the current user to the `docker` group via sudo.
+ * Returns `true` if we showed a message (caller should skip the generic fallback).
+ */
+async function offerDockerGroupFix(prompter: WizardPrompter): Promise<boolean> {
+  const addToGroup = await prompter.confirm({
+    message: "Add your user to the docker group? (requires sudo)",
+    initialValue: true,
+  });
+  if (!addToGroup) {
+    return false;
+  }
+
+  const username = os.userInfo().username;
+
+  // Restore terminal to a sane state (cursor visible, ANSI modes reset) and
+  // then pause stdin.  @clack/prompts leaves stdin paused after each prompt
+  // (via readline.close()), but restoreTerminalState resumes it.  We need it
+  // paused so Node's emitKeypressEvents data handler doesn't compete with sudo
+  // for terminal input on fd 0.
+  restoreTerminalState("pre-docker-usermod");
+  process.stdin.pause();
+
+  const result = spawnSync("sudo", ["usermod", "-aG", "docker", username], {
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    await prompter.note(
+      [
+        `Failed to run sudo: ${String(result.error)}`,
+        `Run manually: sudo usermod -aG docker ${username}`,
+        "",
+        "Falling back to Core memory.",
+      ].join("\n"),
+      "Memory",
+    );
+    return true;
+  }
+
+  if (result.status === 0) {
+    await prompter.note(
+      [
+        `Added ${username} to the docker group.`,
+        "Log out and back in (or restart your terminal) for the change to take effect,",
+        "then re-run the setup wizard.",
+        "",
+        "Falling back to Core memory for now.",
+      ].join("\n"),
+      "Memory",
+    );
+    return true;
+  }
+
+  await prompter.note(
+    [
+      "Failed to add user to the docker group.",
+      `Run manually: sudo usermod -aG docker ${username}`,
+      "",
+      "Falling back to Core memory.",
+    ].join("\n"),
+    "Memory",
+  );
+  return true;
+}
 
 async function isCogneeContainerRunning(): Promise<boolean> {
   try {
@@ -253,18 +322,31 @@ export async function setupMemory(
 
   const dockerSpinner = prompter.progress("Checking Docker...");
 
-  const dockerOk = await isDockerAvailable();
-  if (!dockerOk) {
-    dockerSpinner.stop("Docker not found.");
-    await prompter.note(
-      [
-        "Cognee requires Docker to run.",
-        "Install Docker: https://docs.docker.com/get-docker/",
-        "",
-        "Falling back to Core memory.",
-      ].join("\n"),
-      "Memory",
-    );
+  const docker = await checkDocker();
+  if (!docker.available) {
+    dockerSpinner.stop(docker.installed ? "Docker not ready." : "Docker not found.");
+
+    // On Linux, offer to fix permission denied by adding the user to the docker group.
+    if (
+      docker.installed &&
+      docker.reason?.includes("Permission denied") &&
+      process.platform === "linux"
+    ) {
+      const handled = await offerDockerGroupFix(prompter);
+      if (handled) {
+        return cfg;
+      }
+    }
+
+    const lines = ["Cognee requires a working Docker installation."];
+    if (docker.reason) {
+      lines.push(docker.reason);
+    }
+    if (!docker.installed) {
+      lines.push("Install Docker: https://docs.docker.com/get-docker/");
+    }
+    lines.push("", "Falling back to Core memory.");
+    await prompter.note(lines.join("\n"), "Memory");
     return cfg;
   }
 
