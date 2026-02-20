@@ -6,7 +6,8 @@ import { queryScopedKnowledge } from "./query-router.js";
 
 function makeExecutor(responses: Map<string, CogneeSearchResult[]>): SearchExecutor {
   return {
-    async search(params: { datasetIds: string[]; signal?: AbortSignal }) {
+    async search(params: Parameters<SearchExecutor["search"]>[0]) {
+      expect(params.datasetIds).toHaveLength(1);
       const datasetId = params.datasetIds[0];
       return responses.get(datasetId) ?? [];
     },
@@ -19,7 +20,7 @@ function makeParams(
   return {
     query: "test query",
     searchType: "GRAPH_COMPLETION",
-    maxTokens: 512,
+    topK: 10,
     maxResults: 10,
     minScore: 0,
     datasetIdMap: new Map(),
@@ -122,8 +123,9 @@ describe("queryScopedKnowledge", () => {
       }),
     );
 
-    // Private dataset is not even queried in group sessions
+    // Private dataset is not even queried in group sessions (pre-query exclusion)
     expect(result.datasetsQueried).toBe(3);
+    expect(result.totalBeforeFilter).toBe(3);
     expect(result.results).toHaveLength(3);
     expect(result.results.every((r) => r.sourceDataset !== "alice-private")).toBe(true);
   });
@@ -175,6 +177,7 @@ describe("queryScopedKnowledge", () => {
 
     expect(result.results).toHaveLength(1);
     expect(result.results[0].id).toBe("r1");
+    expect(result.totalBeforeFilter).toBe(2); // Both results fetched, one filtered by minScore
   });
 
   it("respects maxResults limit", async () => {
@@ -199,6 +202,37 @@ describe("queryScopedKnowledge", () => {
     expect(result.results).toHaveLength(5);
   });
 
+  it("applies post-retrieval privacy filter on unknown-source results in group sessions", async () => {
+    // In a group session, results with an unknown/unclassifiable source dataset
+    // are treated as personal-private and filtered out by the privacy layer.
+    const scope: ScopeContext = {
+      tier: "project",
+      project: { id: "webapp", name: "Web App" },
+      userId: "alice",
+      isGroupSession: true,
+    };
+    const datasetIdMap = new Map([
+      ["alice-profile", "id-profile"],
+      ["project-webapp", "id-project"],
+    ]);
+    // Simulate: executor returns a result from alice-profile that has correct provenance,
+    // plus project results — all should survive the post-retrieval filter.
+    const responses = new Map<string, CogneeSearchResult[]>([
+      ["id-profile", [{ id: "r1", text: "profile data", score: 0.8 }]],
+      ["id-project", [{ id: "r2", text: "project note", score: 0.9 }]],
+    ]);
+
+    const result = await queryScopedKnowledge(
+      makeParams({ scope, datasetIdMap, executor: makeExecutor(responses) }),
+    );
+
+    expect(result.datasetsQueried).toBe(2);
+    expect(result.totalBeforeFilter).toBe(2);
+    // Both results have known non-private sources; both survive privacy filter
+    expect(result.results).toHaveLength(2);
+    expect(result.results.map((r) => r.sourceDataset)).toEqual(["project-webapp", "alice-profile"]);
+  });
+
   it("handles executor failures gracefully", async () => {
     const scope: ScopeContext = { tier: "personal", userId: "alice", isGroupSession: false };
     const datasetIdMap = new Map([
@@ -207,7 +241,7 @@ describe("queryScopedKnowledge", () => {
     ]);
 
     const executor: SearchExecutor = {
-      async search(params: { datasetIds: string[]; signal?: AbortSignal }) {
+      async search(params: Parameters<SearchExecutor["search"]>[0]) {
         if (params.datasetIds[0] === "id-private") {
           throw new Error("Network error");
         }

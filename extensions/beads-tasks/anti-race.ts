@@ -85,13 +85,13 @@ export async function withAntiRace<T>(
         await git.push(repoPath);
         return { ok: true, retries, value };
       } catch (pushError) {
-        if (git.isConflict(pushError) && retries < maxRetries) {
+        if (git.isConflict(pushError)) {
           continue;
         }
         return {
           ok: false,
           retries,
-          error: `Push failed after ${retries} retries: ${String(pushError)}`,
+          error: `Push failed: ${String(pushError)}`,
         };
       }
     } catch (mutateError) {

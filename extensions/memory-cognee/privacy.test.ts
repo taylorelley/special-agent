@@ -85,11 +85,45 @@ describe("filterRecallForPrivacy", () => {
 
     const filtered = filterRecallForPrivacy(results, groupScope);
     expect(filtered).toHaveLength(2);
+    expect(filtered.map((r) => r.id)).toEqual(["1", "2"]);
   });
 
   it("handles empty results", () => {
     const filtered = filterRecallForPrivacy([], groupScope);
     expect(filtered).toEqual([]);
+  });
+
+  it("annotation takes precedence over sourceDatasets map", () => {
+    const results: AnnotatedSearchResult[] = [
+      makeResult("1", "alice-profile"), // annotation says profile (non-private)
+      makeResult("2", "alice-private"), // annotation says private
+    ];
+
+    // Map says the opposite — but annotation should win
+    const sourceDatasets = new Map([
+      ["1", "alice-private"],
+      ["2", "alice-profile"],
+    ]);
+
+    const filtered = filterRecallForPrivacy(results, groupScope, sourceDatasets);
+    // Result "1" survives (annotation: alice-profile, non-private)
+    // Result "2" filtered out (annotation: alice-private, private)
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].id).toBe("1");
+  });
+
+  it("ignores sourceDatasets map in direct sessions", () => {
+    const results: AnnotatedSearchResult[] = [
+      makeResult("1", undefined),
+      makeResult("2", "alice-private"),
+    ];
+
+    const sourceDatasets = new Map([["1", "alice-private"]]);
+
+    // Direct sessions pass all results through regardless
+    const filtered = filterRecallForPrivacy(results, directScope, sourceDatasets);
+    expect(filtered).toHaveLength(2);
+    expect(filtered.map((r) => r.id)).toEqual(["1", "2"]);
   });
 
   it("excludes results with unknown source when sourceDatasets map returns undefined", () => {

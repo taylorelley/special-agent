@@ -71,7 +71,7 @@ describe("withAntiRace", () => {
 
     expect(result.ok).toBe(false);
     expect(result.retries).toBe(2);
-    expect(result.error).toContain("Push failed");
+    expect(result.error).toContain("Exceeded max retries");
   });
 
   it("fails immediately on non-conflict push error", async () => {

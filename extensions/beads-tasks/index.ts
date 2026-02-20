@@ -11,7 +11,7 @@ import { Type } from "@sinclair/typebox";
 import { execFile } from "node:child_process";
 import { readFile, appendFile, writeFile, mkdir, access } from "node:fs/promises";
 import { promisify } from "node:util";
-import type { ScopeContext } from "../../src/scopes/types.js";
+import type { ScopeConfig, ScopeContext } from "../../src/scopes/types.js";
 import type { GitOps } from "./anti-race.js";
 import type { FileOps, BeadsTask } from "./beads-client.js";
 import type { BeadsPluginConfig, ResolvedRepoPath } from "./scope-routing.js";
@@ -110,15 +110,32 @@ function statusEmoji(status: string): string {
   }
 }
 
-function resolveScope(sessionKey: string | undefined, config: BeadsPluginConfig): ScopeContext {
+function resolveScope(
+  sessionKey: string | undefined,
+  config: BeadsPluginConfig,
+  scopeConfig?: ScopeConfig,
+): ScopeContext {
   if (sessionKey) {
-    return resolveScopeContext({ sessionKey });
+    return resolveScopeContext({ sessionKey, scopeConfig });
   }
   return {
-    tier: "personal",
+    tier: scopeConfig?.defaultTier ?? "personal",
     userId: config.actorId ?? "unknown",
     isGroupSession: false,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Validation helpers
+// ---------------------------------------------------------------------------
+
+const VALID_PRIORITIES = ["low", "medium", "high", "critical"] as const;
+const VALID_STATUSES = ["open", "claimed", "in_progress", "blocked", "done", "cancelled"] as const;
+
+function parseEnum<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
+  return typeof value === "string" && (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : undefined;
 }
 
 function jsonToolResult(payload: unknown) {
@@ -144,11 +161,6 @@ export default function register(api: SpecialAgentPluginApi) {
   const config = resolveBeadsConfig(api.pluginConfig);
 
   const repos = listConfiguredRepos(config);
-  if (repos.length === 0) {
-    logger.info("beads-tasks: no repos configured, skipping activation");
-    return;
-  }
-
   logger.info(`beads-tasks: ${repos.length} repo(s) configured`);
 
   // -----------------------------------------------------------------------
@@ -159,7 +171,7 @@ export default function register(api: SpecialAgentPluginApi) {
     description: "List tasks for the current scope (/tasks [scope])",
     acceptsArgs: true,
     async handler(ctx) {
-      const scope = resolveScope(ctx.sessionKey, config);
+      const scope = resolveScope(ctx.sessionKey, config, ctx.config?.scopes);
 
       const target = getClientForScope(scope, config, defaultGitOps, defaultFileOps);
       if (!target) {
@@ -252,12 +264,12 @@ export default function register(api: SpecialAgentPluginApi) {
         await target.client.init();
         const title = typeof params.title === "string" ? params.title : "";
         const description = typeof params.description === "string" ? params.description : undefined;
-        const priority = typeof params.priority === "string" ? params.priority : undefined;
+        const priority = parseEnum(params.priority, VALID_PRIORITIES);
         const tags = Array.isArray(params.tags) ? params.tags : undefined;
         const result = await target.client.createTask({
           title,
           description,
-          priority: priority as "low" | "medium" | "high" | "critical" | undefined,
+          priority,
           tags,
         });
         if (!result.ok) {
@@ -345,10 +357,12 @@ export default function register(api: SpecialAgentPluginApi) {
         await target.client.init();
         const taskId = typeof params.taskId === "string" ? params.taskId : "";
         const updates: Record<string, unknown> = {};
-        if (typeof params.status === "string") updates.status = params.status;
+        const status = parseEnum(params.status, VALID_STATUSES);
+        if (status) updates.status = status;
         if (typeof params.title === "string") updates.title = params.title;
         if (typeof params.description === "string") updates.description = params.description;
-        if (typeof params.priority === "string") updates.priority = params.priority;
+        const priority = parseEnum(params.priority, VALID_PRIORITIES);
+        if (priority) updates.priority = priority;
         if (Array.isArray(params.tags)) updates.tags = params.tags;
         const result = await target.client.updateTask(taskId, updates);
         if (!result.ok) {

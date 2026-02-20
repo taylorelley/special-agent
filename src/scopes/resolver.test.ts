@@ -154,8 +154,18 @@ describe("resolveScopeContext", () => {
     const scope = resolveScopeContext({ sessionKey: "" });
     expect(scope.tier).toBe("personal");
     expect(scope.isGroupSession).toBe(false);
-    expect(typeof scope.userId).toBe("string");
     expect(scope.userId).toBe("unknown");
+  });
+
+  it("falls back to personal when project override exists but scopeConfig is undefined", () => {
+    setScopeOverride("telegram:direct:alice", { tier: "project", projectId: "webapp" });
+    const scope = resolveScopeContext({
+      sessionKey: "telegram:direct:alice",
+      scopeConfig: undefined,
+    });
+    // No scopeConfig means project can't be resolved — falls through to default
+    expect(scope.tier).toBe("personal");
+    expect(scope.project).toBeUndefined();
   });
 
   it("does not return project scope when override has project tier but no projectId", () => {
@@ -187,6 +197,10 @@ describe("findProjectByName", () => {
 
   it("returns undefined for empty name", () => {
     expect(findProjectByName("", TEST_CONFIG)).toBeUndefined();
+  });
+
+  it("returns undefined for whitespace-only name", () => {
+    expect(findProjectByName("   ", TEST_CONFIG)).toBeUndefined();
   });
 
   it("returns undefined when no config", () => {

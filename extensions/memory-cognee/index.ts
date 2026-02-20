@@ -15,9 +15,8 @@
 import type { SpecialAgentPluginApi } from "special-agent/plugin-sdk";
 import type { AnnotatedSearchResult } from "./privacy.js";
 import type { SyncIndex } from "./sync.js";
-import { CogneeClient, resolveConfig } from "./client.js";
+import { CogneeClient, DEFAULT_DATASET_NAME, resolveConfig } from "./client.js";
 import { filterRecallForPrivacy } from "./privacy.js";
-import { resolveRecallDatasets } from "./scoped-datasets.js";
 import {
   collectMemoryFiles,
   loadDatasetState,
@@ -183,21 +182,17 @@ const memoryCogneePlugin = {
 
         try {
           // Determine which datasets to query based on scope context.
-          // When scope is available, resolveRecallDatasets returns dataset names
-          // per the privacy rules. For now, we still query the single configured
-          // dataset ID until multi-dataset Cognee provisioning is implemented.
+          // TODO: When multi-dataset Cognee provisioning is implemented, use
+          // resolveRecallDatasets(scope) to map dataset names to Cognee IDs.
+          // For now, query the single configured dataset ID.
           const scope = ctx.scope;
-          const _recallDatasetNames = scope ? resolveRecallDatasets(scope) : undefined;
-
-          // TODO: map dataset names to Cognee dataset IDs once multi-dataset
-          // provisioning is implemented. For now, use the single configured ID.
           const effectiveDatasetIds = [datasetId];
 
           const results = await client.search({
             queryText: event.prompt,
             searchType: cfg.searchType,
             datasetIds: effectiveDatasetIds,
-            maxTokens: cfg.maxTokens,
+            topK: cfg.maxResults,
           });
 
           let filtered = results
@@ -208,7 +203,7 @@ const memoryCogneePlugin = {
           // Skip for the legacy single dataset ("special-agent") since it
           // doesn't follow the scoped naming convention and would be
           // conservatively excluded by classifyDataset in group sessions.
-          if (scope && scope.isGroupSession && cfg.datasetName !== "special-agent") {
+          if (scope && scope.isGroupSession && cfg.datasetName !== DEFAULT_DATASET_NAME) {
             const annotated: AnnotatedSearchResult[] = filtered.map((r) => ({
               ...r,
               sourceDataset: cfg.datasetName,

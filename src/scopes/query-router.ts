@@ -45,7 +45,7 @@ export type SearchExecutor = {
     queryText: string;
     searchType: CogneeSearchType;
     datasetIds: string[];
-    maxTokens: number;
+    topK: number;
     signal?: AbortSignal;
   }): Promise<CogneeSearchResult[]>;
 };
@@ -62,8 +62,8 @@ export type ScopedQueryParams = {
   datasetIdMap: Map<string, string>;
   /** Search type (GRAPH_COMPLETION, CHUNKS, SUMMARIES). */
   searchType: CogneeSearchType;
-  /** Maximum tokens per search. */
-  maxTokens: number;
+  /** Maximum results per dataset search (Cognee topK). */
+  topK: number;
   /** Maximum results to return after merging. */
   maxResults: number;
   /** Minimum score threshold. */
@@ -86,7 +86,7 @@ export type ScopedQueryParams = {
  * 5. Sorts by score, de-duplicates by text, and trims to maxResults.
  */
 export async function queryScopedKnowledge(params: ScopedQueryParams): Promise<ScopedQueryResult> {
-  const { scope, executor, datasetIdMap, searchType, maxTokens, maxResults, minScore } = params;
+  const { scope, executor, datasetIdMap, searchType, topK, maxResults, minScore } = params;
   const timeoutMs = params.timeoutMs ?? 30_000;
 
   // 1. Determine which dataset names to query
@@ -117,7 +117,7 @@ export async function queryScopedKnowledge(params: ScopedQueryParams): Promise<S
           queryText: params.query,
           searchType,
           datasetIds: [id],
-          maxTokens,
+          topK,
           signal: controller.signal,
         });
         const source = classifyDataset(name, scope.userId);

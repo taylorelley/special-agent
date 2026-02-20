@@ -235,7 +235,7 @@ export class CogneeClient {
     queryText: string;
     searchType: CogneeSearchType;
     datasetIds: string[];
-    maxTokens: number;
+    topK: number;
   }): Promise<CogneeSearchResult[]> {
     const data = await this.fetchJson<unknown>("/api/v1/search", {
       method: "POST",
@@ -247,7 +247,7 @@ export class CogneeClient {
         query: params.queryText,
         searchType: params.searchType,
         datasetIds: params.datasetIds,
-        topK: params.maxTokens,
+        topK: params.topK,
       }),
     });
 
