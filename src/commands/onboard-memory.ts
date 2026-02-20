@@ -6,6 +6,7 @@ import type { SpecialAgentConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardFlow } from "../wizard/onboarding.types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
+import { resolveBundledPluginsDir } from "../plugins/bundled-dir.js";
 import { checkDocker, type DockerStatus } from "../process/docker.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { restoreTerminalState } from "../terminal/restore.js";
@@ -13,14 +14,13 @@ import { CONFIG_DIR } from "../utils.js";
 import { fetchEndpointModels } from "./model-picker.js";
 import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_PROVIDER_ID } from "./onboard-ollama.js";
 
-const COGNEE_COMPOSE_SOURCE = path.resolve(
-  import.meta.dirname ?? __dirname,
-  "..",
-  "..",
-  "extensions",
-  "memory-cognee",
-  "cognee-docker-compose.yaml",
-);
+function getCogneeComposeSource(): string {
+  const extensionsDir = resolveBundledPluginsDir();
+  if (!extensionsDir) {
+    throw new Error("Could not locate extensions directory");
+  }
+  return path.join(extensionsDir, "memory-cognee", "cognee-docker-compose.yaml");
+}
 
 const COGNEE_STATE_DIR = path.join(CONFIG_DIR, "cognee");
 const COGNEE_COMPOSE_DEST = path.join(COGNEE_STATE_DIR, "cognee-docker-compose.yaml");
@@ -134,7 +134,7 @@ async function startCogneeContainer(
   await fs.mkdir(COGNEE_STATE_DIR, { recursive: true });
 
   try {
-    const source = await fs.readFile(COGNEE_COMPOSE_SOURCE, "utf-8");
+    const source = await fs.readFile(getCogneeComposeSource(), "utf-8");
     await fs.writeFile(COGNEE_COMPOSE_DEST, source, "utf-8");
   } catch (err) {
     return { ok: false, error: `Failed to copy docker-compose file: ${String(err)}` };
