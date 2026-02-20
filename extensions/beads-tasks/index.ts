@@ -8,7 +8,9 @@
 
 import type { AnyAgentTool, SpecialAgentPluginApi } from "special-agent/plugin-sdk";
 import { Type } from "@sinclair/typebox";
+import { execFile } from "node:child_process";
 import { readFile, appendFile, writeFile, mkdir, access } from "node:fs/promises";
+import { promisify } from "node:util";
 import type { ScopeContext } from "../../src/scopes/types.js";
 import type { GitOps } from "./anti-race.js";
 import type { FileOps, BeadsTask } from "./beads-client.js";
@@ -20,6 +22,9 @@ import { resolveRepoPath, resolveBeadsConfig, listConfiguredRepos } from "./scop
 // ---------------------------------------------------------------------------
 // Default implementations
 // ---------------------------------------------------------------------------
+
+const execFileAsync = promisify(execFile);
+const GIT_TIMEOUT_MS = 30_000;
 
 const defaultFileOps: FileOps = {
   readFile: (path) => readFile(path, "utf-8"),
@@ -34,18 +39,18 @@ const defaultFileOps: FileOps = {
 
 const defaultGitOps: GitOps = {
   async pull(repoPath) {
-    const { execFile } = await import("node:child_process");
-    const { promisify } = await import("node:util");
-    const exec = promisify(execFile);
-    await exec("git", ["-C", repoPath, "pull", "--rebase", "--quiet"]);
+    await execFileAsync("git", ["-C", repoPath, "pull", "--rebase", "--quiet"], {
+      timeout: GIT_TIMEOUT_MS,
+    });
   },
   async push(repoPath) {
-    const { execFile } = await import("node:child_process");
-    const { promisify } = await import("node:util");
-    const exec = promisify(execFile);
-    await exec("git", ["-C", repoPath, "add", "."]);
-    await exec("git", ["-C", repoPath, "commit", "-m", "beads: task update", "--allow-empty"]);
-    await exec("git", ["-C", repoPath, "push", "--quiet"]);
+    await execFileAsync("git", ["-C", repoPath, "add", "."], { timeout: GIT_TIMEOUT_MS });
+    await execFileAsync(
+      "git",
+      ["-C", repoPath, "commit", "-m", "beads: task update", "--allow-empty"],
+      { timeout: GIT_TIMEOUT_MS },
+    );
+    await execFileAsync("git", ["-C", repoPath, "push", "--quiet"], { timeout: GIT_TIMEOUT_MS });
   },
   isConflict(error) {
     const msg = String(error);
@@ -174,6 +179,10 @@ export default function register(api: SpecialAgentPluginApi) {
   // -----------------------------------------------------------------------
   // Tool: tasks_list
   // -----------------------------------------------------------------------
+  // TODO: Tools currently use a hardcoded personal scope because the tool
+  // execute() signature does not receive a session context. Once the plugin
+  // SDK supports PluginToolFactory or session-aware execute, refactor to
+  // resolve the runtime scope via resolveScope(ctx.sessionKey, config).
   const tasksListTool = {
     name: "tasks_list",
     label: "Tasks List",

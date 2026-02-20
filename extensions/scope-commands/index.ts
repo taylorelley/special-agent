@@ -25,6 +25,12 @@ function formatScopeLabel(scope: ScopeContext): string {
   return scope.tier;
 }
 
+/** Redact a session key for safe logging (keep last 4 chars). */
+function redactSessionKey(key: string): string {
+  if (key.length <= 4) return "****";
+  return `****${key.slice(-4)}`;
+}
+
 export default function register(api: SpecialAgentPluginApi) {
   const log = api.logger;
 
@@ -40,7 +46,7 @@ export default function register(api: SpecialAgentPluginApi) {
         return { text: "Cannot set scope: no session key available." };
       }
       setScopeOverride(ctx.sessionKey, { tier: "personal" });
-      log.info(`Scope set to personal for session ${ctx.sessionKey}`);
+      log.debug?.(`Scope set to personal for session ${redactSessionKey(ctx.sessionKey)}`);
       return {
         text: "Scope set to **personal**. Knowledge and tasks now route to your personal stores.",
       };
@@ -83,7 +89,9 @@ export default function register(api: SpecialAgentPluginApi) {
       }
 
       setScopeOverride(ctx.sessionKey, { tier: "project", projectId: project.id });
-      log.info(`Scope set to project "${project.name}" for session ${ctx.sessionKey}`);
+      log.debug?.(
+        `Scope set to project "${project.name}" for session ${redactSessionKey(ctx.sessionKey)}`,
+      );
       return {
         text: `Scope set to **project (${project.name})**. Knowledge and tasks now route to the project stores.`,
       };
@@ -102,7 +110,7 @@ export default function register(api: SpecialAgentPluginApi) {
         return { text: "Cannot set scope: no session key available." };
       }
       setScopeOverride(ctx.sessionKey, { tier: "team" });
-      log.info(`Scope set to team for session ${ctx.sessionKey}`);
+      log.debug?.(`Scope set to team for session ${redactSessionKey(ctx.sessionKey)}`);
       return { text: "Scope set to **team**. Knowledge and tasks now route to the team stores." };
     },
   });
@@ -150,6 +158,13 @@ export default function register(api: SpecialAgentPluginApi) {
     },
   });
 
+  // TODO: Evict scope overrides on session end. PluginHookSessionContext
+  // exposes sessionId, not sessionKey (used to key overrides). Once the
+  // plugin framework surfaces sessionKey in session_end, register a hook:
+  //   api.on("session_end", (_event, ctx) => clearScopeOverride(ctx.sessionKey))
+  // Until then, overrides are ephemeral (cleared on gateway restart via the
+  // in-memory Map in session-state.ts).
+
   // -------------------------------------------------------------------------
   // before_agent_start hook — inject scope context into agent prompt
   // -------------------------------------------------------------------------
@@ -157,12 +172,11 @@ export default function register(api: SpecialAgentPluginApi) {
     if (!ctx.sessionKey) {
       return;
     }
-    const scopeConfig =
-      // PluginHookAgentContext doesn't carry config directly; the scope resolver
-      // reads from session state which was set by the commands above.
-      // The scope context will be available to the system prompt builder via
-      // the PluginHookAgentContext.scope field once populated by the runtime.
-      undefined;
+    // TODO: PluginHookAgentContext doesn't carry the agent config's scopeConfig.
+    // The scope resolver reads from session state (overrides set by the commands
+    // above) and falls back to defaults. Once the hook context carries config,
+    // pass ctx.config?.scopes here for full defaultTier/project resolution.
+    const scopeConfig = undefined;
 
     const scope = resolveScopeContext({
       sessionKey: ctx.sessionKey,

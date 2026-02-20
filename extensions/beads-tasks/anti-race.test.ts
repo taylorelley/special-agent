@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GitOps, MutationFn } from "./anti-race.js";
-import { withAntiRace, pullLatest } from "./anti-race.js";
+import { withAntiRace, pullLatest, DEFAULT_MAX_RETRIES } from "./anti-race.js";
 
 // ---------------------------------------------------------------------------
 // Mock git operations
@@ -116,13 +116,25 @@ describe("withAntiRace", () => {
     expect(result.value).toBe("ok");
   });
 
-  it("passes actorId through options", async () => {
+  it("passes actorId through to the mutation function", async () => {
     const git = makeGit();
-    const result = await withAntiRace("/repo", async () => "created", git, {
-      actorId: "agent-alice",
-    });
+    let capturedActorId: string | undefined;
+    const result = await withAntiRace(
+      "/repo",
+      async (_repoPath, actorId) => {
+        capturedActorId = actorId;
+        return "created";
+      },
+      git,
+      { actorId: "agent-alice" },
+    );
 
     expect(result.ok).toBe(true);
+    expect(capturedActorId).toBe("agent-alice");
+  });
+
+  it("exports DEFAULT_MAX_RETRIES", () => {
+    expect(DEFAULT_MAX_RETRIES).toBe(3);
   });
 });
 

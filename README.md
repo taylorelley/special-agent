@@ -21,7 +21,7 @@ By default, the configuration is more restricted than OpenClaw to support govern
 - **Three-tier scope system** — personal/project/team knowledge and task isolation with privacy-respecting retrieval
 - **Scoped task tracking** — git-backed distributed tasks via Beads, routed per scope
 
-**Supported models:** — Any OpenAI, Anthropic, or Ollama compatible endpoint.
+**Supported models:** — Any OpenAI, Anthropic, or Ollama-compatible endpoint.
 
 ## Three-Tier Scope System
 

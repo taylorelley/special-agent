@@ -50,6 +50,18 @@ describe("resolveRepoPath", () => {
     });
   });
 
+  it("falls back to project ID when name is missing", () => {
+    const scope: ScopeContext = {
+      tier: "project",
+      project: { id: "webapp" } as { id: string; name: string },
+      userId: "alice",
+      isGroupSession: false,
+    };
+    const result = resolveRepoPath(scope, config);
+    expect(result).toBeDefined();
+    expect(result!.label).toBe("Project: webapp");
+  });
+
   it("returns undefined for project scope without project ref", () => {
     const scope: ScopeContext = { tier: "project", userId: "alice", isGroupSession: false };
     const result = resolveRepoPath(scope, config);
@@ -98,16 +110,25 @@ describe("listConfiguredRepos", () => {
     const repos = listConfiguredRepos(config);
     expect(repos).toHaveLength(4);
     expect(repos.map((r) => r.scope)).toEqual(["personal", "project", "project", "team"]);
+    // Verify labels
+    expect(repos[0].label).toBe("Personal tasks");
+    expect(repos[1].label).toBe("Project: webapp");
+    expect(repos[2].label).toBe("Project: infra");
+    expect(repos[3].label).toBe("Team backlog");
   });
 
-  it("returns empty for empty config", () => {
-    expect(listConfiguredRepos({})).toEqual([]);
+  it("always includes default personal repo even with empty config", () => {
+    const repos = listConfiguredRepos({});
+    expect(repos).toHaveLength(1);
+    expect(repos[0].scope).toBe("personal");
+    expect(repos[0].path).toBe("~/.special-agent/tasks/personal");
   });
 
-  it("includes only configured scopes", () => {
+  it("uses explicit personal repo path when configured", () => {
     const repos = listConfiguredRepos({ personalRepoPath: "/p" });
     expect(repos).toHaveLength(1);
     expect(repos[0].scope).toBe("personal");
+    expect(repos[0].path).toBe("/p");
   });
 });
 
@@ -157,5 +178,12 @@ describe("resolveBeadsConfig", () => {
     expect(config.teamRepoPath).toBeUndefined();
     expect(config.actorId).toBeUndefined();
     expect(config.syncIntervalMs).toBe(300000);
+  });
+
+  it("filters out non-string values from projectRepos", () => {
+    const config = resolveBeadsConfig({
+      projectRepos: { webapp: "/ok", broken: 42 },
+    });
+    expect(config.projectRepos).toEqual({ webapp: "/ok" });
   });
 });

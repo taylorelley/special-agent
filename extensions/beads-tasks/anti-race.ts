@@ -18,7 +18,7 @@
 export type AntiRaceOptions = {
   /** Maximum number of push-retry attempts after conflict. */
   maxRetries?: number;
-  /** Actor ID for audit trail. */
+  /** Actor ID for audit trail — threaded into the mutation function. */
   actorId?: string;
 };
 
@@ -38,13 +38,13 @@ export interface GitOps {
 }
 
 /** A mutation function that applies a change in the repo working tree. */
-export type MutationFn<T = void> = (repoPath: string) => Promise<T>;
+export type MutationFn<T = void> = (repoPath: string, actorId?: string) => Promise<T>;
 
 // ---------------------------------------------------------------------------
 // Defaults
 // ---------------------------------------------------------------------------
 
-const DEFAULT_MAX_RETRIES = 3;
+export const DEFAULT_MAX_RETRIES = 3;
 
 // ---------------------------------------------------------------------------
 // Protocol
@@ -55,6 +55,7 @@ const DEFAULT_MAX_RETRIES = 3;
  *
  * @param repoPath - Path to the beads git repo.
  * @param mutate - Function that applies the change in the working tree.
+ *   Receives (repoPath, actorId?) — actorId is forwarded from options for audit trail.
  * @param git - Git operations interface.
  * @param options - Protocol options.
  * @returns Result of the operation with retry count.
@@ -66,9 +67,8 @@ export async function withAntiRace<T>(
   options?: AntiRaceOptions,
 ): Promise<AntiRaceResult<T>> {
   const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
-  let retries = 0;
 
-  while (retries <= maxRetries) {
+  for (let retries = 0; retries <= maxRetries; retries++) {
     try {
       // Step 1: Pull latest
       await git.pull(repoPath);
@@ -77,8 +77,8 @@ export async function withAntiRace<T>(
     }
 
     try {
-      // Step 2: Apply mutation
-      const value = await mutate(repoPath);
+      // Step 2: Apply mutation (actorId forwarded for audit trail)
+      const value = await mutate(repoPath, options?.actorId);
 
       try {
         // Step 3: Push
@@ -86,7 +86,6 @@ export async function withAntiRace<T>(
         return { ok: true, retries, value };
       } catch (pushError) {
         if (git.isConflict(pushError) && retries < maxRetries) {
-          retries++;
           continue;
         }
         return {
@@ -106,7 +105,7 @@ export async function withAntiRace<T>(
 
   return {
     ok: false,
-    retries,
+    retries: maxRetries,
     error: `Exceeded max retries (${maxRetries})`,
   };
 }

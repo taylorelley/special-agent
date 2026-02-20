@@ -9,6 +9,8 @@
  * - Each line is a task event (created, claimed, updated, completed, etc.)
  */
 
+import { randomUUID } from "node:crypto";
+import path from "node:path";
 import type { GitOps, AntiRaceOptions, AntiRaceResult } from "./anti-race.js";
 import { withAntiRace, pullLatest } from "./anti-race.js";
 
@@ -80,7 +82,7 @@ export class BeadsClient {
 
   /** Full path to the tasks JSONL file. */
   private get tasksPath(): string {
-    return `${this.repoPath}/${TASKS_FILE}`;
+    return path.join(this.repoPath, TASKS_FILE);
   }
 
   /**
@@ -124,7 +126,10 @@ export class BeadsClient {
 
     return withAntiRace(
       this.repoPath,
-      async () => {
+      async (_repoPath, actorId) => {
+        if (actorId) {
+          task.createdBy = actorId;
+        }
         await this.appendTaskEvent(task);
         return task;
       },
@@ -139,7 +144,7 @@ export class BeadsClient {
   async claimTask(taskId: string): Promise<AntiRaceResult<BeadsTask>> {
     return withAntiRace(
       this.repoPath,
-      async () => {
+      async (_repoPath, actorId) => {
         const tasks = await this.readTasks();
         const task = tasks.find((t) => t.id === taskId);
         if (!task) {
@@ -152,7 +157,7 @@ export class BeadsClient {
         const updated: BeadsTask = {
           ...task,
           status: "claimed",
-          assignee: this.antiRaceOptions?.actorId,
+          assignee: actorId ?? this.antiRaceOptions?.actorId,
           updatedAt: new Date().toISOString(),
         };
         await this.appendTaskEvent(updated);
@@ -203,12 +208,14 @@ export class BeadsClient {
     const lines = content.split("\n").filter((line) => line.trim().length > 0);
     const taskMap = new Map<string, BeadsTask>();
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
       try {
-        const task = JSON.parse(line) as BeadsTask;
+        const task = JSON.parse(lines[i]) as BeadsTask;
         taskMap.set(task.id, task);
-      } catch {
-        // Skip malformed lines
+      } catch (e) {
+        console.warn(
+          `beads-client: skipping malformed JSONL at line ${i + 1}: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
     }
 
@@ -225,14 +232,9 @@ export class BeadsClient {
 // Utilities
 // ---------------------------------------------------------------------------
 
-/** Generate a short random task ID. */
+/** Generate a collision-resistant task ID using crypto.randomUUID. */
 function generateTaskId(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let id = "";
-  for (let i = 0; i < 8; i++) {
-    id += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return `task-${id}`;
+  return `task-${randomUUID().slice(0, 8)}`;
 }
 
 /** Remove undefined values from an object. */

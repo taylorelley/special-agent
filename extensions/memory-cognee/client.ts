@@ -124,7 +124,7 @@ export class CogneeClient {
   constructor(
     private readonly baseUrl: string,
     private readonly apiKey?: string,
-    private readonly timeoutMs: number = 30_000,
+    private readonly timeoutMs: number = DEFAULT_REQUEST_TIMEOUT_MS,
   ) {}
 
   private buildHeaders(): Record<string, string> {
@@ -247,7 +247,7 @@ export class CogneeClient {
         query: params.queryText,
         searchType: params.searchType,
         datasetIds: params.datasetIds,
-        max_tokens: params.maxTokens,
+        topK: params.maxTokens,
       }),
     });
 

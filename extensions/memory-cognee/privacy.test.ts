@@ -91,4 +91,18 @@ describe("filterRecallForPrivacy", () => {
     const filtered = filterRecallForPrivacy([], groupScope);
     expect(filtered).toEqual([]);
   });
+
+  it("excludes results with unknown source when sourceDatasets map returns undefined", () => {
+    const results: AnnotatedSearchResult[] = [
+      makeResult("99", undefined),
+      makeResult("2", undefined),
+    ];
+
+    // Only id "2" has a mapping; id "99" is unmapped and should be excluded
+    const sourceDatasets = new Map([["2", "alice-profile"]]);
+
+    const filtered = filterRecallForPrivacy(results, groupScope, sourceDatasets);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].id).toBe("2");
+  });
 });

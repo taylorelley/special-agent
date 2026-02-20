@@ -26,7 +26,8 @@
         "description": "Actor identifier for audit trails (defaults to agent user ID)"
       },
       "syncIntervalMs": {
-        "type": "number",
+        "type": "integer",
+        "minimum": 0,
         "description": "Git sync interval in milliseconds (default: 300000 = 5 minutes)"
       }
     }

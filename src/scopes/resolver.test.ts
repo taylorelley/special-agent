@@ -149,6 +149,25 @@ describe("resolveScopeContext", () => {
     });
     expect(scope.userId).toBe("peer123");
   });
+
+  it("returns safe defaults when sessionKey is empty", () => {
+    const scope = resolveScopeContext({ sessionKey: "" });
+    expect(scope.tier).toBe("personal");
+    expect(scope.isGroupSession).toBe(false);
+    expect(typeof scope.userId).toBe("string");
+    expect(scope.userId).toBe("unknown");
+  });
+
+  it("does not return project scope when override has project tier but no projectId", () => {
+    setScopeOverride("telegram:direct:alice", { tier: "project" });
+    const scope = resolveScopeContext({
+      sessionKey: "telegram:direct:alice",
+      scopeConfig: TEST_CONFIG,
+    });
+    // Should fall through to default since no projectId was provided
+    expect(scope.tier).toBe("personal");
+    expect(scope.project).toBeUndefined();
+  });
 });
 
 describe("findProjectByName", () => {

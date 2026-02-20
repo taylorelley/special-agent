@@ -204,8 +204,11 @@ const memoryCogneePlugin = {
             .filter((result) => result.score >= cfg.minScore)
             .slice(0, cfg.maxResults);
 
-          // Apply privacy filter when scope is available
-          if (scope && scope.isGroupSession) {
+          // Apply privacy filter when scope is available.
+          // Skip for the legacy single dataset ("special-agent") since it
+          // doesn't follow the scoped naming convention and would be
+          // conservatively excluded by classifyDataset in group sessions.
+          if (scope && scope.isGroupSession && cfg.datasetName !== "special-agent") {
             const annotated: AnnotatedSearchResult[] = filtered.map((r) => ({
               ...r,
               sourceDataset: cfg.datasetName,

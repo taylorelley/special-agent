@@ -58,7 +58,7 @@ export function resolveRepoPath(
       return {
         path: projectPath,
         scope: "project",
-        label: `Project: ${scope.project.name}`,
+        label: `Project: ${scope.project.name ?? scope.project.id}`,
       };
     }
 
@@ -77,17 +77,17 @@ export function resolveRepoPath(
 
 /**
  * List all configured repo paths with their scope labels.
+ * Always includes a personal repo entry (using the default path if unconfigured).
  */
 export function listConfiguredRepos(config: BeadsPluginConfig): ResolvedRepoPath[] {
   const repos: ResolvedRepoPath[] = [];
 
-  if (config.personalRepoPath) {
-    repos.push({
-      path: config.personalRepoPath,
-      scope: "personal",
-      label: "Personal tasks",
-    });
-  }
+  // Always include personal repo (falls back to default path)
+  repos.push({
+    path: config.personalRepoPath || DEFAULT_PERSONAL_REPO,
+    scope: "personal",
+    label: "Personal tasks",
+  });
 
   if (config.projectRepos) {
     for (const [projectId, path] of Object.entries(config.projectRepos)) {
@@ -119,13 +119,22 @@ export function resolveBeadsConfig(rawConfig: unknown): BeadsPluginConfig {
       ? (rawConfig as BeadsPluginConfig)
       : {};
 
+  // Validate projectRepos: keep only entries where value is a string
+  let projectRepos: Record<string, string> | undefined;
+  if (raw.projectRepos && typeof raw.projectRepos === "object") {
+    const validated: Record<string, string> = {};
+    for (const [key, value] of Object.entries(raw.projectRepos)) {
+      if (typeof value === "string") {
+        validated[key] = value;
+      }
+    }
+    projectRepos = Object.keys(validated).length > 0 ? validated : undefined;
+  }
+
   return {
     personalRepoPath: typeof raw.personalRepoPath === "string" ? raw.personalRepoPath : undefined,
     teamRepoPath: typeof raw.teamRepoPath === "string" ? raw.teamRepoPath : undefined,
-    projectRepos:
-      raw.projectRepos && typeof raw.projectRepos === "object"
-        ? (raw.projectRepos as Record<string, string>)
-        : undefined,
+    projectRepos,
     actorId: typeof raw.actorId === "string" ? raw.actorId : undefined,
     syncIntervalMs:
       typeof raw.syncIntervalMs === "number" ? raw.syncIntervalMs : DEFAULT_SYNC_INTERVAL_MS,

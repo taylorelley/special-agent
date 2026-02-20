@@ -151,7 +151,11 @@ async function scanDir(
   dir: string,
   workspaceDir: string,
   seen: Set<string> = new Set(),
+  depth: number = 0,
+  maxDepth: number = 50,
 ): Promise<MemoryFile[]> {
+  if (depth >= maxDepth) return [];
+
   const realDir = await fs.realpath(dir);
   if (seen.has(realDir)) return [];
   seen.add(realDir);
@@ -163,7 +167,7 @@ async function scanDir(
     const absPath = join(dir, entry.name);
 
     if (entry.isDirectory()) {
-      const nested = await scanDir(absPath, workspaceDir, seen);
+      const nested = await scanDir(absPath, workspaceDir, seen, depth + 1, maxDepth);
       files.push(...nested);
     } else if (entry.isFile() && entry.name.endsWith(".md")) {
       const realFile = await fs.realpath(absPath);
@@ -187,6 +191,12 @@ async function scanDir(
 // Unified sync logic
 // ---------------------------------------------------------------------------
 
+/**
+ * Sync memory files to Cognee (add new, update changed, skip unchanged).
+ *
+ * @mutates syncIndex — entries, datasetId, and datasetName are updated
+ * in-place during processing and persisted to disk at the end.
+ */
 export async function syncFiles(
   client: CogneeClient,
   files: MemoryFile[],
@@ -225,13 +235,15 @@ export async function syncFiles(
           logger.info?.(`memory-cognee: updated ${file.path}`);
           continue;
         } catch (updateError) {
+          // Recoverable: resource gone or version conflict — fall back to add.
+          // Use strict patterns to avoid false positives on arbitrary messages.
           const isRecoverable =
             (updateError instanceof CogneeHttpError &&
               (updateError.status === 404 || updateError.status === 409)) ||
             (updateError instanceof Error &&
-              (updateError.message.includes("not found") ||
-                updateError.message.includes("404") ||
-                updateError.message.includes("409")));
+              (/\bnot found\b/i.test(updateError.message) ||
+                /\b404\b/.test(updateError.message) ||
+                /\b409\b/.test(updateError.message)));
           if (isRecoverable) {
             logger.info?.(`memory-cognee: update failed for ${file.path}, falling back to add`);
             delete existing.dataId;

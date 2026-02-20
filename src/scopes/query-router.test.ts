@@ -6,7 +6,7 @@ import { queryScopedKnowledge } from "./query-router.js";
 
 function makeExecutor(responses: Map<string, CogneeSearchResult[]>): SearchExecutor {
   return {
-    async search(params) {
+    async search(params: { datasetIds: string[]; signal?: AbortSignal }) {
       const datasetId = params.datasetIds[0];
       return responses.get(datasetId) ?? [];
     },
@@ -207,7 +207,7 @@ describe("queryScopedKnowledge", () => {
     ]);
 
     const executor: SearchExecutor = {
-      async search(params) {
+      async search(params: { datasetIds: string[]; signal?: AbortSignal }) {
         if (params.datasetIds[0] === "id-private") {
           throw new Error("Network error");
         }

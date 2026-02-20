@@ -46,6 +46,7 @@ export type SearchExecutor = {
     searchType: CogneeSearchType;
     datasetIds: string[];
     maxTokens: number;
+    signal?: AbortSignal;
   }): Promise<CogneeSearchResult[]>;
 };
 
@@ -82,7 +83,7 @@ export type ScopedQueryParams = {
  * 2. Fires parallel searches against each dataset that has a known Cognee ID.
  * 3. Annotates results with source provenance.
  * 4. Applies privacy filtering for group sessions.
- * 5. Merges, de-duplicates by text, and sorts by score.
+ * 5. Sorts by score, de-duplicates by text, and trims to maxResults.
  */
 export async function queryScopedKnowledge(params: ScopedQueryParams): Promise<ScopedQueryResult> {
   const { scope, executor, datasetIdMap, searchType, maxTokens, maxResults, minScore } = params;
@@ -117,6 +118,7 @@ export async function queryScopedKnowledge(params: ScopedQueryParams): Promise<S
           searchType,
           datasetIds: [id],
           maxTokens,
+          signal: controller.signal,
         });
         const source = classifyDataset(name, scope.userId);
         return results.map(
@@ -140,21 +142,22 @@ export async function queryScopedKnowledge(params: ScopedQueryParams): Promise<S
 
   const totalBeforeFilter = allResults.length;
 
-  // 4. Apply privacy filter
+  // 4. Apply privacy filter (use composite key: dataset:id for cross-dataset dedup)
   const annotated: AnnotatedSearchResult[] = allResults.map((r) => ({
     ...r,
     sourceDataset: r.sourceDataset,
   }));
   const privacyFiltered = filterRecallForPrivacy(annotated, scope);
 
-  // Map back to ScopedSearchResult
-  const privacyFilteredSet = new Set(privacyFiltered.map((r) => r.id));
-  const filtered = allResults.filter((r) => privacyFilteredSet.has(r.id));
+  // Map back to ScopedSearchResult using composite key (dataset-aware)
+  const privacyFilteredSet = new Set(privacyFiltered.map((r) => `${r.sourceDataset}:${r.id}`));
+  const filtered = allResults.filter((r) => privacyFilteredSet.has(`${r.sourceDataset}:${r.id}`));
 
-  // 5. Apply score threshold, de-duplicate by text, and sort
+  // 5. Apply score threshold, sort by score, then de-duplicate by text
   const seen = new Set<string>();
   const deduped = filtered
     .filter((r) => r.score >= minScore)
+    .toSorted((a, b) => b.score - a.score)
     .filter((r) => {
       const key = r.text.trim().toLowerCase();
       if (seen.has(key)) {
@@ -163,7 +166,6 @@ export async function queryScopedKnowledge(params: ScopedQueryParams): Promise<S
       seen.add(key);
       return true;
     })
-    .toSorted((a, b) => b.score - a.score)
     .slice(0, maxResults);
 
   return {

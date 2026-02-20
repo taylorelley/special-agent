@@ -50,9 +50,12 @@ function resolveUserId(sessionKey: string, explicitUserId?: string): string {
   if (explicitUserId) {
     return explicitUserId;
   }
-  // Session keys are colon-separated; the last segment is typically the peer ID.
-  const parts = sessionKey.split(":");
-  return parts.length > 0 ? parts[parts.length - 1] : "unknown";
+  if (!sessionKey.trim()) {
+    return "unknown";
+  }
+  // Session keys are colon-separated; the last non-empty segment is typically the peer ID.
+  const lastSegment = sessionKey.split(":").filter(Boolean).pop();
+  return lastSegment || "unknown";
 }
 
 // ---------------------------------------------------------------------------
@@ -85,9 +88,10 @@ export function resolveScopeContext(params: ResolveScopeParams): ScopeContext {
         return { tier, project, userId: resolvedUserId, isGroupSession: isGroup };
       }
       // Project not found in config — fall through to default
-    } else {
+    } else if (tier !== "project") {
       return { tier, userId: resolvedUserId, isGroupSession: isGroup };
     }
+    // Project override without a valid projectId — fall through to default
   }
 
   // Use config default or "personal"
