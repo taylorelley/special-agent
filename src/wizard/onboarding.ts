@@ -19,6 +19,7 @@ import { warnIfModelConfigLooksOff } from "../commands/auth-choice.js";
 import { applyPrimaryModel, promptDefaultModel } from "../commands/model-picker.js";
 import { formatTokenK } from "../commands/models/shared.js";
 import { setProviderApiKey } from "../commands/onboard-auth.credentials.js";
+import { setupBeads } from "../commands/onboard-beads.js";
 import { setupChannels } from "../commands/onboard-channels.js";
 import { buildEndpointIdFromUrl } from "../commands/onboard-custom.js";
 import {
@@ -671,6 +672,13 @@ export async function runOnboardingWizard(
     await prompter.note("Skipping memory setup.", "Memory");
   } else {
     nextConfig = await setupMemory(nextConfig, workspaceDir, runtime, prompter, flow);
+  }
+
+  // Setup beads task tracking
+  if (opts.skipBeads) {
+    await prompter.note("Skipping beads setup.", "Beads");
+  } else {
+    nextConfig = await setupBeads(nextConfig, workspaceDir, runtime, prompter, flow);
   }
 
   // Setup hooks (session memory on /new)

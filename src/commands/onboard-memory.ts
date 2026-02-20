@@ -113,7 +113,7 @@ function extractLlmApiKey(cfg: SpecialAgentConfig): string | undefined {
 // Config helpers
 // ---------------------------------------------------------------------------
 
-function applyMemorySlot(
+export function applyMemorySlot(
   cfg: SpecialAgentConfig,
   slotId: string | null,
   pluginConfig?: Record<string, unknown>,
@@ -137,6 +137,85 @@ function applyMemorySlot(
 }
 
 // ---------------------------------------------------------------------------
+// Cognee detail prompts
+// ---------------------------------------------------------------------------
+
+type CogneeDetails = {
+  datasetName: string;
+  searchType: string;
+  maxResults: number;
+  autoRecall: boolean;
+  autoCognify: boolean;
+};
+
+async function promptCogneeDetails(
+  prompter: WizardPrompter,
+  flow: WizardFlow,
+): Promise<CogneeDetails> {
+  if (flow === "quickstart") {
+    return {
+      datasetName: "special-agent",
+      searchType: "GRAPH_COMPLETION",
+      maxResults: 6,
+      autoRecall: true,
+      autoCognify: true,
+    };
+  }
+
+  const datasetName = await prompter.text({
+    message: "Cognee dataset name",
+    initialValue: "special-agent",
+  });
+
+  const searchType = await prompter.select({
+    message: "Cognee search type",
+    options: [
+      { value: "GRAPH_COMPLETION", label: "Graph Completion", hint: "Default" },
+      { value: "CHUNKS", label: "Chunks" },
+      { value: "SUMMARIES", label: "Summaries" },
+    ],
+    initialValue: "GRAPH_COMPLETION",
+  });
+
+  const maxResultsRaw = await prompter.text({
+    message: "Max recall results",
+    initialValue: "6",
+    validate: (val) => {
+      const n = parseInt(val, 10);
+      if (isNaN(n) || n <= 0) {
+        return "Please enter a positive integer";
+      }
+      return undefined;
+    },
+  });
+  const maxResults = parseInt(maxResultsRaw, 10);
+
+  const autoRecall = await prompter.confirm({
+    message: "Enable auto-recall?",
+    initialValue: true,
+  });
+
+  const autoCognify = await prompter.confirm({
+    message: "Enable auto-cognify?",
+    initialValue: true,
+  });
+
+  return { datasetName, searchType, maxResults, autoRecall, autoCognify };
+}
+
+function buildCogneePluginConfig(details: CogneeDetails): Record<string, unknown> {
+  return {
+    baseUrl: COGNEE_BASE_URL,
+    datasetName: details.datasetName,
+    searchType: details.searchType,
+    maxResults: details.maxResults,
+    autoRecall: details.autoRecall,
+    autoIndex: true,
+    autoCognify: details.autoCognify,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -147,11 +226,6 @@ export async function setupMemory(
   prompter: WizardPrompter,
   flow: WizardFlow,
 ): Promise<SpecialAgentConfig> {
-  if (flow === "quickstart") {
-    // QuickStart: keep default memory-core, skip the choice
-    return cfg;
-  }
-
   const memoryChoice = await prompter.select({
     message: "Memory system",
     options: [
@@ -197,13 +271,8 @@ export async function setupMemory(
   const alreadyRunning = await isCogneeContainerRunning();
   if (alreadyRunning) {
     dockerSpinner.stop("Cognee container already running.");
-    return applyMemorySlot(cfg, "memory-cognee", {
-      baseUrl: COGNEE_BASE_URL,
-      datasetName: "special-agent",
-      autoRecall: true,
-      autoIndex: true,
-      autoCognify: true,
-    });
+    const details = await promptCogneeDetails(prompter, flow);
+    return applyMemorySlot(cfg, "memory-cognee", buildCogneePluginConfig(details));
   }
 
   dockerSpinner.stop("Docker available.");
@@ -259,11 +328,6 @@ export async function setupMemory(
     healthSpinner.stop("Cognee is ready.");
   }
 
-  return applyMemorySlot(cfg, "memory-cognee", {
-    baseUrl: COGNEE_BASE_URL,
-    datasetName: "special-agent",
-    autoRecall: true,
-    autoIndex: true,
-    autoCognify: true,
-  });
+  const details = await promptCogneeDetails(prompter, flow);
+  return applyMemorySlot(cfg, "memory-cognee", buildCogneePluginConfig(details));
 }
