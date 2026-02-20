@@ -1,0 +1,10 @@
+{
+  "id": "scope-commands",
+  "name": "Scope Commands",
+  "description": "Three-tier scope system: /personal, /project <name>, /team for routing knowledge and tasks",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

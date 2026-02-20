@@ -1,3 +1,4 @@
+import type { ScopeConfig } from "../scopes/types.js";
 import type { AgentBinding, AgentsConfig } from "./types.agents.js";
 import type { ApprovalsConfig } from "./types.approvals.js";
 import type { AuthConfig } from "./types.auth.js";
@@ -97,6 +98,8 @@ export type SpecialAgentConfig = {
   talk?: TalkConfig;
   gateway?: GatewayConfig;
   memory?: MemoryConfig;
+  /** Three-tier scope system configuration (personal/project/team). */
+  scopes?: ScopeConfig;
 };
 
 export type ConfigValidationIssue = {

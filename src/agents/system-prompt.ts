@@ -1,5 +1,6 @@
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import type { MemoryCitationsMode } from "../config/types.memory.js";
+import type { ScopeContext } from "../scopes/types.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
@@ -172,6 +173,39 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
   ];
 }
 
+function buildScopeSection(params: { scopeContext?: ScopeContext; isMinimal: boolean }) {
+  if (params.isMinimal || !params.scopeContext) {
+    return [];
+  }
+  const { tier, project, isGroupSession } = params.scopeContext;
+  const lines = ["## Active Scope"];
+
+  if (tier === "project" && project) {
+    lines.push(`Scope: project (${project.name})`);
+    lines.push(
+      "Knowledge sources: personal profile + project knowledge + team standards. Tasks route to the project backlog.",
+    );
+  } else if (tier === "team") {
+    lines.push("Scope: team");
+    lines.push(
+      "Knowledge sources: team standards + personal profile. Tasks route to the team backlog.",
+    );
+  } else {
+    lines.push("Scope: personal");
+    lines.push("Knowledge sources: personal memory. Tasks route to the personal backlog.");
+  }
+
+  if (isGroupSession) {
+    lines.push(
+      "Privacy: group session — private personal memory is excluded. Only profile (work preferences, skills) is available.",
+    );
+  }
+
+  lines.push("Switch scope: /personal, /project <name>, /team.");
+  lines.push("");
+  return lines;
+}
+
 export function buildAgentSystemPrompt(params: {
   workspaceDir: string;
   defaultThinkLevel?: ThinkLevel;
@@ -228,6 +262,8 @@ export function buildAgentSystemPrompt(params: {
   memoryCitationsMode?: MemoryCitationsMode;
   /** Active memory plugin ID (e.g. "memory-core", "memory-cognee"). */
   memoryPlugin?: string;
+  /** Resolved scope context (personal/project/team). Injected by scope-commands plugin. */
+  scopeContext?: ScopeContext;
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -439,6 +475,7 @@ export function buildAgentSystemPrompt(params: {
     "",
     ...skillsSection,
     ...memorySection,
+    ...buildScopeSection({ scopeContext: params.scopeContext, isMinimal }),
     // Skip self-update for subagent/none modes
     hasGateway && !isMinimal ? "## SpecialAgent Self-Update" : "",
     hasGateway && !isMinimal
