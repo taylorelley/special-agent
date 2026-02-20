@@ -6,10 +6,12 @@ import type { SpecialAgentConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardFlow } from "../wizard/onboarding.types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
-import { checkDocker } from "../process/docker.js";
+import { checkDocker, type DockerStatus } from "../process/docker.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { restoreTerminalState } from "../terminal/restore.js";
 import { CONFIG_DIR } from "../utils.js";
+import { fetchEndpointModels } from "./model-picker.js";
+import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_PROVIDER_ID } from "./onboard-ollama.js";
 
 const COGNEE_COMPOSE_SOURCE = path.resolve(
   import.meta.dirname ?? __dirname,
@@ -27,6 +29,22 @@ const COGNEE_BASE_URL = "http://localhost:8000";
 const COGNEE_HEALTH_URL = `${COGNEE_BASE_URL}/health`;
 const HEALTH_CHECK_INTERVAL_MS = 2_000;
 const HEALTH_CHECK_TIMEOUT_MS = 60_000;
+
+// ---------------------------------------------------------------------------
+// Cognee model configuration types
+// ---------------------------------------------------------------------------
+
+type CogneeModelConfig = {
+  provider: string; // cognee provider value: "custom" | "ollama"
+  endpoint: string; // base URL
+  apiKey: string;
+  model: string;
+};
+
+type CogneeLlmConfig = {
+  llm: CogneeModelConfig;
+  embedding: CogneeModelConfig;
+};
 
 // ---------------------------------------------------------------------------
 // Docker helpers
@@ -110,7 +128,9 @@ async function isCogneeContainerRunning(): Promise<boolean> {
   }
 }
 
-async function startCogneeContainer(llmApiKey: string): Promise<{ ok: boolean; error?: string }> {
+async function startCogneeContainer(
+  config: CogneeLlmConfig,
+): Promise<{ ok: boolean; error?: string }> {
   await fs.mkdir(COGNEE_STATE_DIR, { recursive: true });
 
   try {
@@ -120,13 +140,21 @@ async function startCogneeContainer(llmApiKey: string): Promise<{ ok: boolean; e
     return { ok: false, error: `Failed to copy docker-compose file: ${String(err)}` };
   }
 
+  const env: Record<string, string> = {
+    LLM_PROVIDER: config.llm.provider,
+    LLM_ENDPOINT: config.llm.endpoint,
+    LLM_MODEL: config.llm.model,
+    LLM_API_KEY: config.llm.apiKey,
+    EMBEDDING_PROVIDER: config.embedding.provider,
+    EMBEDDING_ENDPOINT: config.embedding.endpoint,
+    EMBEDDING_MODEL: config.embedding.model,
+    EMBEDDING_API_KEY: config.embedding.apiKey,
+  };
+
   try {
     const result = await runCommandWithTimeout(
       ["docker", "compose", "-f", COGNEE_COMPOSE_DEST, "up", "-d"],
-      {
-        timeoutMs: 120_000,
-        env: { LLM_API_KEY: llmApiKey },
-      },
+      { timeoutMs: 120_000, env },
     );
     if (result.code !== 0) {
       const stderr = result.stderr.trim();
@@ -159,23 +187,188 @@ async function waitForCogneeHealth(): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// LLM API key extraction
+// Agent model extraction
 // ---------------------------------------------------------------------------
 
-function extractLlmApiKey(cfg: SpecialAgentConfig): string | undefined {
-  const providers = cfg.models?.providers;
-  if (!providers) {
+function extractAgentModelConfig(cfg: SpecialAgentConfig): CogneeModelConfig | undefined {
+  const primary = cfg.agents?.defaults?.model?.primary;
+  if (!primary || typeof primary !== "string") {
     return undefined;
   }
-  for (const provider of Object.values(providers)) {
-    if (provider && typeof provider === "object" && "apiKey" in provider) {
-      const key = (provider as Record<string, unknown>).apiKey;
-      if (typeof key === "string" && key.length > 0) {
-        return key;
-      }
-    }
+  const slashIdx = primary.indexOf("/");
+  if (slashIdx < 0) {
+    return undefined;
   }
-  return process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || undefined;
+  const providerId = primary.slice(0, slashIdx);
+  const modelId = primary.slice(slashIdx + 1);
+  const provider = cfg.models?.providers?.[providerId];
+  if (!provider || !provider.baseUrl) {
+    return undefined;
+  }
+  const apiKey = provider.apiKey ?? process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY ?? "";
+  if (!apiKey && providerId !== OLLAMA_PROVIDER_ID) {
+    return undefined;
+  }
+  const cogneeProvider = providerId === OLLAMA_PROVIDER_ID ? "ollama" : "custom";
+  return { provider: cogneeProvider, endpoint: provider.baseUrl, apiKey, model: modelId };
+}
+
+// ---------------------------------------------------------------------------
+// Cognee model prompts
+// ---------------------------------------------------------------------------
+
+async function promptEndpointConfig(
+  prompter: WizardPrompter,
+  label: string,
+  defaults?: CogneeModelConfig,
+): Promise<CogneeModelConfig> {
+  const providerType = await prompter.select({
+    message: `${label} endpoint type`,
+    options: [
+      { value: "openai", label: "OpenAI Compatible API", hint: "Uses /chat/completions" },
+      { value: "anthropic", label: "Anthropic Compatible API", hint: "Uses /messages" },
+      { value: "ollama", label: "Ollama Compatible API", hint: "Local models, no API key needed" },
+    ],
+    initialValue: "openai" as string,
+  });
+  const cogneeProvider = providerType === "ollama" ? "ollama" : "custom";
+  const isOllama = providerType === "ollama";
+
+  const endpoint = await prompter.text({
+    message: `${label} endpoint URL`,
+    ...(defaults?.endpoint
+      ? { initialValue: defaults.endpoint }
+      : { placeholder: isOllama ? OLLAMA_DEFAULT_BASE_URL : "https://api.openai.com/v1" }),
+  });
+
+  const apiKey = await prompter.text({
+    message: `${label} API key`,
+    ...(defaults?.apiKey
+      ? { initialValue: defaults.apiKey }
+      : { placeholder: isOllama ? "(optional)" : "sk-..." }),
+    validate: isOllama
+      ? undefined
+      : (val) => {
+          if (!val.trim()) {
+            return `An API key is required for ${label}`;
+          }
+          return undefined;
+        },
+  });
+
+  let model: string;
+  const spinner = prompter.progress(`Fetching ${label} models...`);
+  try {
+    const models = await fetchEndpointModels(endpoint, apiKey);
+    spinner.stop(`Found ${models.length} model(s).`);
+    if (models.length > 0) {
+      model = await prompter.select({
+        message: `${label} model`,
+        options: models.map((m) => ({
+          value: m.id,
+          label: m.name ?? m.id,
+        })),
+        initialValue: defaults?.model ?? models[0].id,
+      });
+    } else {
+      model = await prompter.text({
+        message: `${label} model ID`,
+        ...(defaults?.model ? { initialValue: defaults.model } : {}),
+      });
+    }
+  } catch {
+    spinner.stop(`Could not fetch ${label} models.`);
+    model = await prompter.text({
+      message: `${label} model ID (enter manually)`,
+      ...(defaults?.model ? { initialValue: defaults.model } : {}),
+    });
+  }
+
+  return { provider: cogneeProvider, endpoint, apiKey, model };
+}
+
+async function promptEmbeddingModel(
+  prompter: WizardPrompter,
+  llmConfig: CogneeModelConfig,
+): Promise<CogneeModelConfig> {
+  const spinner = prompter.progress("Fetching embedding models...");
+  try {
+    const models = await fetchEndpointModels(llmConfig.endpoint, llmConfig.apiKey);
+    spinner.stop(`Found ${models.length} model(s).`);
+    if (models.length > 0) {
+      const model = await prompter.select({
+        message: "Embedding model",
+        options: models.map((m) => ({
+          value: m.id,
+          label: m.name ?? m.id,
+        })),
+        initialValue: models[0].id,
+      });
+      return {
+        provider: llmConfig.provider,
+        endpoint: llmConfig.endpoint,
+        apiKey: llmConfig.apiKey,
+        model,
+      };
+    }
+  } catch {
+    spinner.stop("Could not fetch embedding models.");
+  }
+  const model = await prompter.text({
+    message: "Embedding model ID (enter manually)",
+  });
+  return {
+    provider: llmConfig.provider,
+    endpoint: llmConfig.endpoint,
+    apiKey: llmConfig.apiKey,
+    model,
+  };
+}
+
+async function resolveCogneeLlmConfig(
+  cfg: SpecialAgentConfig,
+  prompter: WizardPrompter,
+  _flow: WizardFlow,
+): Promise<CogneeLlmConfig> {
+  // --- LLM ---
+  let llm: CogneeModelConfig;
+  const agentConfig = extractAgentModelConfig(cfg);
+
+  if (agentConfig) {
+    const reuse = await prompter.select({
+      message: "LLM for Cognee",
+      options: [
+        {
+          value: "reuse",
+          label: `Reuse agent model (${agentConfig.endpoint}/${agentConfig.model})`,
+        },
+        { value: "different", label: "Configure a different LLM" },
+      ],
+      initialValue: "reuse" as string,
+    });
+    llm = reuse === "reuse" ? agentConfig : await promptEndpointConfig(prompter, "LLM");
+  } else {
+    llm = await promptEndpointConfig(prompter, "LLM");
+  }
+
+  // --- Embedding ---
+  let embedding: CogneeModelConfig;
+  const embeddingChoice = await prompter.select({
+    message: "Embedding model",
+    options: [
+      { value: "same", label: "Same endpoint as LLM" },
+      { value: "different", label: "Configure a different endpoint" },
+    ],
+    initialValue: "same" as string,
+  });
+
+  if (embeddingChoice === "same") {
+    embedding = await promptEmbeddingModel(prompter, llm);
+  } else {
+    embedding = await promptEndpointConfig(prompter, "Embedding");
+  }
+
+  return { llm, embedding };
 }
 
 // ---------------------------------------------------------------------------
@@ -272,7 +465,10 @@ async function promptCogneeDetails(
   return { datasetName, searchType, maxResults, autoRecall, autoCognify };
 }
 
-function buildCogneePluginConfig(details: CogneeDetails): Record<string, unknown> {
+function buildCogneePluginConfig(
+  details: CogneeDetails,
+  llm?: CogneeLlmConfig,
+): Record<string, unknown> {
   return {
     baseUrl: COGNEE_BASE_URL,
     datasetName: details.datasetName,
@@ -281,6 +477,12 @@ function buildCogneePluginConfig(details: CogneeDetails): Record<string, unknown
     autoRecall: details.autoRecall,
     autoIndex: true,
     autoCognify: details.autoCognify,
+    ...(llm && {
+      llmEndpoint: llm.llm.endpoint,
+      llmModel: llm.llm.model,
+      embeddingEndpoint: llm.embedding.endpoint,
+      embeddingModel: llm.embedding.model,
+    }),
   };
 }
 
@@ -288,12 +490,15 @@ function buildCogneePluginConfig(details: CogneeDetails): Record<string, unknown
 // Public API
 // ---------------------------------------------------------------------------
 
+export type SetupMemoryOptions = { dockerStatus?: DockerStatus };
+
 export async function setupMemory(
   cfg: SpecialAgentConfig,
   _workspaceDir: string,
   _runtime: RuntimeEnv,
   prompter: WizardPrompter,
   flow: WizardFlow,
+  options?: SetupMemoryOptions,
 ): Promise<SpecialAgentConfig> {
   const memoryChoice = await prompter.select({
     message: "Memory system",
@@ -322,7 +527,7 @@ export async function setupMemory(
 
   const dockerSpinner = prompter.progress("Checking Docker...");
 
-  const docker = await checkDocker();
+  const docker = options?.dockerStatus ?? (await checkDocker());
   if (!docker.available) {
     dockerSpinner.stop(docker.installed ? "Docker not ready." : "Docker not found.");
 
@@ -359,23 +564,10 @@ export async function setupMemory(
 
   dockerSpinner.stop("Docker available.");
 
-  // Get LLM API key for cognee
-  let llmApiKey = extractLlmApiKey(cfg);
-  if (!llmApiKey) {
-    llmApiKey = await prompter.text({
-      message: "LLM API key for Cognee (e.g. OpenAI key)",
-      placeholder: "sk-...",
-      validate: (val) => {
-        if (!val.trim()) {
-          return "An API key is required for Cognee";
-        }
-        return undefined;
-      },
-    });
-  }
+  const cogneeLlm = await resolveCogneeLlmConfig(cfg, prompter, flow);
 
   const startSpinner = prompter.progress("Starting cognee container...");
-  const startResult = await startCogneeContainer(llmApiKey);
+  const startResult = await startCogneeContainer(cogneeLlm);
   if (!startResult.ok) {
     startSpinner.stop("Failed to start cognee.");
     await prompter.note(
@@ -411,5 +603,5 @@ export async function setupMemory(
   }
 
   const details = await promptCogneeDetails(prompter, flow);
-  return applyMemorySlot(cfg, "memory-cognee", buildCogneePluginConfig(details));
+  return applyMemorySlot(cfg, "memory-cognee", buildCogneePluginConfig(details, cogneeLlm));
 }
