@@ -142,10 +142,14 @@ export async function queryScopedKnowledge(params: ScopedQueryParams): Promise<S
   const totalBeforeFilter = allResults.length;
 
   // 4. Apply privacy filter (use composite key: dataset:id for cross-dataset dedup)
+  // filterRecallForPrivacy returns AnnotatedSearchResult[] where sourceDataset is
+  // optional, but our inputs always have it set. Use ?? "" for type-safe keys.
   const privacyFiltered = filterRecallForPrivacy(allResults, scope);
 
   // Map back to ScopedSearchResult using composite key (dataset-aware)
-  const privacyFilteredSet = new Set(privacyFiltered.map((r) => `${r.sourceDataset}:${r.id}`));
+  const privacyFilteredSet = new Set(
+    privacyFiltered.map((r) => `${r.sourceDataset ?? ""}:${r.id}`),
+  );
   const filtered = allResults.filter((r) => privacyFilteredSet.has(`${r.sourceDataset}:${r.id}`));
 
   // 5. Apply score threshold, sort by score, then de-duplicate by text

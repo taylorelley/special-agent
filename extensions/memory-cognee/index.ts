@@ -42,6 +42,11 @@ const memoryCogneePlugin = {
     let syncIndex: SyncIndex = { entries: {} };
     let resolvedWorkspaceDir: string | undefined;
 
+    // Both loadDatasetState and loadSyncIndex run in parallel. loadDatasetState
+    // is authoritative for datasetId: it writes unconditionally, so if it resolves
+    // second it intentionally overwrites any value set by loadSyncIndex. The
+    // loadSyncIndex callback guards with !datasetId so it only fills in when
+    // loadDatasetState hasn't provided a value yet.
     const stateReady = Promise.all([
       loadDatasetState()
         .then((state) => {

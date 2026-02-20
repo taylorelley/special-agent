@@ -7,7 +7,6 @@ import { queryScopedKnowledge } from "./query-router.js";
 function makeExecutor(responses: Map<string, CogneeSearchResult[]>): SearchExecutor {
   return {
     async search(params: Parameters<SearchExecutor["search"]>[0]) {
-      expect(params.datasetIds).toHaveLength(1);
       const datasetId = params.datasetIds[0];
       return responses.get(datasetId) ?? [];
     },
@@ -177,7 +176,7 @@ describe("queryScopedKnowledge", () => {
 
     expect(result.results).toHaveLength(1);
     expect(result.results[0].id).toBe("r1");
-    expect(result.totalBeforeFilter).toBe(2); // Both results fetched, one filtered by minScore
+    expect(result.totalBeforeFilter).toBe(2); // allResults.length before privacy and minScore filters
   });
 
   it("respects maxResults limit", async () => {

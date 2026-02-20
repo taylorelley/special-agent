@@ -45,6 +45,7 @@ export type CogneePluginConfig = {
 export const DEFAULT_BASE_URL = "http://localhost:8000";
 export const DEFAULT_DATASET_NAME = "special-agent";
 export const DEFAULT_SEARCH_TYPE: CogneeSearchType = "GRAPH_COMPLETION";
+const VALID_SEARCH_TYPES: readonly CogneeSearchType[] = ["GRAPH_COMPLETION", "CHUNKS", "SUMMARIES"];
 export const DEFAULT_MAX_RESULTS = 6;
 export const DEFAULT_MIN_SCORE = 0;
 export const DEFAULT_AUTO_RECALL = true;
@@ -70,7 +71,11 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
 
   const baseUrl = raw.baseUrl?.trim() || DEFAULT_BASE_URL;
   const datasetName = raw.datasetName?.trim() || DEFAULT_DATASET_NAME;
-  const searchType = raw.searchType || DEFAULT_SEARCH_TYPE;
+  const searchType =
+    typeof raw.searchType === "string" &&
+    (VALID_SEARCH_TYPES as readonly string[]).includes(raw.searchType)
+      ? (raw.searchType as CogneeSearchType)
+      : DEFAULT_SEARCH_TYPE;
   const maxResults = typeof raw.maxResults === "number" ? raw.maxResults : DEFAULT_MAX_RESULTS;
   const minScore = typeof raw.minScore === "number" ? raw.minScore : DEFAULT_MIN_SCORE;
   const autoRecall = typeof raw.autoRecall === "boolean" ? raw.autoRecall : DEFAULT_AUTO_RECALL;
@@ -257,7 +262,7 @@ export class CogneeClient {
    * Cognee returns a direct array of strings: ["answer text here"]
    * We convert to: [{ id, text, score }]
    */
-  private normalizeSearchResults(data: unknown): CogneeSearchResult[] {
+  private normalizeSearchResults(data: unknown, depth: number = 0): CogneeSearchResult[] {
     if (Array.isArray(data)) {
       return data.map((item, index) => {
         if (typeof item === "string") {
@@ -276,8 +281,8 @@ export class CogneeClient {
       });
     }
 
-    if (data && typeof data === "object" && "results" in data) {
-      return this.normalizeSearchResults((data as { results: unknown }).results);
+    if (depth < 1 && data && typeof data === "object" && "results" in data) {
+      return this.normalizeSearchResults((data as { results: unknown }).results, depth + 1);
     }
 
     return [];

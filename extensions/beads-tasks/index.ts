@@ -258,13 +258,15 @@ export default function register(api: SpecialAgentPluginApi) {
       }
 
       try {
+        if (typeof params.title !== "string" || params.title.trim().length === 0) {
+          return errorToolResult("Missing or invalid title");
+        }
         await target.client.init();
-        const title = typeof params.title === "string" ? params.title : "";
         const description = typeof params.description === "string" ? params.description : undefined;
         const priority = parseEnum(params.priority, VALID_PRIORITIES);
         const tags = Array.isArray(params.tags) ? params.tags : undefined;
         const result = await target.client.createTask({
-          title,
+          title: params.title,
           description,
           priority,
           tags,
