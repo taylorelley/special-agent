@@ -32,7 +32,6 @@ export type CogneePluginConfig = {
   searchType?: CogneeSearchType;
   maxResults?: number;
   minScore?: number;
-  maxTokens?: number;
   autoRecall?: boolean;
   autoIndex?: boolean;
   autoCognify?: boolean;
@@ -48,7 +47,6 @@ export const DEFAULT_DATASET_NAME = "special-agent";
 export const DEFAULT_SEARCH_TYPE: CogneeSearchType = "GRAPH_COMPLETION";
 export const DEFAULT_MAX_RESULTS = 6;
 export const DEFAULT_MIN_SCORE = 0;
-export const DEFAULT_MAX_TOKENS = 512;
 export const DEFAULT_AUTO_RECALL = true;
 export const DEFAULT_AUTO_INDEX = true;
 export const DEFAULT_AUTO_COGNIFY = true;
@@ -59,8 +57,8 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 // ---------------------------------------------------------------------------
 
 export function resolveEnvVars(value: string): string {
-  return value.replace(/\$\{([^}]+)\}/g, (_, envVar: string) => {
-    return process.env[envVar] ?? "";
+  return value.replace(/\$\{([^}]+)\}/g, (match, envVar: string) => {
+    return process.env[envVar] ?? match;
   });
 }
 
@@ -75,16 +73,17 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
   const searchType = raw.searchType || DEFAULT_SEARCH_TYPE;
   const maxResults = typeof raw.maxResults === "number" ? raw.maxResults : DEFAULT_MAX_RESULTS;
   const minScore = typeof raw.minScore === "number" ? raw.minScore : DEFAULT_MIN_SCORE;
-  const maxTokens = typeof raw.maxTokens === "number" ? raw.maxTokens : DEFAULT_MAX_TOKENS;
   const autoRecall = typeof raw.autoRecall === "boolean" ? raw.autoRecall : DEFAULT_AUTO_RECALL;
   const autoIndex = typeof raw.autoIndex === "boolean" ? raw.autoIndex : DEFAULT_AUTO_INDEX;
   const autoCognify = typeof raw.autoCognify === "boolean" ? raw.autoCognify : DEFAULT_AUTO_COGNIFY;
   const requestTimeoutMs =
     typeof raw.requestTimeoutMs === "number" ? raw.requestTimeoutMs : DEFAULT_REQUEST_TIMEOUT_MS;
 
+  const resolvedApiKey =
+    raw.apiKey && raw.apiKey.length > 0 ? resolveEnvVars(raw.apiKey) : undefined;
   const apiKey =
-    raw.apiKey && raw.apiKey.length > 0
-      ? resolveEnvVars(raw.apiKey)
+    resolvedApiKey && !resolvedApiKey.includes("${")
+      ? resolvedApiKey
       : process.env.COGNEE_API_KEY || "";
 
   return {
@@ -94,7 +93,6 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
     searchType,
     maxResults,
     minScore,
-    maxTokens,
     autoRecall,
     autoIndex,
     autoCognify,

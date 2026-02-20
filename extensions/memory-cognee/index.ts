@@ -195,9 +195,7 @@ const memoryCogneePlugin = {
             topK: cfg.maxResults,
           });
 
-          let filtered = results
-            .filter((result) => result.score >= cfg.minScore)
-            .slice(0, cfg.maxResults);
+          let filtered = results.filter((result) => result.score >= cfg.minScore);
 
           // Apply privacy filter when scope is available.
           // Skip for the legacy single dataset ("special-agent") since it

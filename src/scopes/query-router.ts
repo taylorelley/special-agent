@@ -9,7 +9,6 @@ import type {
   CogneeSearchResult,
   CogneeSearchType,
 } from "../../extensions/memory-cognee/client.js";
-import type { AnnotatedSearchResult } from "../../extensions/memory-cognee/privacy.js";
 import type { ScopeContext, ScopeTier } from "./types.js";
 import { filterRecallForPrivacy } from "../../extensions/memory-cognee/privacy.js";
 import {
@@ -143,11 +142,7 @@ export async function queryScopedKnowledge(params: ScopedQueryParams): Promise<S
   const totalBeforeFilter = allResults.length;
 
   // 4. Apply privacy filter (use composite key: dataset:id for cross-dataset dedup)
-  const annotated: AnnotatedSearchResult[] = allResults.map((r) => ({
-    ...r,
-    sourceDataset: r.sourceDataset,
-  }));
-  const privacyFiltered = filterRecallForPrivacy(annotated, scope);
+  const privacyFiltered = filterRecallForPrivacy(allResults, scope);
 
   // Map back to ScopedSearchResult using composite key (dataset-aware)
   const privacyFilteredSet = new Set(privacyFiltered.map((r) => `${r.sourceDataset}:${r.id}`));

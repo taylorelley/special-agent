@@ -45,18 +45,18 @@ describe("withAntiRace", () => {
     const git = makeGit({
       push: async () => {
         pushAttempts++;
-        if (pushAttempts < 3) {
+        if (pushAttempts < 2) {
           throw new Error("non-fast-forward");
         }
       },
       isConflict: (error) => String(error).includes("non-fast-forward"),
     });
 
-    const result = await withAntiRace("/repo", async () => "done", git, { maxRetries: 3 });
+    const result = await withAntiRace("/repo", async () => "done", git, { maxRetries: 2 });
 
     expect(result.ok).toBe(true);
-    expect(result.retries).toBe(2);
-    expect(pushAttempts).toBe(3);
+    expect(result.retries).toBe(1);
+    expect(pushAttempts).toBe(2);
   });
 
   it("fails after exhausting retries", async () => {

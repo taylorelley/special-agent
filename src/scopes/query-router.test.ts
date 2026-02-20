@@ -202,9 +202,11 @@ describe("queryScopedKnowledge", () => {
     expect(result.results).toHaveLength(5);
   });
 
-  it("applies post-retrieval privacy filter on unknown-source results in group sessions", async () => {
-    // In a group session, results with an unknown/unclassifiable source dataset
-    // are treated as personal-private and filtered out by the privacy layer.
+  it("preserves non-private results through post-retrieval privacy filter in group sessions", async () => {
+    // In a group session, resolveRecallDatasets excludes private datasets
+    // at the pre-query stage. The post-retrieval privacy filter is a second
+    // line of defense. This test verifies that non-private results with
+    // known provenance survive the filter.
     const scope: ScopeContext = {
       tier: "project",
       project: { id: "webapp", name: "Web App" },
@@ -215,8 +217,6 @@ describe("queryScopedKnowledge", () => {
       ["alice-profile", "id-profile"],
       ["project-webapp", "id-project"],
     ]);
-    // Simulate: executor returns a result from alice-profile that has correct provenance,
-    // plus project results — all should survive the post-retrieval filter.
     const responses = new Map<string, CogneeSearchResult[]>([
       ["id-profile", [{ id: "r1", text: "profile data", score: 0.8 }]],
       ["id-project", [{ id: "r2", text: "project note", score: 0.9 }]],
@@ -228,9 +228,37 @@ describe("queryScopedKnowledge", () => {
 
     expect(result.datasetsQueried).toBe(2);
     expect(result.totalBeforeFilter).toBe(2);
-    // Both results have known non-private sources; both survive privacy filter
+    // Both results have known non-private sources; both survive the privacy filter
     expect(result.results).toHaveLength(2);
     expect(result.results.map((r) => r.sourceDataset)).toEqual(["project-webapp", "alice-profile"]);
+  });
+
+  it("aborts long-running searches via timeout", async () => {
+    const scope: ScopeContext = { tier: "personal", userId: "alice", isGroupSession: false };
+    const datasetIdMap = new Map([["alice-private", "id-private"]]);
+
+    const executor: SearchExecutor = {
+      async search(params: Parameters<SearchExecutor["search"]>[0]) {
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(
+            () => resolve([{ id: "r1", text: "slow result", score: 0.9 }]),
+            5000,
+          );
+          params.signal?.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        });
+      },
+    };
+
+    const result = await queryScopedKnowledge(
+      makeParams({ scope, datasetIdMap, executor, timeoutMs: 50 }),
+    );
+
+    // Search was aborted; error caught and returns empty
+    expect(result.datasetsQueried).toBe(1);
+    expect(result.results).toEqual([]);
   });
 
   it("handles executor failures gracefully", async () => {

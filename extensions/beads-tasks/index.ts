@@ -6,7 +6,7 @@
  * the /tasks command for interacting with scoped task repositories.
  */
 
-import type { AnyAgentTool, SpecialAgentPluginApi } from "special-agent/plugin-sdk";
+import type { SpecialAgentPluginApi } from "special-agent/plugin-sdk";
 import { Type } from "@sinclair/typebox";
 import { execFile } from "node:child_process";
 import { readFile, appendFile, writeFile, mkdir, access } from "node:fs/promises";
@@ -15,6 +15,7 @@ import type { ScopeConfig, ScopeContext } from "../../src/scopes/types.js";
 import type { GitOps } from "./anti-race.js";
 import type { FileOps, BeadsTask } from "./beads-client.js";
 import type { BeadsPluginConfig, ResolvedRepoPath } from "./scope-routing.js";
+import { optionalStringEnum } from "../../src/agents/schema/typebox.js";
 import { resolveScopeContext } from "../../src/scopes/resolver.js";
 import { BeadsClient } from "./beads-client.js";
 import { resolveRepoPath, resolveBeadsConfig, listConfiguredRepos } from "./scope-routing.js";
@@ -200,11 +201,9 @@ export default function register(api: SpecialAgentPluginApi) {
     label: "Tasks List",
     description: "List tasks from the current scope's beads repository",
     parameters: Type.Object({
-      status: Type.Optional(
-        Type.String({
-          description: "Filter by status (open, claimed, in_progress, done, blocked, cancelled)",
-        }),
-      ),
+      status: optionalStringEnum([...VALID_STATUSES], {
+        description: "Filter by status (open, claimed, in_progress, done, blocked, cancelled)",
+      }),
     }),
     async execute(_id: string, params: Record<string, unknown>) {
       const scope: ScopeContext = {
@@ -241,11 +240,9 @@ export default function register(api: SpecialAgentPluginApi) {
     parameters: Type.Object({
       title: Type.String({ description: "Task title" }),
       description: Type.Optional(Type.String({ description: "Task description" })),
-      priority: Type.Optional(
-        Type.String({
-          description: "Task priority (low, medium, high, critical)",
-        }),
-      ),
+      priority: optionalStringEnum([...VALID_PRIORITIES], {
+        description: "Task priority (low, medium, high, critical)",
+      }),
       tags: Type.Optional(Type.Array(Type.String(), { description: "Task tags" })),
     }),
     async execute(_id: string, params: Record<string, unknown>) {
@@ -305,9 +302,11 @@ export default function register(api: SpecialAgentPluginApi) {
       }
 
       try {
+        if (typeof params.taskId !== "string" || params.taskId.length === 0) {
+          return errorToolResult("Missing or invalid taskId");
+        }
         await target.client.init();
-        const taskId = typeof params.taskId === "string" ? params.taskId : "";
-        const result = await target.client.claimTask(taskId);
+        const result = await target.client.claimTask(params.taskId);
         if (!result.ok) {
           return errorToolResult(result.error ?? "Unknown error");
         }
@@ -327,18 +326,14 @@ export default function register(api: SpecialAgentPluginApi) {
     description: "Update a task's status, title, description, or other fields",
     parameters: Type.Object({
       taskId: Type.String({ description: "The task ID to update" }),
-      status: Type.Optional(
-        Type.String({
-          description: "New status (open, claimed, in_progress, blocked, done, cancelled)",
-        }),
-      ),
+      status: optionalStringEnum([...VALID_STATUSES], {
+        description: "New status (open, claimed, in_progress, blocked, done, cancelled)",
+      }),
       title: Type.Optional(Type.String({ description: "Updated title" })),
       description: Type.Optional(Type.String({ description: "Updated description" })),
-      priority: Type.Optional(
-        Type.String({
-          description: "Updated priority (low, medium, high, critical)",
-        }),
-      ),
+      priority: optionalStringEnum([...VALID_PRIORITIES], {
+        description: "Updated priority (low, medium, high, critical)",
+      }),
       tags: Type.Optional(Type.Array(Type.String(), { description: "Updated tags" })),
     }),
     async execute(_id: string, params: Record<string, unknown>) {
@@ -354,8 +349,10 @@ export default function register(api: SpecialAgentPluginApi) {
       }
 
       try {
+        if (typeof params.taskId !== "string" || params.taskId.length === 0) {
+          return errorToolResult("Missing or invalid taskId");
+        }
         await target.client.init();
-        const taskId = typeof params.taskId === "string" ? params.taskId : "";
         const updates: Record<string, unknown> = {};
         const status = parseEnum(params.status, VALID_STATUSES);
         if (status) updates.status = status;
@@ -364,7 +361,7 @@ export default function register(api: SpecialAgentPluginApi) {
         const priority = parseEnum(params.priority, VALID_PRIORITIES);
         if (priority) updates.priority = priority;
         if (Array.isArray(params.tags)) updates.tags = params.tags;
-        const result = await target.client.updateTask(taskId, updates);
+        const result = await target.client.updateTask(params.taskId, updates);
         if (!result.ok) {
           return errorToolResult(result.error ?? "Unknown error");
         }
@@ -375,10 +372,10 @@ export default function register(api: SpecialAgentPluginApi) {
     },
   };
 
-  api.registerTool(tasksListTool as unknown as AnyAgentTool, { optional: true });
-  api.registerTool(tasksCreateTool as unknown as AnyAgentTool, { optional: true });
-  api.registerTool(tasksClaimTool as unknown as AnyAgentTool, { optional: true });
-  api.registerTool(tasksUpdateTool as unknown as AnyAgentTool, { optional: true });
+  api.registerTool(tasksListTool, { optional: true });
+  api.registerTool(tasksCreateTool, { optional: true });
+  api.registerTool(tasksClaimTool, { optional: true });
+  api.registerTool(tasksUpdateTool, { optional: true });
 
   logger.info(
     "beads-tasks: registered tools (tasks_list, tasks_create, tasks_claim, tasks_update) and /tasks command",
