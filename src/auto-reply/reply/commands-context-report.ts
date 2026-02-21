@@ -158,6 +158,7 @@ async function resolveContextReport(
     runtimeInfo,
     sandboxInfo,
     memoryCitationsMode: params.cfg?.memory?.citations,
+    memoryPlugin: params.cfg?.plugins?.slots?.memory,
   });
 
   return buildSystemPromptReport({

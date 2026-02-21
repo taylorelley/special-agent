@@ -48,6 +48,8 @@ export function buildEmbeddedSystemPrompt(params: {
   userTimeFormat?: ResolvedTimeFormat;
   contextFiles?: EmbeddedContextFile[];
   memoryCitationsMode?: MemoryCitationsMode;
+  /** Active memory plugin ID (e.g. "memory-core", "memory-cognee"). */
+  memoryPlugin?: string;
 }): string {
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,
@@ -74,6 +76,7 @@ export function buildEmbeddedSystemPrompt(params: {
     userTimeFormat: params.userTimeFormat,
     contextFiles: params.contextFiles,
     memoryCitationsMode: params.memoryCitationsMode,
+    memoryPlugin: params.memoryPlugin,
   });
 }
 
