@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { normalizePluginsConfig } from "./config-state.js";
+import {
+  normalizePluginsConfig,
+  resolveEnableState,
+  type NormalizedPluginsConfig,
+} from "./config-state.js";
 
 describe("normalizePluginsConfig", () => {
   it("uses default memory slot when not specified", () => {
@@ -47,5 +51,54 @@ describe("normalizePluginsConfig", () => {
       slots: { memory: "   " },
     });
     expect(result.slots.memory).toBe("memory-core");
+  });
+});
+
+describe("resolveEnableState", () => {
+  const baseConfig: NormalizedPluginsConfig = {
+    enabled: true,
+    allow: [],
+    deny: [],
+    loadPaths: [],
+    slots: {},
+    entries: {},
+  };
+
+  it("auto-enables scope-commands when a memory plugin is active", () => {
+    const config = { ...baseConfig, slots: { memory: "memory-cognee" } };
+    const result = resolveEnableState("scope-commands", "bundled", config);
+    expect(result.enabled).toBe(true);
+  });
+
+  it("does not auto-enable scope-commands when memory slot is null", () => {
+    const config = { ...baseConfig, slots: { memory: null } };
+    const result = resolveEnableState("scope-commands", "bundled", config);
+    expect(result.enabled).toBe(false);
+  });
+
+  it("does not auto-enable scope-commands when memory slot is undefined", () => {
+    const config = { ...baseConfig, slots: { memory: undefined } };
+    const result = resolveEnableState("scope-commands", "bundled", config);
+    expect(result.enabled).toBe(false);
+  });
+
+  it("respects explicit disable even when memory is active", () => {
+    const config = {
+      ...baseConfig,
+      slots: { memory: "memory-cognee" },
+      entries: { "scope-commands": { enabled: false } },
+    };
+    const result = resolveEnableState("scope-commands", "bundled", config);
+    expect(result.enabled).toBe(false);
+  });
+
+  it("respects denylist even when memory is active", () => {
+    const config = {
+      ...baseConfig,
+      slots: { memory: "memory-cognee" },
+      deny: ["scope-commands"],
+    };
+    const result = resolveEnableState("scope-commands", "bundled", config);
+    expect(result.enabled).toBe(false);
   });
 });
