@@ -468,15 +468,18 @@ async function promptCogneeDetails(
 function buildCogneePluginConfig(
   details: CogneeDetails,
   llm?: CogneeLlmConfig,
+  baseUrl?: string,
+  apiKey?: string,
 ): Record<string, unknown> {
   return {
-    baseUrl: COGNEE_BASE_URL,
+    baseUrl: baseUrl ?? COGNEE_BASE_URL,
     datasetName: details.datasetName,
     searchType: details.searchType,
     maxResults: details.maxResults,
     autoRecall: details.autoRecall,
     autoIndex: true,
     autoCognify: details.autoCognify,
+    ...(apiKey && { apiKey }),
     ...(llm && {
       llmEndpoint: llm.llm.endpoint,
       llmModel: llm.llm.model,
@@ -484,6 +487,63 @@ function buildCogneePluginConfig(
       embeddingModel: llm.embedding.model,
     }),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Connect to existing Cognee instance
+// ---------------------------------------------------------------------------
+
+async function checkCogneeHealth(baseUrl: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(`${baseUrl}/health`, { signal: controller.signal });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function connectExistingCognee(
+  cfg: SpecialAgentConfig,
+  prompter: WizardPrompter,
+  flow: WizardFlow,
+): Promise<SpecialAgentConfig> {
+  const baseUrl = await prompter.text({
+    message: "Cognee instance URL",
+    initialValue: COGNEE_BASE_URL,
+  });
+
+  const apiKey = await prompter.text({
+    message: "Cognee API key (leave blank if none)",
+    placeholder: "(optional)",
+  });
+
+  const healthSpinner = prompter.progress("Checking cognee health...");
+  const healthy = await checkCogneeHealth(baseUrl);
+  if (!healthy) {
+    healthSpinner.stop("Cognee health check failed.");
+    await prompter.note(
+      [
+        `Could not reach ${baseUrl}/health`,
+        "",
+        "The instance may not be running or the URL may be incorrect.",
+        "Configuring cognee anyway — it should work once the instance is reachable.",
+      ].join("\n"),
+      "Memory",
+    );
+  } else {
+    healthSpinner.stop("Cognee is reachable.");
+  }
+
+  const details = await promptCogneeDetails(prompter, flow);
+  return applyMemorySlot(
+    cfg,
+    "memory-cognee",
+    buildCogneePluginConfig(details, undefined, baseUrl, apiKey || undefined),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -507,7 +567,7 @@ export async function setupMemory(
       {
         value: "memory-cognee",
         label: "Cognee (knowledge graph)",
-        hint: "Requires Docker, auto-configured",
+        hint: "Docker or existing instance",
       },
       { value: "none", label: "No memory" },
     ],
@@ -523,7 +583,22 @@ export async function setupMemory(
     return cfg;
   }
 
-  // --- Cognee selected: automatic Docker setup ---
+  // --- Cognee selected: choose setup mode ---
+
+  const cogneeSetup = await prompter.select({
+    message: "Cognee setup",
+    options: [
+      { value: "new", label: "Create new container", hint: "Requires Docker" },
+      { value: "existing", label: "Connect to existing instance" },
+    ],
+    initialValue: "new" as string,
+  });
+
+  if (cogneeSetup === "existing") {
+    return connectExistingCognee(cfg, prompter, flow);
+  }
+
+  // --- Create new container: automatic Docker setup ---
 
   const dockerSpinner = prompter.progress("Checking Docker...");
 

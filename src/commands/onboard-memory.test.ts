@@ -352,6 +352,7 @@ describe("setupMemory – cognee LLM/embedding config", () => {
     const selectFn = vi
       .fn()
       .mockResolvedValueOnce("memory-cognee") // memory choice
+      .mockResolvedValueOnce("new") // cognee setup: create new container
       .mockResolvedValueOnce("reuse") // LLM: reuse agent model
       .mockResolvedValueOnce("same") // embedding: same endpoint
       .mockResolvedValueOnce("text-embedding-3-small") as WizardPrompter["select"]; // embedding model
@@ -391,6 +392,7 @@ describe("setupMemory – cognee LLM/embedding config", () => {
     const selectFn = vi
       .fn()
       .mockResolvedValueOnce("memory-cognee") // memory choice
+      .mockResolvedValueOnce("new") // cognee setup: create new container
       .mockResolvedValueOnce("different") // LLM: configure different
       .mockResolvedValueOnce("openai") // LLM provider type
       .mockResolvedValueOnce("gpt-4o") // LLM model from list
@@ -435,6 +437,7 @@ describe("setupMemory – cognee LLM/embedding config", () => {
     const selectFn = vi
       .fn()
       .mockResolvedValueOnce("memory-cognee") // memory choice
+      .mockResolvedValueOnce("new") // cognee setup: create new container
       // No "reuse/different" select — goes straight to promptEndpointConfig
       .mockResolvedValueOnce("openai") // LLM provider type
       .mockResolvedValueOnce("gpt-4o") // LLM model from list
@@ -451,8 +454,8 @@ describe("setupMemory – cognee LLM/embedding config", () => {
       dockerStatus: { available: true, installed: true },
     });
 
-    // Should NOT have a "reuse/different" prompt — the second select should be the provider type
-    expect(selectFn).toHaveBeenCalledTimes(5);
+    // Should NOT have a "reuse/different" prompt — after cognee setup, the next select should be provider type
+    expect(selectFn).toHaveBeenCalledTimes(6);
     expect(mocks.runCommandWithTimeout).toHaveBeenCalledWith(
       expect.arrayContaining(["docker", "compose"]),
       expect.objectContaining({
@@ -471,6 +474,7 @@ describe("setupMemory – cognee LLM/embedding config", () => {
     const selectFn = vi
       .fn()
       .mockResolvedValueOnce("memory-cognee") // memory choice
+      .mockResolvedValueOnce("new") // cognee setup: create new container
       .mockResolvedValueOnce("openai") // LLM provider type
       .mockResolvedValueOnce("same") as WizardPrompter["select"]; // embedding: same endpoint
 
@@ -501,6 +505,7 @@ describe("setupMemory – cognee LLM/embedding config", () => {
     const selectFn = vi
       .fn()
       .mockResolvedValueOnce("memory-cognee")
+      .mockResolvedValueOnce("new") // cognee setup: create new container
       .mockResolvedValueOnce("reuse")
       .mockResolvedValueOnce("same")
       .mockResolvedValueOnce("text-embedding-3-small") as WizardPrompter["select"];
@@ -528,6 +533,7 @@ describe("setupMemory – cognee LLM/embedding config", () => {
     const selectFn = vi
       .fn()
       .mockResolvedValueOnce("memory-cognee") // memory choice
+      .mockResolvedValueOnce("new") // cognee setup: create new container
       .mockResolvedValueOnce("different") // LLM: configure different
       .mockResolvedValueOnce("ollama") // LLM provider type: Ollama
       .mockResolvedValueOnce("llama3") // LLM model from list
@@ -582,6 +588,7 @@ describe("setupMemory – cognee LLM/embedding config", () => {
     const selectFn = vi
       .fn()
       .mockResolvedValueOnce("memory-cognee") // memory choice
+      .mockResolvedValueOnce("new") // cognee setup: create new container
       .mockResolvedValueOnce("reuse") // LLM: reuse agent model
       .mockResolvedValueOnce("same") // embedding: same endpoint
       .mockResolvedValueOnce("nomic-embed-text") as WizardPrompter["select"]; // embedding model
