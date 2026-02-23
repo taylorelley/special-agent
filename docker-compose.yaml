@@ -17,19 +17,27 @@ services:
 
       # --- Gateway auth + paths ------------------------------------------------
       SPECIAL_AGENT_GATEWAY_TOKEN: ${SPECIAL_AGENT_GATEWAY_TOKEN:-change-me-to-a-long-random-token}
-      # SPECIAL_AGENT_GATEWAY_PASSWORD: ${SPECIAL_AGENT_GATEWAY_PASSWORD:-}
+      SPECIAL_AGENT_GATEWAY_PASSWORD: ${SPECIAL_AGENT_GATEWAY_PASSWORD:-}
 
       # --- Model provider API keys (set at least one) --------------------------
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      ZAI_API_KEY: ${ZAI_API_KEY:-}
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:-}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      SYNTHETIC_API_KEY: ${SYNTHETIC_API_KEY:-}
 
       # --- Channel tokens (only set what you enable) ---------------------------
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
       SLACK_APP_TOKEN: ${SLACK_APP_TOKEN:-}
+      MATTERMOST_BOT_TOKEN: ${MATTERMOST_BOT_TOKEN:-}
+      MATTERMOST_URL: ${MATTERMOST_URL:-}
+      ZALO_BOT_TOKEN: ${ZALO_BOT_TOKEN:-}
+      SPECIAL_AGENT_TWITCH_ACCESS_TOKEN: ${SPECIAL_AGENT_TWITCH_ACCESS_TOKEN:-}
 
       # --- Claude integration --------------------------------------------------
       CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
@@ -40,6 +48,9 @@ services:
       BRAVE_API_KEY: ${BRAVE_API_KEY:-}
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
       DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+      XI_API_KEY: ${XI_API_KEY:-}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY:-}
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY:-}
 
     volumes:
       - ${SPECIAL_AGENT_CONFIG_DIR:-~/.special-agent}:/home/node/.special-agent
