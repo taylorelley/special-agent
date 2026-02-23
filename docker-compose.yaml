@@ -1,0 +1,134 @@
+# Special Agent — Docker Compose deployment template
+#
+# Quick start:
+#   1. Copy this file and customise the environment variables below.
+#   2. Set SPECIAL_AGENT_GATEWAY_TOKEN to a strong random value:
+#        openssl rand -hex 32
+#   3. Create the host directories for config and workspace:
+#        mkdir -p ~/.special-agent ~/.special-agent/workspace
+#   4. Run:  docker compose up -d
+#
+# Optional services (enabled via profiles):
+#   docker compose --profile cognee up -d     # adds Cognee memory backend
+#   docker compose --profile cli run special-agent-cli ...  # interactive CLI
+
+services:
+  special-agent-gateway:
+    image: ghcr.io/taylorelley/special-agent:main
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+
+      # --- State dir (suppresses spurious migration warning inside container) ---
+      SPECIAL_AGENT_STATE_DIR: /home/node/.special-agent
+
+      # --- Gateway auth + paths ------------------------------------------------
+      SPECIAL_AGENT_GATEWAY_TOKEN: ${SPECIAL_AGENT_GATEWAY_TOKEN:-change-me-to-a-long-random-token}
+      SPECIAL_AGENT_GATEWAY_PASSWORD: ${SPECIAL_AGENT_GATEWAY_PASSWORD:-}
+
+      # --- Model provider API keys (set at least one) --------------------------
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      ZAI_API_KEY: ${ZAI_API_KEY:-}
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:-}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      SYNTHETIC_API_KEY: ${SYNTHETIC_API_KEY:-}
+
+      # --- Channel tokens (only set what you enable) ---------------------------
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN:-}
+      MATTERMOST_BOT_TOKEN: ${MATTERMOST_BOT_TOKEN:-}
+      MATTERMOST_URL: ${MATTERMOST_URL:-}
+      ZALO_BOT_TOKEN: ${ZALO_BOT_TOKEN:-}
+      SPECIAL_AGENT_TWITCH_ACCESS_TOKEN: ${SPECIAL_AGENT_TWITCH_ACCESS_TOKEN:-}
+
+      # --- Claude integration --------------------------------------------------
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
+
+      # --- Tools + media (optional) --------------------------------------------
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+      XI_API_KEY: ${XI_API_KEY:-}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY:-}
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY:-}
+
+    volumes:
+      - ${SPECIAL_AGENT_CONFIG_DIR:-~/.special-agent}:/home/node/.special-agent
+      - ${SPECIAL_AGENT_WORKSPACE_DIR:-~/.special-agent/workspace}:/home/node/.special-agent/workspace
+    ports:
+      - "${SPECIAL_AGENT_GATEWAY_PORT:-18789}:18789"
+      - "${SPECIAL_AGENT_BRIDGE_PORT:-18790}:18790"
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "${SPECIAL_AGENT_GATEWAY_BIND:-lan}",
+        "--port",
+        "18789",
+        "--allow-unconfigured",
+      ]
+
+  cognee:
+    image: cognee/cognee:latest
+    environment:
+      # --- LLM used by Cognee for knowledge-graph construction --------------------
+      LLM_API_KEY: ${LLM_API_KEY:-${OPENAI_API_KEY:-}}
+      LLM_PROVIDER: ${LLM_PROVIDER:-custom}
+      LLM_ENDPOINT: ${LLM_ENDPOINT:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o}
+      # --- Embedding model --------------------------------------------------------
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-${OPENAI_API_KEY:-}}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-custom}
+      EMBEDDING_ENDPOINT: ${EMBEDDING_ENDPOINT:-https://api.openai.com/v1}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      # --- Misc -------------------------------------------------------------------
+      ENABLE_BACKEND_ACCESS_CONTROL: "false"
+    volumes:
+      - cognee_data:/app/cognee/.cognee_system
+    ports:
+      - "${COGNEE_PORT:-127.0.0.1:8000}:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - cognee
+
+  special-agent-cli:
+    image: ghcr.io/taylorelley/special-agent:main
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      SPECIAL_AGENT_STATE_DIR: /home/node/.special-agent
+      SPECIAL_AGENT_GATEWAY_TOKEN: ${SPECIAL_AGENT_GATEWAY_TOKEN:-change-me-to-a-long-random-token}
+      BROWSER: echo
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
+    volumes:
+      - ${SPECIAL_AGENT_CONFIG_DIR:-~/.special-agent}:/home/node/.special-agent
+      - ${SPECIAL_AGENT_WORKSPACE_DIR:-~/.special-agent/workspace}:/home/node/.special-agent/workspace
+    stdin_open: true
+    tty: true
+    init: true
+    entrypoint: ["node", "dist/index.js"]
+    profiles:
+      - cli
+
+volumes:
+  cognee_data:
+    driver: local
