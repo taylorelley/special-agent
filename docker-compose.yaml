@@ -7,6 +7,10 @@
 #   3. Create the host directories for config and workspace:
 #        mkdir -p ~/.special-agent ~/.special-agent/workspace
 #   4. Run:  docker compose up -d
+#
+# Optional services (enabled via profiles):
+#   docker compose --profile cognee up -d     # adds Cognee memory backend
+#   docker compose --profile cli run special-agent-cli ...  # interactive CLI
 
 services:
   special-agent-gateway:
@@ -75,6 +79,35 @@ services:
         "--allow-unconfigured",
       ]
 
+  cognee:
+    image: cognee/cognee:latest
+    environment:
+      # --- LLM used by Cognee for knowledge-graph construction --------------------
+      LLM_API_KEY: ${LLM_API_KEY:-${OPENAI_API_KEY:-}}
+      LLM_PROVIDER: ${LLM_PROVIDER:-custom}
+      LLM_ENDPOINT: ${LLM_ENDPOINT:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o}
+      # --- Embedding model --------------------------------------------------------
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-${OPENAI_API_KEY:-}}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-custom}
+      EMBEDDING_ENDPOINT: ${EMBEDDING_ENDPOINT:-https://api.openai.com/v1}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      # --- Misc -------------------------------------------------------------------
+      ENABLE_BACKEND_ACCESS_CONTROL: "false"
+    volumes:
+      - cognee_data:/app/cognee/.cognee_system
+    ports:
+      - "${COGNEE_PORT:-127.0.0.1:8000}:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - cognee
+
   special-agent-cli:
     image: ghcr.io/taylorelley/special-agent:main
     environment:
@@ -95,3 +128,7 @@ services:
     entrypoint: ["node", "dist/index.js"]
     profiles:
       - cli
+
+volumes:
+  cognee_data:
+    driver: local
