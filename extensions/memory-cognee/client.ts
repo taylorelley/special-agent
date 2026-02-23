@@ -36,6 +36,11 @@ export type CogneePluginConfig = {
   autoIndex?: boolean;
   autoCognify?: boolean;
   requestTimeoutMs?: number;
+  enableTools?: boolean;
+  decayRate?: number;
+  pruneThreshold?: number;
+  autoPrune?: boolean;
+  typeWeights?: Partial<Record<string, number>>;
 };
 
 // ---------------------------------------------------------------------------
@@ -52,6 +57,10 @@ export const DEFAULT_AUTO_RECALL = true;
 export const DEFAULT_AUTO_INDEX = true;
 export const DEFAULT_AUTO_COGNIFY = true;
 export const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
+export const DEFAULT_ENABLE_TOOLS = true;
+export const DEFAULT_DECAY_RATE = 0.03;
+export const DEFAULT_PRUNE_THRESHOLD = 0.05;
+export const DEFAULT_AUTO_PRUNE = false;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -83,6 +92,15 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
   const autoCognify = typeof raw.autoCognify === "boolean" ? raw.autoCognify : DEFAULT_AUTO_COGNIFY;
   const requestTimeoutMs =
     typeof raw.requestTimeoutMs === "number" ? raw.requestTimeoutMs : DEFAULT_REQUEST_TIMEOUT_MS;
+  const enableTools = typeof raw.enableTools === "boolean" ? raw.enableTools : DEFAULT_ENABLE_TOOLS;
+  const decayRate = typeof raw.decayRate === "number" ? raw.decayRate : DEFAULT_DECAY_RATE;
+  const pruneThreshold =
+    typeof raw.pruneThreshold === "number" ? raw.pruneThreshold : DEFAULT_PRUNE_THRESHOLD;
+  const autoPrune = typeof raw.autoPrune === "boolean" ? raw.autoPrune : DEFAULT_AUTO_PRUNE;
+  const typeWeights: Partial<Record<string, number>> =
+    raw.typeWeights && typeof raw.typeWeights === "object"
+      ? (raw.typeWeights as Partial<Record<string, number>>)
+      : {};
 
   const resolvedApiKey =
     raw.apiKey && raw.apiKey.length > 0 ? resolveEnvVars(raw.apiKey) : undefined;
@@ -102,6 +120,11 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
     autoIndex,
     autoCognify,
     requestTimeoutMs,
+    enableTools,
+    decayRate,
+    pruneThreshold,
+    autoPrune,
+    typeWeights,
   };
 }
 
@@ -231,6 +254,17 @@ export class CogneeClient {
         ...this.buildHeaders(),
       },
       body: JSON.stringify({ datasetIds: params.datasetIds }),
+    });
+  }
+
+  async delete(params: { dataId: string; datasetId: string }): Promise<void> {
+    const query = new URLSearchParams({
+      data_id: params.dataId,
+      dataset_id: params.datasetId,
+    });
+    await this.fetchJson<unknown>(`/api/v1/delete?${query.toString()}`, {
+      method: "DELETE",
+      headers: this.buildHeaders(),
     });
   }
 

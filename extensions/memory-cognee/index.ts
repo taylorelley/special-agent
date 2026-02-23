@@ -13,8 +13,22 @@
  */
 
 import type { SpecialAgentPluginApi } from "special-agent/plugin-sdk";
+import { Type } from "@sinclair/typebox";
 import type { AnnotatedSearchResult } from "./privacy.js";
 import type { SyncIndex } from "./sync.js";
+import {
+  loadActivationIndex,
+  saveActivationIndex,
+  recordAccess,
+  registerMemory,
+  computeDecayScore,
+  classifyDecayTier,
+  detectMemoryType,
+  identifyPruneCandidates,
+  removeEntries,
+  type ActivationIndex,
+  type MemoryType,
+} from "./activation.js";
 import { CogneeClient, DEFAULT_DATASET_NAME, resolveConfig } from "./client.js";
 import { filterRecallForPrivacy } from "./privacy.js";
 import {
@@ -40,6 +54,7 @@ const memoryCogneePlugin = {
     const client = new CogneeClient(cfg.baseUrl, cfg.apiKey, cfg.requestTimeoutMs);
     let datasetId: string | undefined;
     let syncIndex: SyncIndex = { entries: {} };
+    let activationIndex: ActivationIndex = { version: 1, entries: {} };
     let resolvedWorkspaceDir: string | undefined;
 
     // Both loadDatasetState and loadSyncIndex run in parallel. loadDatasetState
@@ -69,11 +84,19 @@ const memoryCogneePlugin = {
         }),
     ]);
 
+    const activationReady = loadActivationIndex()
+      .then((idx) => {
+        activationIndex = idx;
+      })
+      .catch((error) => {
+        api.logger.warn?.(`memory-cognee: failed to load activation index: ${String(error)}`);
+      });
+
     async function runSync(
       workspaceDir: string,
       logger: { info?: (msg: string) => void; warn?: (msg: string) => void },
     ) {
-      await stateReady;
+      await Promise.all([stateReady, activationReady]);
 
       const files = await collectMemoryFiles(workspaceDir);
       if (files.length === 0) {
@@ -87,6 +110,20 @@ const memoryCogneePlugin = {
       if (result.datasetId) {
         datasetId = result.datasetId;
       }
+
+      // Auto-classify synced files in activation index
+      for (const file of files) {
+        const entry = syncIndex.entries[file.path];
+        if (entry?.dataId && !activationIndex.entries[entry.dataId]) {
+          registerMemory(activationIndex, entry.dataId, detectMemoryType(file.content), {
+            label: file.path,
+            datasetName: cfg.datasetName,
+          });
+        }
+      }
+      saveActivationIndex(activationIndex).catch((e) => {
+        logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+      });
 
       return result;
     }
@@ -108,6 +145,98 @@ const memoryCogneePlugin = {
             const summary = `Sync complete: ${result.added} added, ${result.updated} updated, ${result.skipped} unchanged, ${result.errors} errors`;
             ctx.logger.info?.(summary);
             console.log(summary);
+          });
+
+        cognee
+          .command("prune")
+          .description("Remove dormant memories below decay threshold")
+          .option("--threshold <n>", "Decay score threshold", String(cfg.pruneThreshold))
+          .option("--dry-run", "Show candidates without deleting")
+          .action(async (opts: { threshold: string; dryRun?: boolean }) => {
+            await Promise.all([stateReady, activationReady]);
+
+            const threshold = parseFloat(opts.threshold);
+            const now = new Date();
+            const candidates = identifyPruneCandidates(
+              activationIndex,
+              threshold,
+              now,
+              cfg.typeWeights,
+              cfg.decayRate,
+            );
+
+            if (candidates.length === 0) {
+              console.log("No dormant memories to prune.");
+              return;
+            }
+
+            console.log(
+              `Found ${candidates.length} dormant memories below threshold ${threshold}:`,
+            );
+            for (const id of candidates) {
+              const entry = activationIndex.entries[id];
+              if (!entry) continue;
+              const score = computeDecayScore(entry, now, cfg.typeWeights, cfg.decayRate);
+              console.log(
+                `  [${id.slice(0, 8)}] ${entry.label ?? "?"} (score: ${score.toFixed(3)}, type: ${entry.memoryType})`,
+              );
+            }
+
+            if (opts.dryRun) {
+              console.log("Dry run — no changes made.");
+              return;
+            }
+
+            if (datasetId) {
+              for (const id of candidates) {
+                try {
+                  await client.delete({ dataId: id, datasetId });
+                } catch (e) {
+                  ctx.logger.warn?.(`memory-cognee: failed to delete ${id}: ${String(e)}`);
+                }
+              }
+            }
+
+            removeEntries(activationIndex, candidates);
+            await saveActivationIndex(activationIndex);
+            console.log(`Pruned ${candidates.length} dormant memories.`);
+          });
+
+        cognee
+          .command("activation")
+          .description("Show activation/decay status of indexed memories")
+          .action(async () => {
+            await activationReady;
+
+            const now = new Date();
+            const tiers: Record<string, number> = {
+              active: 0,
+              fading: 0,
+              dormant: 0,
+              archived: 0,
+            };
+            const types: Record<string, number> = {
+              episodic: 0,
+              semantic: 0,
+              procedural: 0,
+              vault: 0,
+            };
+
+            for (const entry of Object.values(activationIndex.entries)) {
+              const score = computeDecayScore(entry, now, cfg.typeWeights, cfg.decayRate);
+              const tier = classifyDecayTier(score);
+              tiers[tier] = (tiers[tier] ?? 0) + 1;
+              types[entry.memoryType] = (types[entry.memoryType] ?? 0) + 1;
+            }
+
+            const total = Object.keys(activationIndex.entries).length;
+            const lines = [
+              `Activation Index: ${total} entries`,
+              "",
+              `By tier: active=${tiers.active}, fading=${tiers.fading}, dormant=${tiers.dormant}, archived=${tiers.archived}`,
+              `By type: episodic=${types.episodic}, semantic=${types.semantic}, procedural=${types.procedural}, vault=${types.vault}`,
+            ];
+            console.log(lines.join("\n"));
           });
 
         cognee
@@ -149,6 +278,304 @@ const memoryCogneePlugin = {
     );
 
     // ------------------------------------------------------------------
+    // Agent-facing tools: memory_recall, memory_store, memory_forget
+    // ------------------------------------------------------------------
+
+    if (cfg.enableTools) {
+      const VALID_MEMORY_TYPES: MemoryType[] = ["episodic", "semantic", "procedural", "vault"];
+
+      api.registerTool(
+        {
+          name: "memory_recall",
+          label: "Memory Recall (Cognee)",
+          description:
+            "Search through Cognee knowledge graph memories. Results are ranked by relevance and recency (decay scoring).",
+          parameters: Type.Object({
+            query: Type.String({ description: "Search query describing what to recall" }),
+            limit: Type.Optional(Type.Number({ description: "Max results (default: 6)" })),
+            memoryType: Type.Optional(
+              Type.Unsafe<MemoryType>({
+                type: "string",
+                enum: VALID_MEMORY_TYPES,
+                description: "Filter by memory type",
+              }),
+            ),
+          }),
+          async execute(_toolCallId, params) {
+            const { query, limit, memoryType } = params as {
+              query: string;
+              limit?: number;
+              memoryType?: MemoryType;
+            };
+
+            await Promise.all([stateReady, activationReady]);
+
+            if (!datasetId) {
+              return {
+                content: [
+                  {
+                    type: "text" as const,
+                    text: "No dataset indexed yet. Run cognee index first.",
+                  },
+                ],
+                details: { error: "no_dataset" },
+              };
+            }
+
+            const maxResults = limit ?? cfg.maxResults;
+            const results = await client.search({
+              queryText: query,
+              searchType: cfg.searchType,
+              datasetIds: [datasetId],
+              topK: maxResults * 2,
+            });
+
+            const now = new Date();
+            let scored = results.map((r) => {
+              const activation = activationIndex.entries[r.id];
+              const decayScore = activation
+                ? computeDecayScore(activation, now, cfg.typeWeights, cfg.decayRate)
+                : 0.5;
+              const clampedDecay = Number.isFinite(decayScore) ? Math.min(decayScore, 1) : 1;
+              const combinedScore = r.score * (0.6 + 0.4 * clampedDecay);
+              return { ...r, decayScore, combinedScore, activation };
+            });
+
+            if (memoryType) {
+              scored = scored.filter((r) => r.activation?.memoryType === memoryType);
+            }
+
+            scored.sort((a, b) => b.combinedScore - a.combinedScore);
+            const topResults = scored.slice(0, maxResults);
+
+            for (const r of topResults) {
+              recordAccess(activationIndex, r.id, r.activation?.memoryType);
+            }
+            saveActivationIndex(activationIndex).catch((e) => {
+              api.logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+            });
+
+            if (topResults.length === 0) {
+              return {
+                content: [{ type: "text" as const, text: "No relevant memories found." }],
+                details: { count: 0 },
+              };
+            }
+
+            const text = topResults
+              .map((r, i) => {
+                const tier = r.activation ? classifyDecayTier(r.decayScore) : "unknown";
+                const mType = r.activation?.memoryType ?? "unknown";
+                return `${i + 1}. [${mType}/${tier}] ${r.text} (${(r.combinedScore * 100).toFixed(0)}%)`;
+              })
+              .join("\n");
+
+            return {
+              content: [
+                { type: "text" as const, text: `Found ${topResults.length} memories:\n\n${text}` },
+              ],
+              details: {
+                count: topResults.length,
+                memories: topResults.map((r) => ({
+                  id: r.id,
+                  text: r.text,
+                  score: r.score,
+                  decayScore: r.decayScore,
+                  combinedScore: r.combinedScore,
+                  memoryType: r.activation?.memoryType,
+                  decayTier: r.activation ? classifyDecayTier(r.decayScore) : undefined,
+                })),
+              },
+            };
+          },
+        },
+        { name: "memory_recall" },
+      );
+
+      api.registerTool(
+        {
+          name: "memory_store",
+          label: "Memory Store (Cognee)",
+          description:
+            "Save information in Cognee knowledge graph memory. Use for preferences, facts, decisions, procedures.",
+          parameters: Type.Object({
+            text: Type.String({ description: "Information to remember" }),
+            memoryType: Type.Optional(
+              Type.Unsafe<MemoryType>({
+                type: "string",
+                enum: VALID_MEMORY_TYPES,
+                description: "Memory type (auto-detected if omitted)",
+              }),
+            ),
+            pinned: Type.Optional(
+              Type.Boolean({ description: "Pin this memory (immune to decay)" }),
+            ),
+            label: Type.Optional(Type.String({ description: "Short label for this memory" })),
+          }),
+          async execute(_toolCallId, params) {
+            const { text, memoryType, pinned, label } = params as {
+              text: string;
+              memoryType?: MemoryType;
+              pinned?: boolean;
+              label?: string;
+            };
+
+            await Promise.all([stateReady, activationReady]);
+
+            const resolvedType = memoryType ?? detectMemoryType(text);
+
+            const response = await client.add({
+              data: text,
+              datasetName: cfg.datasetName,
+              datasetId,
+            });
+
+            if (response.datasetId && response.datasetId !== datasetId) {
+              datasetId = response.datasetId;
+            }
+
+            const memoryId = response.dataId ?? `agent-${Date.now()}`;
+            registerMemory(activationIndex, memoryId, resolvedType, {
+              pinned: pinned ?? resolvedType === "vault",
+              label,
+              datasetName: cfg.datasetName,
+            });
+            saveActivationIndex(activationIndex).catch((e) => {
+              api.logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+            });
+
+            if (cfg.autoCognify && datasetId) {
+              try {
+                await client.cognify({ datasetIds: [datasetId] });
+              } catch (e) {
+                api.logger.warn?.(`memory-cognee: cognify after store failed: ${String(e)}`);
+              }
+            }
+
+            const truncated = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Stored [${resolvedType}]: "${truncated}"${pinned ? " (pinned)" : ""}`,
+                },
+              ],
+              details: {
+                action: "created",
+                memoryId,
+                memoryType: resolvedType,
+                pinned: pinned ?? false,
+              },
+            };
+          },
+        },
+        { name: "memory_store" },
+      );
+
+      api.registerTool(
+        {
+          name: "memory_forget",
+          label: "Memory Forget (Cognee)",
+          description:
+            "Remove specific memories from the knowledge graph. Search by query to find candidates, or specify an ID directly.",
+          parameters: Type.Object({
+            query: Type.Optional(
+              Type.String({ description: "Search query to find memory to forget" }),
+            ),
+            memoryId: Type.Optional(Type.String({ description: "Specific memory ID to delete" })),
+          }),
+          async execute(_toolCallId, params) {
+            const { query, memoryId } = params as { query?: string; memoryId?: string };
+
+            await Promise.all([stateReady, activationReady]);
+
+            if (memoryId) {
+              if (datasetId) {
+                try {
+                  await client.delete({ dataId: memoryId, datasetId });
+                } catch (e) {
+                  api.logger.warn?.(`memory-cognee: Cognee delete failed: ${String(e)}`);
+                }
+              }
+              removeEntries(activationIndex, [memoryId]);
+              saveActivationIndex(activationIndex).catch((e) => {
+                api.logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+              });
+              return {
+                content: [{ type: "text" as const, text: `Memory ${memoryId} forgotten.` }],
+                details: { action: "deleted", id: memoryId },
+              };
+            }
+
+            if (query && datasetId) {
+              const results = await client.search({
+                queryText: query,
+                searchType: cfg.searchType,
+                datasetIds: [datasetId],
+                topK: 5,
+              });
+
+              if (results.length === 0) {
+                return {
+                  content: [{ type: "text" as const, text: "No matching memories found." }],
+                  details: { found: 0 },
+                };
+              }
+
+              if (results.length === 1 && results[0].score > 0.9) {
+                const target = results[0];
+                try {
+                  await client.delete({ dataId: target.id, datasetId });
+                } catch (e) {
+                  api.logger.warn?.(`memory-cognee: Cognee delete failed: ${String(e)}`);
+                }
+                removeEntries(activationIndex, [target.id]);
+                saveActivationIndex(activationIndex).catch((e) => {
+                  api.logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+                });
+                return {
+                  content: [
+                    {
+                      type: "text" as const,
+                      text: `Forgotten: "${target.text.slice(0, 80)}"`,
+                    },
+                  ],
+                  details: { action: "deleted", id: target.id },
+                };
+              }
+
+              const list = results
+                .map((r) => `- [${r.id.slice(0, 8)}] ${r.text.slice(0, 60)}...`)
+                .join("\n");
+              return {
+                content: [
+                  {
+                    type: "text" as const,
+                    text: `Found ${results.length} candidates. Specify memoryId:\n${list}`,
+                  },
+                ],
+                details: {
+                  action: "candidates",
+                  candidates: results.map((r) => ({
+                    id: r.id,
+                    text: r.text,
+                    score: r.score,
+                  })),
+                },
+              };
+            }
+
+            return {
+              content: [{ type: "text" as const, text: "Provide query or memoryId." }],
+              details: { error: "missing_param" },
+            };
+          },
+        },
+        { name: "memory_forget" },
+      );
+    }
+
+    // ------------------------------------------------------------------
     // Auto-sync on startup
     // ------------------------------------------------------------------
 
@@ -176,7 +603,7 @@ const memoryCogneePlugin = {
 
     if (cfg.autoRecall) {
       api.on("before_agent_start", async (event, ctx) => {
-        await stateReady;
+        await Promise.all([stateReady, activationReady]);
 
         if (!event.prompt || event.prompt.length < 5) {
           return;
@@ -197,7 +624,7 @@ const memoryCogneePlugin = {
             queryText: event.prompt,
             searchType: cfg.searchType,
             datasetIds: effectiveDatasetIds,
-            topK: cfg.maxResults,
+            topK: cfg.maxResults * 2,
           });
 
           let filtered = results.filter((result) => result.score >= cfg.minScore);
@@ -218,10 +645,37 @@ const memoryCogneePlugin = {
             return;
           }
 
+          // Apply decay scoring to re-rank results
+          const now = new Date();
+          const decayScored = filtered.map((result) => {
+            const activation = activationIndex.entries[result.id];
+            const decayScore = activation
+              ? computeDecayScore(activation, now, cfg.typeWeights, cfg.decayRate)
+              : 0.5;
+            const clampedDecay = Number.isFinite(decayScore) ? Math.min(decayScore, 1) : 1;
+            const combinedScore = result.score * (0.6 + 0.4 * clampedDecay);
+            return { ...result, decayScore, combinedScore };
+          });
+          decayScored.sort((a, b) => b.combinedScore - a.combinedScore);
+          const topResults = decayScored.slice(0, cfg.maxResults);
+
+          // Record access for recalled memories (async, non-blocking)
+          for (const r of topResults) {
+            recordAccess(activationIndex, r.id);
+          }
+          saveActivationIndex(activationIndex).catch((e) => {
+            api.logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+          });
+
           const payload = JSON.stringify(
-            filtered.map((result) => ({
+            topResults.map((result) => ({
               id: result.id,
               score: result.score,
+              decayScore: result.decayScore,
+              memoryType: activationIndex.entries[result.id]?.memoryType ?? "unknown",
+              decayTier: activationIndex.entries[result.id]
+                ? classifyDecayTier(result.decayScore)
+                : "unknown",
               text: result.text,
               metadata: result.metadata,
             })),
@@ -230,7 +684,7 @@ const memoryCogneePlugin = {
           );
 
           api.logger.info?.(
-            `memory-cognee: injecting ${filtered.length} memories for session ${ctx.sessionKey ?? "unknown"}`,
+            `memory-cognee: injecting ${topResults.length} memories for session ${ctx.sessionKey ?? "unknown"}`,
           );
 
           return {
@@ -250,7 +704,7 @@ const memoryCogneePlugin = {
       api.on("agent_end", async (event) => {
         if (!event.success) return;
 
-        await stateReady;
+        await Promise.all([stateReady, activationReady]);
 
         const workspaceDir = resolvedWorkspaceDir || process.cwd();
 
@@ -261,20 +715,57 @@ const memoryCogneePlugin = {
             return !existing || existing.hash !== f.hash;
           });
 
-          if (changedFiles.length === 0) return;
+          if (changedFiles.length > 0) {
+            api.logger.info?.(
+              `memory-cognee: detected ${changedFiles.length} changed file(s), syncing...`,
+            );
 
-          api.logger.info?.(
-            `memory-cognee: detected ${changedFiles.length} changed file(s), syncing...`,
-          );
+            const result = await syncFiles(client, changedFiles, syncIndex, cfg, api.logger);
+            if (result.datasetId) {
+              datasetId = result.datasetId;
+            }
 
-          const result = await syncFiles(client, changedFiles, syncIndex, cfg, api.logger);
-          if (result.datasetId) {
-            datasetId = result.datasetId;
+            // Auto-classify newly synced files
+            for (const file of changedFiles) {
+              const entry = syncIndex.entries[file.path];
+              if (entry?.dataId && !activationIndex.entries[entry.dataId]) {
+                registerMemory(activationIndex, entry.dataId, detectMemoryType(file.content), {
+                  label: file.path,
+                  datasetName: cfg.datasetName,
+                });
+              }
+            }
+
+            api.logger.info?.(
+              `memory-cognee: post-agent sync: ${result.added} added, ${result.updated} updated`,
+            );
           }
 
-          api.logger.info?.(
-            `memory-cognee: post-agent sync: ${result.added} added, ${result.updated} updated`,
-          );
+          // Auto-prune dormant memories
+          if (cfg.autoPrune) {
+            const candidates = identifyPruneCandidates(
+              activationIndex,
+              cfg.pruneThreshold,
+              new Date(),
+              cfg.typeWeights,
+              cfg.decayRate,
+            );
+            if (candidates.length > 0 && datasetId) {
+              for (const id of candidates) {
+                try {
+                  await client.delete({ dataId: id, datasetId });
+                } catch {
+                  // Cognee delete may not be available; continue with local cleanup
+                }
+              }
+              removeEntries(activationIndex, candidates);
+              api.logger.info?.(`memory-cognee: auto-pruned ${candidates.length} dormant memories`);
+            }
+          }
+
+          saveActivationIndex(activationIndex).catch((e) => {
+            api.logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+          });
         } catch (error) {
           api.logger.warn?.(`memory-cognee: post-agent sync failed: ${String(error)}`);
         }

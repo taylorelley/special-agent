@@ -136,4 +136,93 @@ describe("memory-cognee plugin", () => {
     expect(registeredHooks.before_agent_start ?? []).toHaveLength(0);
     expect(registeredHooks.agent_end ?? []).toHaveLength(0);
   });
+
+  test("plugin registers tools when enableTools is true (default)", async () => {
+    const { default: plugin } = await import("./index.js");
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const registeredTools: any[] = [];
+
+    const mockApi = {
+      id: "memory-cognee",
+      name: "Memory (Cognee)",
+      source: "test",
+      config: {},
+      pluginConfig: {
+        baseUrl: "http://localhost:8000",
+        autoRecall: false,
+        autoIndex: false,
+        enableTools: true,
+      },
+      runtime: {},
+      logger: {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      },
+      // oxlint-disable-next-line typescript/no-explicit-any
+      registerTool: (tool: any, opts: any) => {
+        registeredTools.push({ tool, opts });
+      },
+      registerCli: () => {},
+      registerService: () => {},
+      // oxlint-disable-next-line typescript/no-explicit-any
+      on: () => {},
+      resolvePath: (p: string) => p,
+    };
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    plugin.register(mockApi as any);
+
+    expect(registeredTools.length).toBe(3);
+    const toolNames = registeredTools.map(
+      // oxlint-disable-next-line typescript/no-explicit-any
+      (t: any) => t.opts?.name,
+    );
+    expect(toolNames).toContain("memory_recall");
+    expect(toolNames).toContain("memory_store");
+    expect(toolNames).toContain("memory_forget");
+  });
+
+  test("plugin skips tools when enableTools is false", async () => {
+    const { default: plugin } = await import("./index.js");
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const registeredTools: any[] = [];
+
+    const mockApi = {
+      id: "memory-cognee",
+      name: "Memory (Cognee)",
+      source: "test",
+      config: {},
+      pluginConfig: {
+        baseUrl: "http://localhost:8000",
+        autoRecall: false,
+        autoIndex: false,
+        enableTools: false,
+      },
+      runtime: {},
+      logger: {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      },
+      // oxlint-disable-next-line typescript/no-explicit-any
+      registerTool: (tool: any) => {
+        registeredTools.push(tool);
+      },
+      registerCli: () => {},
+      registerService: () => {},
+      // oxlint-disable-next-line typescript/no-explicit-any
+      on: () => {},
+      resolvePath: (p: string) => p,
+    };
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    plugin.register(mockApi as any);
+
+    expect(registeredTools.length).toBe(0);
+  });
 });
