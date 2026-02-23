@@ -50,6 +50,61 @@
       "requestTimeoutMs": {
         "type": "number",
         "description": "HTTP timeout in milliseconds for Cognee requests (default: 60000)"
+      },
+      "enableTools": {
+        "type": "boolean",
+        "description": "Register agent-facing memory tools: memory_store, memory_recall, memory_forget (default: true)"
+      },
+      "decayRate": {
+        "type": "number",
+        "description": "Exponential decay rate lambda — higher values mean faster decay (default: 0.03)"
+      },
+      "pruneThreshold": {
+        "type": "number",
+        "description": "Decay score below which memories are pruned (default: 0.05)"
+      },
+      "autoPrune": {
+        "type": "boolean",
+        "description": "Automatically prune dormant memories after each agent turn (default: false)"
+      },
+      "typeWeights": {
+        "type": "object",
+        "description": "Override type weights for recall scoring (episodic=0.8, semantic=1.2, procedural=1.0)",
+        "properties": {
+          "episodic": { "type": "number" },
+          "semantic": { "type": "number" },
+          "procedural": { "type": "number" },
+          "vault": { "type": "number" }
+        },
+        "additionalProperties": false
+      },
+      "consolidationEnabled": {
+        "type": "boolean",
+        "description": "Enable STM-to-LTM consolidation: buffer conversation excerpts and periodically summarize into durable memories (default: false)"
+      },
+      "consolidationThreshold": {
+        "type": "number",
+        "description": "Number of agent turns between consolidation runs (default: 5)"
+      },
+      "consolidationTimeoutMs": {
+        "type": "number",
+        "description": "Timeout for consolidation LLM calls in ms (default: 30000)"
+      },
+      "reflectionEnabled": {
+        "type": "boolean",
+        "description": "Enable periodic memory reflection: LLM reviews memory landscape for patterns and contradictions (default: false)"
+      },
+      "reflectionThreshold": {
+        "type": "number",
+        "description": "Number of agent turns between reflection runs (default: 15)"
+      },
+      "reflectionTimeoutMs": {
+        "type": "number",
+        "description": "Timeout for reflection LLM calls in ms (default: 30000)"
+      },
+      "stmMaxAgeDays": {
+        "type": "number",
+        "description": "Evict consolidated STM entries older than N days (default: 7)"
       }
     }
   },
@@ -95,6 +150,49 @@
     "requestTimeoutMs": {
       "label": "Request Timeout (ms)",
       "placeholder": "60000"
+    },
+    "enableTools": {
+      "label": "Enable Memory Tools"
+    },
+    "decayRate": {
+      "label": "Decay Rate",
+      "placeholder": "0.03"
+    },
+    "pruneThreshold": {
+      "label": "Prune Threshold",
+      "placeholder": "0.05"
+    },
+    "autoPrune": {
+      "label": "Auto-Prune"
+    },
+    "typeWeights": {
+      "label": "Type Weights"
+    },
+    "consolidationEnabled": {
+      "label": "Enable Consolidation"
+    },
+    "consolidationThreshold": {
+      "label": "Consolidation Threshold",
+      "placeholder": "5"
+    },
+    "consolidationTimeoutMs": {
+      "label": "Consolidation Timeout (ms)",
+      "placeholder": "30000"
+    },
+    "reflectionEnabled": {
+      "label": "Enable Reflection"
+    },
+    "reflectionThreshold": {
+      "label": "Reflection Threshold",
+      "placeholder": "15"
+    },
+    "reflectionTimeoutMs": {
+      "label": "Reflection Timeout (ms)",
+      "placeholder": "30000"
+    },
+    "stmMaxAgeDays": {
+      "label": "STM Max Age (days)",
+      "placeholder": "7"
     }
   }
 }

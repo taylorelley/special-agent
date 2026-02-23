@@ -4,6 +4,8 @@
  * Extracted from the memory-cognee plugin for reuse across scoped dataset operations.
  */
 
+import { DEFAULT_DECAY_RATE, type MemoryType } from "./activation.js";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -36,6 +38,18 @@ export type CogneePluginConfig = {
   autoIndex?: boolean;
   autoCognify?: boolean;
   requestTimeoutMs?: number;
+  enableTools?: boolean;
+  decayRate?: number;
+  pruneThreshold?: number;
+  autoPrune?: boolean;
+  typeWeights?: Partial<Record<MemoryType, number>>;
+  consolidationEnabled?: boolean;
+  consolidationThreshold?: number;
+  consolidationTimeoutMs?: number;
+  reflectionEnabled?: boolean;
+  reflectionThreshold?: number;
+  reflectionTimeoutMs?: number;
+  stmMaxAgeDays?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -52,6 +66,17 @@ export const DEFAULT_AUTO_RECALL = true;
 export const DEFAULT_AUTO_INDEX = true;
 export const DEFAULT_AUTO_COGNIFY = true;
 export const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
+export const DEFAULT_ENABLE_TOOLS = true;
+export { DEFAULT_DECAY_RATE } from "./activation.js";
+export const DEFAULT_PRUNE_THRESHOLD = 0.05;
+export const DEFAULT_AUTO_PRUNE = false;
+export const DEFAULT_CONSOLIDATION_ENABLED = false;
+export const DEFAULT_CONSOLIDATION_THRESHOLD = 5;
+export const DEFAULT_CONSOLIDATION_TIMEOUT_MS = 30_000;
+export const DEFAULT_REFLECTION_ENABLED = false;
+export const DEFAULT_REFLECTION_THRESHOLD = 15;
+export const DEFAULT_REFLECTION_TIMEOUT_MS = 30_000;
+export const DEFAULT_STM_MAX_AGE_DAYS = 7;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -83,6 +108,46 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
   const autoCognify = typeof raw.autoCognify === "boolean" ? raw.autoCognify : DEFAULT_AUTO_COGNIFY;
   const requestTimeoutMs =
     typeof raw.requestTimeoutMs === "number" ? raw.requestTimeoutMs : DEFAULT_REQUEST_TIMEOUT_MS;
+  const enableTools = typeof raw.enableTools === "boolean" ? raw.enableTools : DEFAULT_ENABLE_TOOLS;
+  const decayRate = typeof raw.decayRate === "number" ? raw.decayRate : DEFAULT_DECAY_RATE;
+  const pruneThreshold =
+    typeof raw.pruneThreshold === "number" ? raw.pruneThreshold : DEFAULT_PRUNE_THRESHOLD;
+  const autoPrune = typeof raw.autoPrune === "boolean" ? raw.autoPrune : DEFAULT_AUTO_PRUNE;
+  const VALID_MEMORY_TYPES: readonly string[] = ["episodic", "semantic", "procedural", "vault"];
+  const rawWeights =
+    raw.typeWeights && typeof raw.typeWeights === "object"
+      ? (raw.typeWeights as Record<string, number>)
+      : {};
+  const typeWeights: Partial<Record<MemoryType, number>> = {};
+  for (const [k, v] of Object.entries(rawWeights)) {
+    if (VALID_MEMORY_TYPES.includes(k) && typeof v === "number") {
+      typeWeights[k as MemoryType] = v;
+    }
+  }
+  const consolidationEnabled =
+    typeof raw.consolidationEnabled === "boolean"
+      ? raw.consolidationEnabled
+      : DEFAULT_CONSOLIDATION_ENABLED;
+  const consolidationThreshold =
+    typeof raw.consolidationThreshold === "number"
+      ? raw.consolidationThreshold
+      : DEFAULT_CONSOLIDATION_THRESHOLD;
+  const consolidationTimeoutMs =
+    typeof raw.consolidationTimeoutMs === "number"
+      ? raw.consolidationTimeoutMs
+      : DEFAULT_CONSOLIDATION_TIMEOUT_MS;
+  const reflectionEnabled =
+    typeof raw.reflectionEnabled === "boolean" ? raw.reflectionEnabled : DEFAULT_REFLECTION_ENABLED;
+  const reflectionThreshold =
+    typeof raw.reflectionThreshold === "number"
+      ? raw.reflectionThreshold
+      : DEFAULT_REFLECTION_THRESHOLD;
+  const reflectionTimeoutMs =
+    typeof raw.reflectionTimeoutMs === "number"
+      ? raw.reflectionTimeoutMs
+      : DEFAULT_REFLECTION_TIMEOUT_MS;
+  const stmMaxAgeDays =
+    typeof raw.stmMaxAgeDays === "number" ? raw.stmMaxAgeDays : DEFAULT_STM_MAX_AGE_DAYS;
 
   const resolvedApiKey =
     raw.apiKey && raw.apiKey.length > 0 ? resolveEnvVars(raw.apiKey) : undefined;
@@ -102,6 +167,18 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
     autoIndex,
     autoCognify,
     requestTimeoutMs,
+    enableTools,
+    decayRate,
+    pruneThreshold,
+    autoPrune,
+    typeWeights,
+    consolidationEnabled,
+    consolidationThreshold,
+    consolidationTimeoutMs,
+    reflectionEnabled,
+    reflectionThreshold,
+    reflectionTimeoutMs,
+    stmMaxAgeDays,
   };
 }
 
@@ -231,6 +308,17 @@ export class CogneeClient {
         ...this.buildHeaders(),
       },
       body: JSON.stringify({ datasetIds: params.datasetIds }),
+    });
+  }
+
+  async delete(params: { dataId: string; datasetId: string }): Promise<void> {
+    const query = new URLSearchParams({
+      data_id: params.dataId,
+      dataset_id: params.datasetId,
+    });
+    await this.fetchJson<unknown>(`/api/v1/delete?${query.toString()}`, {
+      method: "DELETE",
+      headers: this.buildHeaders(),
     });
   }
 
