@@ -1,0 +1,81 @@
+# Special Agent — Docker Compose deployment template
+#
+# Quick start:
+#   1. Copy this file and customise the environment variables below.
+#   2. Set SPECIAL_AGENT_GATEWAY_TOKEN to a strong random value:
+#        openssl rand -hex 32
+#   3. Create the host directories for config and workspace:
+#        mkdir -p ~/.special-agent ~/.special-agent/workspace
+#   4. Run:  docker compose up -d
+
+services:
+  special-agent-gateway:
+    image: ghcr.io/taylorelley/special-agent:main
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+
+      # --- Gateway auth + paths ------------------------------------------------
+      SPECIAL_AGENT_GATEWAY_TOKEN: ${SPECIAL_AGENT_GATEWAY_TOKEN:-change-me-to-a-long-random-token}
+      # SPECIAL_AGENT_GATEWAY_PASSWORD: ${SPECIAL_AGENT_GATEWAY_PASSWORD:-}
+
+      # --- Model provider API keys (set at least one) --------------------------
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+
+      # --- Channel tokens (only set what you enable) ---------------------------
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN:-}
+
+      # --- Claude integration --------------------------------------------------
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
+
+      # --- Tools + media (optional) --------------------------------------------
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+
+    volumes:
+      - ${SPECIAL_AGENT_CONFIG_DIR:-~/.special-agent}:/home/node/.special-agent
+      - ${SPECIAL_AGENT_WORKSPACE_DIR:-~/.special-agent/workspace}:/home/node/.special-agent/workspace
+    ports:
+      - "${SPECIAL_AGENT_GATEWAY_PORT:-18789}:18789"
+      - "${SPECIAL_AGENT_BRIDGE_PORT:-18790}:18790"
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "${SPECIAL_AGENT_GATEWAY_BIND:-lan}",
+        "--port",
+        "18789",
+      ]
+
+  special-agent-cli:
+    image: ghcr.io/taylorelley/special-agent:main
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      SPECIAL_AGENT_GATEWAY_TOKEN: ${SPECIAL_AGENT_GATEWAY_TOKEN:-change-me-to-a-long-random-token}
+      BROWSER: echo
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
+    volumes:
+      - ${SPECIAL_AGENT_CONFIG_DIR:-~/.special-agent}:/home/node/.special-agent
+      - ${SPECIAL_AGENT_WORKSPACE_DIR:-~/.special-agent/workspace}:/home/node/.special-agent/workspace
+    stdin_open: true
+    tty: true
+    init: true
+    entrypoint: ["node", "dist/index.js"]
+    profiles:
+      - cli
