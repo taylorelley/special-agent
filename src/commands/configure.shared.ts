@@ -15,6 +15,8 @@ export const CONFIGURE_WIZARD_SECTIONS = [
   "daemon",
   "channels",
   "skills",
+  "memory",
+  "beads",
   "health",
 ] as const;
 
@@ -47,6 +49,8 @@ export const CONFIGURE_SECTION_OPTIONS: Array<{
     hint: "Link WhatsApp/Telegram/etc and defaults",
   },
   { value: "skills", label: "Skills", hint: "Install/enable workspace skills" },
+  { value: "memory", label: "Memory", hint: "Memory system (Core/Cognee/None)" },
+  { value: "beads", label: "Beads", hint: "Git-backed task tracking" },
   {
     value: "health",
     label: "Health check",

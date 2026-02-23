@@ -1,0 +1,15 @@
+{
+  "name": "@special-agent/scope-commands",
+  "version": "2026.2.10",
+  "private": true,
+  "description": "Three-tier scope system: /personal, /project, /team commands for knowledge and task routing",
+  "type": "module",
+  "devDependencies": {
+    "special-agent": "workspace:*"
+  },
+  "special-agent": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

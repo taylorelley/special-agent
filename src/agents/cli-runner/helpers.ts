@@ -245,6 +245,7 @@ export function buildSystemPrompt(params: {
     contextFiles: params.contextFiles,
     ttsHint,
     memoryCitationsMode: params.config?.memory?.citations,
+    memoryPlugin: params.config?.plugins?.slots?.memory,
   });
 }
 

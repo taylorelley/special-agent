@@ -13,6 +13,7 @@ import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
 import type { InternalHookHandler } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { RuntimeEnv } from "../runtime.js";
+import type { ScopeContext } from "../scopes/types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { PluginRuntime } from "./runtime/types.js";
 
@@ -137,6 +138,8 @@ export type SpecialAgentPluginGatewayMethod = {
  * Context passed to plugin command handlers.
  */
 export type PluginCommandContext = {
+  /** Session key for this command's session (if available). */
+  sessionKey?: string;
   /** The sender's identifier (e.g., Telegram user ID) */
   senderId?: string;
   /** The channel/surface (e.g., "telegram", "discord") */
@@ -322,6 +325,8 @@ export type PluginHookAgentContext = {
   sessionKey?: string;
   workspaceDir?: string;
   messageProvider?: string;
+  /** Resolved scope context for this session (if scope system is configured). */
+  scope?: ScopeContext;
 };
 
 // before_agent_start hook

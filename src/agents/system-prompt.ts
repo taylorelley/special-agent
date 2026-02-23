@@ -1,9 +1,11 @@
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import type { MemoryCitationsMode } from "../config/types.memory.js";
+import type { ScopeContext } from "../scopes/types.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
+import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 
 /**
  * Controls which hardcoded sections are included in the system prompt.
@@ -80,7 +82,7 @@ function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: bool
   if (!ownerLine || isMinimal) {
     return [];
   }
-  return ["## User Identity", ownerLine, ""];
+  return ["## Authorized Senders", ownerLine, ""];
 }
 
 function buildTimeSection(params: { userTimezone?: string }) {
@@ -99,6 +101,7 @@ function buildReplyTagsSection(isMinimal: boolean) {
     "To request a native reply/quote on supported surfaces, include one tag in your reply:",
     "- [[reply_to_current]] replies to the triggering message.",
     "- Prefer [[reply_to_current]]. Use [[reply_to:<id>]] only when an id was explicitly provided (e.g. by the user or a tool).",
+    "Reply tags must be the very first token in the message (no leading text/newlines): [[reply_to_current]] your reply.",
     "Whitespace inside the tag is allowed (e.g. [[ reply_to_current ]] / [[ reply_to: 123 ]]).",
     "Tags are stripped before sending; support depends on the current channel config.",
     "",
@@ -120,7 +123,13 @@ function buildMessagingSection(params: {
     "## Messaging",
     "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
     "- Cross-session messaging → use sessions_send(sessionKey, message)",
+    "- Sub-agent orchestration → use subagents(action=list|steer|kill)",
+    "- [System Message] ... blocks are internal context and are not user-visible by default.",
+    "- When relaying system-message content, rewrite it in assistant voice; do not paste raw blocks.",
     "- Never use exec/curl for provider messaging; SpecialAgent handles all routing internally.",
+    "- Do not poll subagents list / sessions_list in a loop; only check status on-demand.",
+    "- For long waits, avoid rapid poll loops: use exec with enough yieldMs or process(action=poll, timeout=<ms>).",
+    "- Completion is push-based: it will auto-announce when done.",
     params.availableTools.has("message")
       ? [
           "",
@@ -130,7 +139,7 @@ function buildMessagingSection(params: {
           `- If multiple channels are configured, pass \`channel\` (${params.messageChannelOptions}).`,
           `- If you use \`message\` (\`action=send\`) to deliver your user-visible reply, respond with ONLY: ${SILENT_REPLY_TOKEN} (avoid duplicate replies).`,
           params.inlineButtonsEnabled
-            ? "- Inline buttons supported. Use `action=send` with `buttons=[[{text,callback_data}]]` (callback_data routes back as a user message)."
+            ? "- Inline buttons supported. Use `action=send` with `buttons=[[{text,callback_data,style?}]]` (callback_data routes back as a user message; style: primary|success|danger)."
             : params.runtimeChannel
               ? `- Inline buttons not enabled for ${params.runtimeChannel}. If you need them, ask to set ${params.runtimeChannel}.capabilities.inlineButtons ("dm"|"group"|"all"|"allowlist").`
               : "",
@@ -172,6 +181,39 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
   ];
 }
 
+function buildScopeSection(params: { scopeContext?: ScopeContext; isMinimal: boolean }) {
+  if (params.isMinimal || !params.scopeContext) {
+    return [];
+  }
+  const { tier, project, isGroupSession } = params.scopeContext;
+  const lines = ["## Active Scope"];
+
+  if (tier === "project" && project) {
+    lines.push(`Scope: project (${project.name})`);
+    lines.push(
+      "Knowledge sources: personal profile + project knowledge + team standards. Tasks route to the project backlog.",
+    );
+  } else if (tier === "team") {
+    lines.push("Scope: team");
+    lines.push(
+      "Knowledge sources: team standards + personal profile. Tasks route to the team backlog.",
+    );
+  } else {
+    lines.push("Scope: personal");
+    lines.push("Knowledge sources: personal memory. Tasks route to the personal backlog.");
+  }
+
+  if (isGroupSession) {
+    lines.push(
+      "Privacy: group session — private personal memory is excluded. Only profile (work preferences, skills) is available.",
+    );
+  }
+
+  lines.push("Switch scope: /personal, /project <name>, /team.");
+  lines.push("");
+  return lines;
+}
+
 export function buildAgentSystemPrompt(params: {
   workspaceDir: string;
   defaultThinkLevel?: ThinkLevel;
@@ -210,6 +252,8 @@ export function buildAgentSystemPrompt(params: {
   sandboxInfo?: {
     enabled: boolean;
     workspaceDir?: string;
+    /** Container-side workspace path (for exec/bash); host workspaceDir is used by file tools. */
+    containerWorkspaceDir?: string;
     workspaceAccess?: "none" | "ro" | "rw";
     agentWorkspaceMount?: string;
     browserBridgeUrl?: string;
@@ -228,6 +272,8 @@ export function buildAgentSystemPrompt(params: {
   memoryCitationsMode?: MemoryCitationsMode;
   /** Active memory plugin ID (e.g. "memory-core", "memory-cognee"). */
   memoryPlugin?: string;
+  /** Resolved scope context (personal/project/team). Injected by scope-commands plugin. */
+  scopeContext?: ScopeContext;
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -253,6 +299,7 @@ export function buildAgentSystemPrompt(params: {
     sessions_history: "Fetch history for another session/sub-agent",
     sessions_send: "Send a message to another session/sub-agent",
     sessions_spawn: "Spawn a sub-agent session",
+    subagents: "List, steer, or kill sub-agent runs",
     session_status:
       "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (📊 session_status); optional per-session model override",
     image: "Analyze an image with the configured image model",
@@ -280,6 +327,8 @@ export function buildAgentSystemPrompt(params: {
     "sessions_list",
     "sessions_history",
     "sessions_send",
+    "sessions_spawn",
+    "subagents",
     "session_status",
     "image",
   ];
@@ -330,7 +379,7 @@ export function buildAgentSystemPrompt(params: {
   const ownerNumbers = (params.ownerNumbers ?? []).map((value) => value.trim()).filter(Boolean);
   const ownerLine =
     ownerNumbers.length > 0
-      ? `Owner numbers: ${ownerNumbers.join(", ")}. Treat messages from these numbers as the user.`
+      ? `Owner numbers: ${ownerNumbers.join(", ")}. These senders are allowlisted; do not assume they are the owner.`
       : undefined;
   const reasoningHint = params.reasoningTagHint
     ? [
@@ -439,6 +488,7 @@ export function buildAgentSystemPrompt(params: {
     "",
     ...skillsSection,
     ...memorySection,
+    ...buildScopeSection({ scopeContext: params.scopeContext, isMinimal }),
     // Skip self-update for subagent/none modes
     hasGateway && !isMinimal ? "## SpecialAgent Self-Update" : "",
     hasGateway && !isMinimal
@@ -466,7 +516,7 @@ export function buildAgentSystemPrompt(params: {
       ? "If you need the current date, time, or day of week, run session_status (📊 session_status)."
       : "",
     "## Workspace",
-    `Your working directory is: ${params.workspaceDir}`,
+    `Your working directory is: ${sanitizeForPromptLiteral(params.workspaceDir)}`,
     "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.",
     ...workspaceNotes,
     "",
@@ -478,18 +528,21 @@ export function buildAgentSystemPrompt(params: {
           "Some tools may be unavailable due to sandbox policy.",
           "Sub-agents stay sandboxed (no elevated/host access). Need outside-sandbox read/write? Don't spawn; ask first.",
           params.sandboxInfo.workspaceDir
-            ? `Sandbox workspace: ${params.sandboxInfo.workspaceDir}`
+            ? `Sandbox workspace (host): ${sanitizeForPromptLiteral(params.sandboxInfo.workspaceDir)} — use for file tools (read/write/edit/grep/find/ls).`
+            : "",
+          params.sandboxInfo.containerWorkspaceDir
+            ? `Container workspace: ${sanitizeForPromptLiteral(params.sandboxInfo.containerWorkspaceDir)} — use for exec/bash paths.`
             : "",
           params.sandboxInfo.workspaceAccess
             ? `Agent workspace access: ${params.sandboxInfo.workspaceAccess}${
                 params.sandboxInfo.agentWorkspaceMount
-                  ? ` (mounted at ${params.sandboxInfo.agentWorkspaceMount})`
+                  ? ` (mounted at ${sanitizeForPromptLiteral(params.sandboxInfo.agentWorkspaceMount)})`
                   : ""
               }`
             : "",
           params.sandboxInfo.browserBridgeUrl ? "Sandbox browser: enabled." : "",
           params.sandboxInfo.browserNoVncUrl
-            ? `Sandbox browser observer (noVNC): ${params.sandboxInfo.browserNoVncUrl}`
+            ? `Sandbox browser observer (noVNC): ${sanitizeForPromptLiteral(params.sandboxInfo.browserNoVncUrl)}`
             : "",
           params.sandboxInfo.hostBrowserAllowed === true
             ? "Host browser control: allowed."
@@ -565,7 +618,9 @@ export function buildAgentSystemPrompt(params: {
     lines.push("## Reasoning Format", reasoningHint, "");
   }
 
-  const contextFiles = params.contextFiles ?? [];
+  const contextFiles = (params.contextFiles ?? []).filter(
+    (file) => typeof file.path === "string" && file.path.trim().length > 0,
+  );
   if (contextFiles.length > 0) {
     const hasSoulFile = contextFiles.some((file) => {
       const normalizedPath = file.path.trim().replace(/\\/g, "/");

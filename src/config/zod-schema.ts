@@ -596,6 +596,46 @@ export const SpecialAgentSchema = z
       })
       .strict()
       .optional(),
+    scopes: z
+      .object({
+        defaultTier: z
+          .union([z.literal("personal"), z.literal("project"), z.literal("team")])
+          .optional(),
+        projects: z
+          .array(
+            z
+              .object({
+                id: z.string(),
+                name: z.string(),
+                members: z.array(z.string()).optional(),
+              })
+              .strict(),
+          )
+          .optional(),
+        team: z
+          .object({
+            name: z.string().optional(),
+            governance: z.boolean().optional(),
+          })
+          .strict()
+          .optional(),
+        beads: z
+          .object({
+            enabled: z.boolean().optional(),
+            repos: z
+              .object({
+                personal: z.string().optional(),
+                team: z.string().optional(),
+              })
+              .strict()
+              .optional(),
+            projectRepos: z.record(z.string(), z.string()).optional(),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((cfg, ctx) => {

@@ -9,7 +9,7 @@ import {
   DEFAULT_SANDBOX_IMAGE,
   resolveSandboxScope,
 } from "../agents/sandbox.js";
-import { isDockerAvailable } from "../process/docker.js";
+import { checkDocker } from "../process/docker.js";
 import { runCommandWithTimeout, runExec } from "../process/exec.js";
 import { note } from "../terminal/note.js";
 
@@ -176,9 +176,12 @@ export async function maybeRepairSandboxImages(
     return cfg;
   }
 
-  const dockerAvailable = await isDockerAvailable();
-  if (!dockerAvailable) {
-    note("Docker not available; skipping sandbox image checks.", "Sandbox");
+  const docker = await checkDocker();
+  if (!docker.available) {
+    const message = docker.reason
+      ? `Docker not available: ${docker.reason} Skipping sandbox image checks.`
+      : "Docker not available; skipping sandbox image checks.";
+    note(message, "Sandbox");
     return cfg;
   }
 

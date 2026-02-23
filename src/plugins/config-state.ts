@@ -19,6 +19,9 @@ export const BUNDLED_ENABLED_BY_DEFAULT = new Set<string>([
   "talk-voice",
 ]);
 
+/** Bundled plugins that auto-enable when any memory plugin is active. */
+export const BUNDLED_ENABLED_WITH_MEMORY = new Set<string>(["scope-commands"]);
+
 const normalizeList = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
     return [];
@@ -186,6 +189,13 @@ export function resolveEnableState(
     return { enabled: false, reason: "disabled in config" };
   }
   if (origin === "bundled" && BUNDLED_ENABLED_BY_DEFAULT.has(id)) {
+    return { enabled: true };
+  }
+  if (
+    origin === "bundled" &&
+    BUNDLED_ENABLED_WITH_MEMORY.has(id) &&
+    typeof config.slots.memory === "string"
+  ) {
     return { enabled: true };
   }
   if (origin === "bundled") {

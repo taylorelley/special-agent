@@ -18,8 +18,72 @@ By default, the configuration is more restricted than OpenClaw to support govern
 - **Skills platform** — bundled, managed, and workspace skills with install gating
 - **Companion apps** — macOS menu bar app, iOS and Android nodes
 - **Cron, webhooks, and Gmail Pub/Sub** — automation triggers
+- **Three-tier scope system** — personal/project/team knowledge and task isolation with privacy-respecting retrieval
+- **Scoped task tracking** — git-backed distributed tasks via Beads, routed per scope
 
-**Supported models:** — Any OpenAI, Anthropic, or Ollama compatible endpoint.
+**Supported models:** — Any OpenAI, Anthropic, or Ollama-compatible endpoint.
+
+## Three-Tier Scope System
+
+Special Agent supports a three-tier scope system for isolating knowledge and tasks across **personal**, **project**, and **team** boundaries. Each scope tier controls which knowledge is recalled, where new knowledge is stored, and which task repositories are active.
+
+### Scope Tiers
+
+| Tier         | Description                          | Knowledge Access                               | Task Repo                         |
+| ------------ | ------------------------------------ | ---------------------------------------------- | --------------------------------- |
+| **Personal** | Per-user private knowledge and tasks | Private notes + profile preferences            | `~/.special-agent/tasks/personal` |
+| **Project**  | Per-project shared knowledge         | Personal profile + project + team datasets     | Configured per project            |
+| **Team**     | Cross-project standards and backlog  | Personal profile + all project + team datasets | Dedicated team repo               |
+
+### Slash Commands
+
+Switch the active scope at any time:
+
+- `/personal` — switch to personal scope (private knowledge and tasks)
+- `/project <name>` — switch to a named project scope
+- `/team` — switch to team scope (shared standards, cross-project tasks)
+- `/scope` — show current active scope
+- `/scope-clear` — revert to config default
+
+### Configuration
+
+Add a `scopes` section to `special-agent.json`:
+
+```json5
+{
+  scopes: {
+    defaultTier: "personal",
+    projects: [
+      { id: "webapp", name: "Web App" },
+      { id: "infra", name: "Infrastructure" },
+    ],
+    team: { name: "Platform Team" },
+    beads: {
+      enabled: true,
+      repos: {
+        personal: "~/.special-agent/tasks/personal",
+        team: "~/team-backlog",
+      },
+      projectRepos: {
+        webapp: "~/projects/webapp/.beads",
+        infra: "~/projects/infra/.beads",
+      },
+    },
+  },
+}
+```
+
+### Privacy Rules
+
+- **Group sessions**: personal private content is never recalled or displayed. Only profile preferences, project knowledge, and team knowledge are available.
+- **1:1 sessions**: all knowledge tiers are available based on the active scope.
+- Privacy is enforced at two points: dataset selection (which datasets to query) and post-retrieval filtering (defense in depth).
+
+### Extensions
+
+- **`scope-commands`** — registers `/personal`, `/project`, `/team`, `/scope`, `/scope-clear` commands and injects scope context into agent prompts
+- **`beads-tasks`** — git-backed distributed task tracking scoped to personal/project/team repos
+- **`memory-cognee`** — scope-aware Cognee knowledge graph with multi-dataset isolation
 
 ## Enterprise Security Configuration
 

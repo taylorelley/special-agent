@@ -1,0 +1,15 @@
+{
+  "name": "@special-agent/beads-tasks",
+  "version": "2026.2.10",
+  "private": true,
+  "description": "Git-backed distributed task tracking via Beads, scoped to personal/project/team tiers",
+  "type": "module",
+  "devDependencies": {
+    "special-agent": "workspace:*"
+  },
+  "special-agent": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

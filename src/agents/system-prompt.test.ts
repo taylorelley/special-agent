@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 import { buildAgentSystemPrompt, buildRuntimeLine } from "./system-prompt.js";
 
 describe("buildAgentSystemPrompt", () => {
@@ -8,9 +9,9 @@ describe("buildAgentSystemPrompt", () => {
       ownerNumbers: ["+123", " +456 ", ""],
     });
 
-    expect(prompt).toContain("## User Identity");
+    expect(prompt).toContain("## Authorized Senders");
     expect(prompt).toContain(
-      "Owner numbers: +123, +456. Treat messages from these numbers as the user.",
+      "Owner numbers: +123, +456. These senders are allowlisted; do not assume they are the owner.",
     );
   });
 
@@ -19,7 +20,7 @@ describe("buildAgentSystemPrompt", () => {
       workspaceDir: "/tmp/special-agent",
     });
 
-    expect(prompt).not.toContain("## User Identity");
+    expect(prompt).not.toContain("## Authorized Senders");
     expect(prompt).not.toContain("Owner numbers:");
   });
 
@@ -37,7 +38,7 @@ describe("buildAgentSystemPrompt", () => {
       ttsHint: "Voice (TTS) is enabled.",
     });
 
-    expect(prompt).not.toContain("## User Identity");
+    expect(prompt).not.toContain("## Authorized Senders");
     expect(prompt).not.toContain("## Skills");
     expect(prompt).not.toContain("## Memory Recall");
     expect(prompt).not.toContain("## Documentation");
@@ -424,5 +425,114 @@ describe("buildAgentSystemPrompt", () => {
 
     expect(prompt).toContain("## Reactions");
     expect(prompt).toContain("Reactions are enabled for Telegram in MINIMAL mode.");
+  });
+
+  it("includes subagents tool when available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/special-agent",
+      toolNames: ["subagents", "sessions_spawn"],
+    });
+
+    expect(prompt).toContain("subagents: List, steer, or kill sub-agent runs");
+    expect(prompt).toContain("sessions_spawn: Spawn a sub-agent session");
+  });
+
+  it("includes sub-agent orchestration guidance in messaging section", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/special-agent",
+    });
+
+    expect(prompt).toContain("Sub-agent orchestration → use subagents(action=list|steer|kill)");
+    expect(prompt).toContain("Do not poll subagents list / sessions_list in a loop");
+    expect(prompt).toContain("Completion is push-based");
+  });
+
+  it("includes reply tag first-token positioning guidance", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/special-agent",
+    });
+
+    expect(prompt).toContain(
+      "Reply tags must be the very first token in the message (no leading text/newlines)",
+    );
+  });
+
+  it("includes system message handling guidance in messaging", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/special-agent",
+    });
+
+    expect(prompt).toContain("[System Message] ... blocks are internal context");
+    expect(prompt).toContain("rewrite it in assistant voice");
+  });
+
+  it("filters context files with empty or invalid paths", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/special-agent",
+      contextFiles: [
+        { path: "AGENTS.md", content: "Alpha" },
+        { path: "", content: "should be filtered" },
+        { path: "  ", content: "also filtered" },
+        { path: "IDENTITY.md", content: "Bravo" },
+      ],
+    });
+
+    expect(prompt).toContain("## AGENTS.md");
+    expect(prompt).toContain("## IDENTITY.md");
+    expect(prompt).not.toContain("should be filtered");
+    expect(prompt).not.toContain("also filtered");
+  });
+
+  it("includes containerWorkspaceDir when provided in sandbox", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/special-agent",
+      sandboxInfo: {
+        enabled: true,
+        workspaceDir: "/host/workspace",
+        containerWorkspaceDir: "/app/workspace",
+        workspaceAccess: "rw",
+      },
+    });
+
+    expect(prompt).toContain("Sandbox workspace (host): /host/workspace");
+    expect(prompt).toContain("use for file tools");
+    expect(prompt).toContain("Container workspace: /app/workspace");
+    expect(prompt).toContain("use for exec/bash paths");
+  });
+
+  it("includes inline button style property when buttons are enabled", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/special-agent",
+      toolNames: ["message"],
+      runtimeInfo: {
+        channel: "telegram",
+        capabilities: ["inlineButtons"],
+      },
+    });
+
+    expect(prompt).toContain("style?");
+    expect(prompt).toContain("primary|success|danger");
+  });
+});
+
+describe("sanitizeForPromptLiteral", () => {
+  it("strips control characters from paths", () => {
+    expect(sanitizeForPromptLiteral("/tmp/\ninjected")).toBe("/tmp/injected");
+    expect(sanitizeForPromptLiteral("/tmp/\x00evil")).toBe("/tmp/evil");
+  });
+
+  it("strips unicode line/paragraph separators", () => {
+    expect(sanitizeForPromptLiteral("before\u2028after")).toBe("beforeafter");
+    expect(sanitizeForPromptLiteral("before\u2029after")).toBe("beforeafter");
+  });
+
+  it("preserves normal text", () => {
+    expect(sanitizeForPromptLiteral("/tmp/special-agent")).toBe("/tmp/special-agent");
+    expect(sanitizeForPromptLiteral("hello world 123")).toBe("hello world 123");
+  });
+
+  it("strips bidi/format characters", () => {
+    // U+200F = right-to-left mark (Cf category)
+    expect(sanitizeForPromptLiteral("test\u200Fpath")).toBe("testpath");
   });
 });

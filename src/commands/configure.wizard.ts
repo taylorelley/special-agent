@@ -14,10 +14,12 @@ import { note } from "../terminal/note.js";
 import { resolveUserPath } from "../utils.js";
 import { createClackPrompter } from "../wizard/clack-prompter.js";
 import { WizardCancelledError } from "../wizard/prompts.js";
+import { promptBeadsConfig } from "./configure.beads.js";
 import { removeChannelConfigWizard } from "./configure.channels.js";
 import { maybeInstallDaemon } from "./configure.daemon.js";
 import { promptAuthConfig } from "./configure.gateway-auth.js";
 import { promptGatewayConfig } from "./configure.gateway.js";
+import { promptMemoryConfig } from "./configure.memory.js";
 import {
   CONFIGURE_SECTION_OPTIONS,
   confirm,
@@ -349,6 +351,14 @@ export async function runConfigureWizard(
         nextConfig = await setupSkills(nextConfig, wsDir, runtime, prompter);
       }
 
+      if (selected.includes("memory")) {
+        nextConfig = await promptMemoryConfig(nextConfig, runtime);
+      }
+
+      if (selected.includes("beads")) {
+        nextConfig = await promptBeadsConfig(nextConfig, runtime);
+      }
+
       await persistConfig();
 
       if (selected.includes("daemon")) {
@@ -472,6 +482,16 @@ export async function runConfigureWizard(
         if (choice === "skills") {
           const wsDir = resolveUserPath(workspaceDir);
           nextConfig = await setupSkills(nextConfig, wsDir, runtime, prompter);
+          await persistConfig();
+        }
+
+        if (choice === "memory") {
+          nextConfig = await promptMemoryConfig(nextConfig, runtime);
+          await persistConfig();
+        }
+
+        if (choice === "beads") {
+          nextConfig = await promptBeadsConfig(nextConfig, runtime);
           await persistConfig();
         }
 
