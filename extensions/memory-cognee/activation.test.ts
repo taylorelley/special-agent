@@ -69,8 +69,8 @@ describe("computeDecayScore", () => {
   test("returns positive score for just-accessed entry with 1 access", () => {
     const entry = makeEntry({ accessCount: 1, lastAccessedAt: now.toISOString() });
     const score = computeDecayScore(entry, now);
-    // base(1.0) * e^0 * log2(2) * 1.2(semantic) = 1.0 * 1 * 1 * 1.2 = 1.2
-    expect(score).toBeCloseTo(1.2, 1);
+    // base(1.0) * e^0 * log2(1+2) * 1.2(semantic) = 1.0 * 1 * log2(3) * 1.2 ≈ 1.902
+    expect(score).toBeCloseTo(1.902, 1);
   });
 
   test("decays over time", () => {
@@ -126,10 +126,11 @@ describe("computeDecayScore", () => {
     expect(boostedScore).toBeGreaterThan(defaultScore);
   });
 
-  test("zero access count still produces a score via log2(0+1)=0", () => {
+  test("zero access count produces a non-zero baseline via log2(0+2)=1", () => {
     const entry = makeEntry({ accessCount: 0 });
     const score = computeDecayScore(entry, now);
-    expect(score).toBe(0);
+    // base(1.0) * e^0 * log2(2) * 1.2(semantic) = 1.2
+    expect(score).toBeCloseTo(1.2, 1);
   });
 });
 
@@ -326,12 +327,12 @@ describe("identifyPruneCandidates", () => {
     expect(candidates).toEqual([]);
   });
 
-  test("zero-access entries are always prune candidates (score is 0)", () => {
+  test("zero-access old entries are prune candidates when score decays below threshold", () => {
     const index = makeIndex([
       makeEntry({
         memoryId: "never-accessed",
         accessCount: 0,
-        lastAccessedAt: now.toISOString(),
+        lastAccessedAt: daysAgo(365),
       }),
     ]);
     const candidates = identifyPruneCandidates(index, 0.01, now);

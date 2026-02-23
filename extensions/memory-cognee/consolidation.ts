@@ -14,9 +14,7 @@
 
 import fs from "node:fs/promises";
 import os from "node:os";
-import { homedir } from "node:os";
 import path from "node:path";
-import { dirname, join } from "node:path";
 import type { CogneeClient } from "./client.js";
 import {
   registerMemory,
@@ -60,8 +58,8 @@ export type ConsolidatedMemory = {
 // Constants
 // ---------------------------------------------------------------------------
 
-export const STM_BUFFER_PATH = join(
-  homedir(),
+export const STM_BUFFER_PATH = path.join(
+  os.homedir(),
   ".special-agent",
   "memory",
   "cognee",
@@ -93,8 +91,10 @@ export async function loadStmBuffer(): Promise<StmBuffer> {
 }
 
 export async function saveStmBuffer(buffer: StmBuffer): Promise<void> {
-  await fs.mkdir(dirname(STM_BUFFER_PATH), { recursive: true });
-  await fs.writeFile(STM_BUFFER_PATH, JSON.stringify(buffer, null, 2), "utf-8");
+  await fs.mkdir(path.dirname(STM_BUFFER_PATH), { recursive: true });
+  const tmpPath = `${STM_BUFFER_PATH}.tmp`;
+  await fs.writeFile(tmpPath, JSON.stringify(buffer, null, 2), "utf-8");
+  await fs.rename(tmpPath, STM_BUFFER_PATH);
 }
 
 function emptyBuffer(): StmBuffer {
@@ -204,18 +204,12 @@ let cachedRunner: RunEmbeddedPiAgentFn | null = null;
 
 async function loadRunEmbeddedPiAgent(): Promise<RunEmbeddedPiAgentFn> {
   if (cachedRunner) return cachedRunner;
+  let mod: Record<string, unknown>;
   try {
-    const mod = await import("../../src/agents/pi-embedded-runner.js");
-    // oxlint-disable-next-line typescript/no-explicit-any
-    if (typeof (mod as any).runEmbeddedPiAgent === "function") {
-      // oxlint-disable-next-line typescript/no-explicit-any
-      cachedRunner = (mod as any).runEmbeddedPiAgent;
-      return cachedRunner!;
-    }
-  } catch {
-    // ignore
+    mod = await import("../../src/agents/pi-embedded-runner.js");
+  } catch (cause) {
+    throw new Error("runEmbeddedPiAgent not available", { cause });
   }
-  const mod = await import("../../src/agents/pi-embedded-runner.js");
   if (typeof mod.runEmbeddedPiAgent !== "function") {
     throw new Error("runEmbeddedPiAgent not available");
   }
@@ -256,9 +250,10 @@ export async function callLlm(params: {
   const sessionFile = path.join(tempDir, "session.jsonl");
 
   try {
-    const runId = `consolidation-${Date.now()}`;
+    const ts = Date.now();
+    const runId = `consolidation-${ts}`;
     const result = await runEmbeddedPiAgent({
-      sessionId: `consolidation-${Date.now()}`,
+      sessionId: `consolidation-${ts}`,
       sessionKey: "temp:consolidation",
       agentId,
       sessionFile,

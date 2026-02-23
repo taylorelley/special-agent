@@ -4,6 +4,8 @@
  * Extracted from the memory-cognee plugin for reuse across scoped dataset operations.
  */
 
+import { DEFAULT_DECAY_RATE, type MemoryType } from "./activation.js";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -40,7 +42,7 @@ export type CogneePluginConfig = {
   decayRate?: number;
   pruneThreshold?: number;
   autoPrune?: boolean;
-  typeWeights?: Partial<Record<string, number>>;
+  typeWeights?: Partial<Record<MemoryType, number>>;
   consolidationEnabled?: boolean;
   consolidationThreshold?: number;
   consolidationTimeoutMs?: number;
@@ -65,7 +67,7 @@ export const DEFAULT_AUTO_INDEX = true;
 export const DEFAULT_AUTO_COGNIFY = true;
 export const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 export const DEFAULT_ENABLE_TOOLS = true;
-export const DEFAULT_DECAY_RATE = 0.03;
+export { DEFAULT_DECAY_RATE } from "./activation.js";
 export const DEFAULT_PRUNE_THRESHOLD = 0.05;
 export const DEFAULT_AUTO_PRUNE = false;
 export const DEFAULT_CONSOLIDATION_ENABLED = false;
@@ -111,10 +113,17 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
   const pruneThreshold =
     typeof raw.pruneThreshold === "number" ? raw.pruneThreshold : DEFAULT_PRUNE_THRESHOLD;
   const autoPrune = typeof raw.autoPrune === "boolean" ? raw.autoPrune : DEFAULT_AUTO_PRUNE;
-  const typeWeights: Partial<Record<string, number>> =
+  const VALID_MEMORY_TYPES: readonly string[] = ["episodic", "semantic", "procedural", "vault"];
+  const rawWeights =
     raw.typeWeights && typeof raw.typeWeights === "object"
-      ? (raw.typeWeights as Partial<Record<string, number>>)
+      ? (raw.typeWeights as Record<string, number>)
       : {};
+  const typeWeights: Partial<Record<MemoryType, number>> = {};
+  for (const [k, v] of Object.entries(rawWeights)) {
+    if (VALID_MEMORY_TYPES.includes(k) && typeof v === "number") {
+      typeWeights[k as MemoryType] = v;
+    }
+  }
   const consolidationEnabled =
     typeof raw.consolidationEnabled === "boolean"
       ? raw.consolidationEnabled

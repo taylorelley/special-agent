@@ -5,7 +5,7 @@
  * and computes decay scores. Inspired by the cognitive-memory OpenClaw extension's
  * multi-store architecture with human-like encoding, decay, and recall.
  *
- * Decay formula: base * e^(-lambda * days) * log2(accessCount + 1) * typeWeight
+ * Decay formula: base * e^(-lambda * days) * log2(accessCount + 2) * typeWeight
  *
  * This layer sits on top of Cognee's knowledge graph — Cognee provides semantic
  * relevance, this layer adds temporal freshness and type-aware ranking.
@@ -86,7 +86,9 @@ export async function loadActivationIndex(): Promise<ActivationIndex> {
 
 export async function saveActivationIndex(index: ActivationIndex): Promise<void> {
   await fs.mkdir(dirname(ACTIVATION_INDEX_PATH), { recursive: true });
-  await fs.writeFile(ACTIVATION_INDEX_PATH, JSON.stringify(index, null, 2), "utf-8");
+  const tmpPath = `${ACTIVATION_INDEX_PATH}.tmp`;
+  await fs.writeFile(tmpPath, JSON.stringify(index, null, 2), "utf-8");
+  await fs.rename(tmpPath, ACTIVATION_INDEX_PATH);
 }
 
 // ---------------------------------------------------------------------------
@@ -96,7 +98,7 @@ export async function saveActivationIndex(index: ActivationIndex): Promise<void>
 /**
  * Compute decay score for an activation entry.
  *
- * Formula: base * e^(-lambda * daysSinceAccess) * log2(accessCount + 1) * typeWeight
+ * Formula: base * e^(-lambda * daysSinceAccess) * log2(accessCount + 2) * typeWeight
  *
  * Returns Infinity for pinned/vault entries (immune to decay).
  */
@@ -116,9 +118,36 @@ export function computeDecayScore(
   return (
     base *
     Math.exp(-lambda * Math.max(0, daysSinceAccess)) *
-    Math.log2(entry.accessCount + 1) *
+    Math.log2(entry.accessCount + 2) *
     weights[entry.memoryType]
   );
+}
+
+/**
+ * Apply decay-based re-ranking to search results.
+ *
+ * For each result, looks up the activation entry, computes decay score,
+ * and produces a combined score: `result.score * (0.6 + 0.4 * clampedDecay)`.
+ * Returns results sorted by combined score descending.
+ */
+export function applyDecayRanking<T extends { id: string; score: number }>(
+  results: T[],
+  activationIndex: ActivationIndex,
+  typeWeights?: Partial<Record<MemoryType, number>>,
+  decayRate?: number,
+): Array<T & { decayScore: number; combinedScore: number; activation?: ActivationEntry }> {
+  const now = new Date();
+  const scored = results.map((r) => {
+    const activation = activationIndex.entries[r.id];
+    const decayScore = activation
+      ? computeDecayScore(activation, now, typeWeights, decayRate)
+      : 0.5;
+    const clampedDecay = Number.isFinite(decayScore) ? Math.min(decayScore, 1) : 1;
+    const combinedScore = r.score * (0.6 + 0.4 * clampedDecay);
+    return { ...r, decayScore, combinedScore, activation };
+  });
+  scored.sort((a, b) => b.combinedScore - a.combinedScore);
+  return scored;
 }
 
 /**
