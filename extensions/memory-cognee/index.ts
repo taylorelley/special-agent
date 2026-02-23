@@ -30,6 +30,15 @@ import {
   type MemoryType,
 } from "./activation.js";
 import { CogneeClient, DEFAULT_DATASET_NAME, resolveConfig } from "./client.js";
+import {
+  loadStmBuffer,
+  saveStmBuffer,
+  extractConversationExcerpts,
+  appendToStmBuffer,
+  runConsolidation,
+  runReflection,
+  type StmBuffer,
+} from "./consolidation.js";
 import { filterRecallForPrivacy } from "./privacy.js";
 import {
   collectMemoryFiles,
@@ -91,6 +100,25 @@ const memoryCogneePlugin = {
       .catch((error) => {
         api.logger.warn?.(`memory-cognee: failed to load activation index: ${String(error)}`);
       });
+
+    // STM buffer for consolidation/reflection pipeline
+    let stmBuffer: StmBuffer = {
+      version: 1,
+      entries: [],
+      turnsSinceConsolidation: 0,
+      turnsSinceReflection: 0,
+    };
+
+    const stmReady =
+      cfg.consolidationEnabled || cfg.reflectionEnabled
+        ? loadStmBuffer()
+            .then((buf) => {
+              stmBuffer = buf;
+            })
+            .catch((error) => {
+              api.logger.warn?.(`memory-cognee: failed to load STM buffer: ${String(error)}`);
+            })
+        : Promise.resolve();
 
     async function runSync(
       workspaceDir: string,
@@ -272,6 +300,97 @@ const memoryCogneePlugin = {
               `Sync index: ${SYNC_INDEX_PATH}`,
             ];
             console.log(lines.join("\n"));
+          });
+
+        cognee
+          .command("stm")
+          .description("Show STM buffer status")
+          .action(async () => {
+            await stmReady;
+
+            const total = stmBuffer.entries.length;
+            const consolidated = stmBuffer.entries.filter((e) => e.consolidated).length;
+            const pending = total - consolidated;
+            const lines = [
+              `STM Buffer: ${total} entries (${consolidated} consolidated, ${pending} pending)`,
+              `Turns since consolidation: ${stmBuffer.turnsSinceConsolidation}`,
+              `Turns since reflection: ${stmBuffer.turnsSinceReflection}`,
+              `Last consolidated: ${stmBuffer.lastConsolidatedAt ?? "(never)"}`,
+              `Last reflected: ${stmBuffer.lastReflectedAt ?? "(never)"}`,
+            ];
+            console.log(lines.join("\n"));
+          });
+
+        cognee
+          .command("consolidate")
+          .description("Manually trigger STM-to-LTM consolidation")
+          .option("--force", "Consolidate even with few entries")
+          .action(async (opts: { force?: boolean }) => {
+            await Promise.all([stateReady, activationReady, stmReady]);
+
+            if (!cfg.consolidationEnabled && !opts.force) {
+              console.log("Consolidation is disabled. Use --force or enable consolidationEnabled.");
+              return;
+            }
+
+            const unconsolidated = stmBuffer.entries.filter((e) => !e.consolidated);
+            if (unconsolidated.length === 0) {
+              console.log("No unconsolidated STM entries.");
+              return;
+            }
+
+            console.log(`Consolidating ${unconsolidated.length} STM entries...`);
+            const count = await runConsolidation({
+              buffer: stmBuffer,
+              config: api.config,
+              client,
+              datasetId,
+              datasetName: cfg.datasetName,
+              activationIndex,
+              logger: ctx.logger,
+              autoCognify: cfg.autoCognify,
+              timeoutMs: cfg.consolidationTimeoutMs,
+              stmMaxAgeDays: cfg.stmMaxAgeDays,
+            });
+            await saveActivationIndex(activationIndex);
+            console.log(`Consolidation complete: ${count} memories created.`);
+          });
+
+        cognee
+          .command("reflect")
+          .description("Manually trigger memory reflection")
+          .option("--force", "Reflect even if threshold not met")
+          .action(async (opts: { force?: boolean }) => {
+            await Promise.all([stateReady, activationReady, stmReady]);
+
+            if (!cfg.reflectionEnabled && !opts.force) {
+              console.log("Reflection is disabled. Use --force or enable reflectionEnabled.");
+              return;
+            }
+
+            const entryCount = Object.keys(activationIndex.entries).length;
+            if (entryCount === 0) {
+              console.log("No memories in activation index to reflect on.");
+              return;
+            }
+
+            console.log(`Reflecting on ${entryCount} memories...`);
+            const count = await runReflection({
+              activationIndex,
+              buffer: stmBuffer,
+              config: api.config,
+              client,
+              datasetId,
+              datasetName: cfg.datasetName,
+              logger: ctx.logger,
+              autoCognify: cfg.autoCognify,
+              timeoutMs: cfg.reflectionTimeoutMs,
+              typeWeights: cfg.typeWeights,
+              decayRate: cfg.decayRate,
+            });
+            await saveActivationIndex(activationIndex);
+            await saveStmBuffer(stmBuffer);
+            console.log(`Reflection complete: ${count} insights generated.`);
           });
       },
       { commands: ["cognee"] },
@@ -701,7 +820,7 @@ const memoryCogneePlugin = {
     // ------------------------------------------------------------------
 
     if (cfg.autoIndex) {
-      api.on("agent_end", async (event) => {
+      api.on("agent_end", async (event, ctx) => {
         if (!event.success) return;
 
         await Promise.all([stateReady, activationReady]);
@@ -769,7 +888,97 @@ const memoryCogneePlugin = {
         } catch (error) {
           api.logger.warn?.(`memory-cognee: post-agent sync failed: ${String(error)}`);
         }
+
+        // STM capture + consolidation/reflection (within autoIndex agent_end)
+        await captureAndConsolidate(event, ctx);
       });
+    }
+
+    // ------------------------------------------------------------------
+    // STM capture + consolidation/reflection (standalone when autoIndex off)
+    // ------------------------------------------------------------------
+
+    if (!cfg.autoIndex && (cfg.consolidationEnabled || cfg.reflectionEnabled)) {
+      api.on("agent_end", async (event, ctx) => {
+        if (!event.success) return;
+        await captureAndConsolidate(event, ctx);
+      });
+    }
+
+    async function captureAndConsolidate(
+      event: { messages: unknown[] },
+      ctx: { sessionKey?: string },
+    ) {
+      if (!cfg.consolidationEnabled && !cfg.reflectionEnabled) return;
+
+      try {
+        await stmReady;
+        const excerpts = extractConversationExcerpts(event.messages);
+        if (excerpts.userExcerpts.length === 0 && excerpts.assistantExcerpts.length === 0) {
+          return;
+        }
+
+        appendToStmBuffer(stmBuffer, excerpts, ctx.sessionKey);
+
+        // Consolidation trigger
+        if (
+          cfg.consolidationEnabled &&
+          stmBuffer.turnsSinceConsolidation >= cfg.consolidationThreshold
+        ) {
+          // Skip LLM calls in test environments
+          if (!process.env.VITEST && process.env.NODE_ENV !== "test") {
+            const count = await runConsolidation({
+              buffer: stmBuffer,
+              config: api.config,
+              client,
+              datasetId,
+              datasetName: cfg.datasetName,
+              activationIndex,
+              logger: api.logger,
+              autoCognify: cfg.autoCognify,
+              timeoutMs: cfg.consolidationTimeoutMs,
+              stmMaxAgeDays: cfg.stmMaxAgeDays,
+            });
+            if (count > 0) {
+              api.logger.info?.(`memory-cognee: consolidated ${count} memories from STM`);
+              saveActivationIndex(activationIndex).catch((e) => {
+                api.logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+              });
+            }
+          }
+        }
+
+        // Reflection trigger
+        if (cfg.reflectionEnabled && stmBuffer.turnsSinceReflection >= cfg.reflectionThreshold) {
+          if (!process.env.VITEST && process.env.NODE_ENV !== "test") {
+            const count = await runReflection({
+              activationIndex,
+              buffer: stmBuffer,
+              config: api.config,
+              client,
+              datasetId,
+              datasetName: cfg.datasetName,
+              logger: api.logger,
+              autoCognify: cfg.autoCognify,
+              timeoutMs: cfg.reflectionTimeoutMs,
+              typeWeights: cfg.typeWeights,
+              decayRate: cfg.decayRate,
+            });
+            if (count > 0) {
+              api.logger.info?.(`memory-cognee: reflection generated ${count} insights`);
+              saveActivationIndex(activationIndex).catch((e) => {
+                api.logger.warn?.(`memory-cognee: failed to save activation index: ${String(e)}`);
+              });
+            }
+          }
+        }
+
+        saveStmBuffer(stmBuffer).catch((e) => {
+          api.logger.warn?.(`memory-cognee: failed to save STM buffer: ${String(e)}`);
+        });
+      } catch (error) {
+        api.logger.warn?.(`memory-cognee: STM/consolidation failed: ${String(error)}`);
+      }
     }
   },
 };

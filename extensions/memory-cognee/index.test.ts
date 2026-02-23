@@ -225,4 +225,96 @@ describe("memory-cognee plugin", () => {
 
     expect(registeredTools.length).toBe(0);
   });
+
+  test("plugin registers agent_end hook when consolidation is enabled (autoIndex off)", async () => {
+    const { default: plugin } = await import("./index.js");
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const registeredHooks: Record<string, any[]> = {};
+
+    const mockApi = {
+      id: "memory-cognee",
+      name: "Memory (Cognee)",
+      source: "test",
+      config: {},
+      pluginConfig: {
+        baseUrl: "http://localhost:8000",
+        autoRecall: false,
+        autoIndex: false,
+        enableTools: false,
+        consolidationEnabled: true,
+      },
+      runtime: {},
+      logger: {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      },
+      registerTool: () => {},
+      registerCli: () => {},
+      registerService: () => {},
+      // oxlint-disable-next-line typescript/no-explicit-any
+      on: (hookName: string, handler: any) => {
+        if (!registeredHooks[hookName]) {
+          registeredHooks[hookName] = [];
+        }
+        registeredHooks[hookName].push(handler);
+      },
+      resolvePath: (p: string) => p,
+    };
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    plugin.register(mockApi as any);
+
+    // agent_end hook registered for consolidation even when autoIndex is false
+    expect(registeredHooks.agent_end).toBeDefined();
+    expect(registeredHooks.agent_end.length).toBe(1);
+  });
+
+  test("plugin does not register agent_end hook when consolidation and autoIndex are both off", async () => {
+    const { default: plugin } = await import("./index.js");
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const registeredHooks: Record<string, any[]> = {};
+
+    const mockApi = {
+      id: "memory-cognee",
+      name: "Memory (Cognee)",
+      source: "test",
+      config: {},
+      pluginConfig: {
+        baseUrl: "http://localhost:8000",
+        autoRecall: false,
+        autoIndex: false,
+        enableTools: false,
+        consolidationEnabled: false,
+        reflectionEnabled: false,
+      },
+      runtime: {},
+      logger: {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      },
+      registerTool: () => {},
+      registerCli: () => {},
+      registerService: () => {},
+      // oxlint-disable-next-line typescript/no-explicit-any
+      on: (hookName: string, handler: any) => {
+        if (!registeredHooks[hookName]) {
+          registeredHooks[hookName] = [];
+        }
+        registeredHooks[hookName].push(handler);
+      },
+      resolvePath: (p: string) => p,
+    };
+
+    // oxlint-disable-next-line typescript/no-explicit-any
+    plugin.register(mockApi as any);
+
+    // No agent_end hook when both autoIndex and consolidation are off
+    expect(registeredHooks.agent_end ?? []).toHaveLength(0);
+  });
 });

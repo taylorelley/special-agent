@@ -77,6 +77,34 @@
           "vault": { "type": "number" }
         },
         "additionalProperties": false
+      },
+      "consolidationEnabled": {
+        "type": "boolean",
+        "description": "Enable STM-to-LTM consolidation: buffer conversation excerpts and periodically summarize into durable memories (default: false)"
+      },
+      "consolidationThreshold": {
+        "type": "number",
+        "description": "Number of agent turns between consolidation runs (default: 5)"
+      },
+      "consolidationTimeoutMs": {
+        "type": "number",
+        "description": "Timeout for consolidation LLM calls in ms (default: 30000)"
+      },
+      "reflectionEnabled": {
+        "type": "boolean",
+        "description": "Enable periodic memory reflection: LLM reviews memory landscape for patterns and contradictions (default: false)"
+      },
+      "reflectionThreshold": {
+        "type": "number",
+        "description": "Number of agent turns between reflection runs (default: 15)"
+      },
+      "reflectionTimeoutMs": {
+        "type": "number",
+        "description": "Timeout for reflection LLM calls in ms (default: 30000)"
+      },
+      "stmMaxAgeDays": {
+        "type": "number",
+        "description": "Evict consolidated STM entries older than N days (default: 7)"
       }
     }
   },
@@ -139,6 +167,32 @@
     },
     "typeWeights": {
       "label": "Type Weights"
+    },
+    "consolidationEnabled": {
+      "label": "Enable Consolidation"
+    },
+    "consolidationThreshold": {
+      "label": "Consolidation Threshold",
+      "placeholder": "5"
+    },
+    "consolidationTimeoutMs": {
+      "label": "Consolidation Timeout (ms)",
+      "placeholder": "30000"
+    },
+    "reflectionEnabled": {
+      "label": "Enable Reflection"
+    },
+    "reflectionThreshold": {
+      "label": "Reflection Threshold",
+      "placeholder": "15"
+    },
+    "reflectionTimeoutMs": {
+      "label": "Reflection Timeout (ms)",
+      "placeholder": "30000"
+    },
+    "stmMaxAgeDays": {
+      "label": "STM Max Age (days)",
+      "placeholder": "7"
     }
   }
 }

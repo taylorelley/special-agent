@@ -41,6 +41,13 @@ export type CogneePluginConfig = {
   pruneThreshold?: number;
   autoPrune?: boolean;
   typeWeights?: Partial<Record<string, number>>;
+  consolidationEnabled?: boolean;
+  consolidationThreshold?: number;
+  consolidationTimeoutMs?: number;
+  reflectionEnabled?: boolean;
+  reflectionThreshold?: number;
+  reflectionTimeoutMs?: number;
+  stmMaxAgeDays?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -61,6 +68,13 @@ export const DEFAULT_ENABLE_TOOLS = true;
 export const DEFAULT_DECAY_RATE = 0.03;
 export const DEFAULT_PRUNE_THRESHOLD = 0.05;
 export const DEFAULT_AUTO_PRUNE = false;
+export const DEFAULT_CONSOLIDATION_ENABLED = false;
+export const DEFAULT_CONSOLIDATION_THRESHOLD = 5;
+export const DEFAULT_CONSOLIDATION_TIMEOUT_MS = 30_000;
+export const DEFAULT_REFLECTION_ENABLED = false;
+export const DEFAULT_REFLECTION_THRESHOLD = 15;
+export const DEFAULT_REFLECTION_TIMEOUT_MS = 30_000;
+export const DEFAULT_STM_MAX_AGE_DAYS = 7;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -101,6 +115,30 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
     raw.typeWeights && typeof raw.typeWeights === "object"
       ? (raw.typeWeights as Partial<Record<string, number>>)
       : {};
+  const consolidationEnabled =
+    typeof raw.consolidationEnabled === "boolean"
+      ? raw.consolidationEnabled
+      : DEFAULT_CONSOLIDATION_ENABLED;
+  const consolidationThreshold =
+    typeof raw.consolidationThreshold === "number"
+      ? raw.consolidationThreshold
+      : DEFAULT_CONSOLIDATION_THRESHOLD;
+  const consolidationTimeoutMs =
+    typeof raw.consolidationTimeoutMs === "number"
+      ? raw.consolidationTimeoutMs
+      : DEFAULT_CONSOLIDATION_TIMEOUT_MS;
+  const reflectionEnabled =
+    typeof raw.reflectionEnabled === "boolean" ? raw.reflectionEnabled : DEFAULT_REFLECTION_ENABLED;
+  const reflectionThreshold =
+    typeof raw.reflectionThreshold === "number"
+      ? raw.reflectionThreshold
+      : DEFAULT_REFLECTION_THRESHOLD;
+  const reflectionTimeoutMs =
+    typeof raw.reflectionTimeoutMs === "number"
+      ? raw.reflectionTimeoutMs
+      : DEFAULT_REFLECTION_TIMEOUT_MS;
+  const stmMaxAgeDays =
+    typeof raw.stmMaxAgeDays === "number" ? raw.stmMaxAgeDays : DEFAULT_STM_MAX_AGE_DAYS;
 
   const resolvedApiKey =
     raw.apiKey && raw.apiKey.length > 0 ? resolveEnvVars(raw.apiKey) : undefined;
@@ -125,6 +163,13 @@ export function resolveConfig(rawConfig: unknown): Required<CogneePluginConfig> 
     pruneThreshold,
     autoPrune,
     typeWeights,
+    consolidationEnabled,
+    consolidationThreshold,
+    consolidationTimeoutMs,
+    reflectionEnabled,
+    reflectionThreshold,
+    reflectionTimeoutMs,
+    stmMaxAgeDays,
   };
 }
 
