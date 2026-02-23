@@ -3,6 +3,8 @@ name: Labeler
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
+  issues:
+    types: [opened]
 
 permissions: {}
 
@@ -18,3 +20,75 @@ jobs:
           configuration-path: .github/labeler.yml
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           sync-labels: true
+      - name: Apply maintainer label for repo collaborators
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const login = context.payload.pull_request?.user?.login;
+            if (!login) {
+              return;
+            }
+
+            let isMaintainer = false;
+            try {
+              const perm = await github.rest.repos.getCollaboratorPermissionLevel({
+                ...context.repo,
+                username: login,
+              });
+              const level = perm?.data?.permission;
+              isMaintainer = level === "admin" || level === "maintain" || level === "write";
+            } catch (error) {
+              if (error?.status !== 404 && error?.status !== 403) {
+                throw error;
+              }
+            }
+
+            if (!isMaintainer) {
+              return;
+            }
+
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: ["maintainer"],
+            });
+
+  label-issues:
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply maintainer label for repo collaborators
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const login = context.payload.issue?.user?.login;
+            if (!login) {
+              return;
+            }
+
+            let isMaintainer = false;
+            try {
+              const perm = await github.rest.repos.getCollaboratorPermissionLevel({
+                ...context.repo,
+                username: login,
+              });
+              const level = perm?.data?.permission;
+              isMaintainer = level === "admin" || level === "maintain" || level === "write";
+            } catch (error) {
+              if (error?.status !== 404 && error?.status !== 403) {
+                throw error;
+              }
+            }
+
+            if (!isMaintainer) {
+              return;
+            }
+
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: context.payload.issue.number,
+              labels: ["maintainer"],
+            });
