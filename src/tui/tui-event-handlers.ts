@@ -225,6 +225,19 @@ export function createEventHandlers(context: EventHandlerContext) {
       tui.requestRender();
       return;
     }
+    if (evt.stream === "compaction") {
+      if (!isActiveRun) {
+        return;
+      }
+      const phase = typeof evt.data?.phase === "string" ? evt.data.phase : "";
+      if (phase === "start") {
+        setActivityStatus("compacting");
+      }
+      if (phase === "end") {
+        setActivityStatus("running");
+      }
+      tui.requestRender();
+    }
     if (evt.stream === "lifecycle") {
       if (!isActiveRun) {
         return;

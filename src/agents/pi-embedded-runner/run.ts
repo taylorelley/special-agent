@@ -836,12 +836,22 @@ export async function runEmbeddedPiAgent(
           }
 
           const usage = toNormalizedUsage(usageAccumulator);
+          // Derive the last API call's prompt tokens for context fill estimation.
+          // After auto-compaction, the accumulated usage overstates context fill;
+          // the last call's input tokens reflect the actual post-compaction state.
+          const lastAssistantUsage = normalizeUsage(lastAssistant?.usage as UsageLike);
+          const lastCallPromptTokens = lastAssistantUsage
+            ? (lastAssistantUsage.input ?? 0) +
+              (lastAssistantUsage.cacheRead ?? 0) +
+              (lastAssistantUsage.cacheWrite ?? 0)
+            : 0;
           const agentMeta: EmbeddedPiAgentMeta = {
             sessionId: sessionIdUsed,
             provider: lastAssistant?.provider ?? provider,
             model: lastAssistant?.model ?? model.id,
             usage,
             compactionCount: autoCompactionCount > 0 ? autoCompactionCount : undefined,
+            lastCallInputTokens: lastCallPromptTokens > 0 ? lastCallPromptTokens : undefined,
           };
 
           const payloads = buildEmbeddedRunPayloads({
