@@ -143,34 +143,42 @@ type ToolAction = {
   summary: string;
 };
 
-function summarizeToolInput(name: string, input: Record<string, unknown> | undefined): string {
+/** Fields whose values are safe to persist verbatim in compaction summaries. */
+const SAFE_INPUT_FIELDS = new Set([
+  "file_path",
+  "path",
+  "filePath",
+  "glob",
+  "type",
+  "output_mode",
+  "notebook_path",
+]);
+
+function truncateField(value: string, max: number): string {
+  return value.length > max ? `${value.slice(0, max)}...` : value;
+}
+
+function summarizeToolInput(_name: string, input: Record<string, unknown> | undefined): string {
   if (!input) {
     return "(no input)";
   }
-  // Extract the most informative parameter for common tools
-  const filePath = input.file_path ?? input.path ?? input.filePath;
-  if (typeof filePath === "string") {
-    return filePath;
-  }
-  const command = input.command ?? input.cmd;
-  if (typeof command === "string") {
-    return command.length > MAX_TOOL_ACTION_INPUT_CHARS
-      ? `${command.slice(0, MAX_TOOL_ACTION_INPUT_CHARS)}...`
-      : command;
-  }
-  const query = input.query ?? input.pattern;
-  if (typeof query === "string") {
-    return query.length > MAX_TOOL_ACTION_INPUT_CHARS
-      ? `${query.slice(0, MAX_TOOL_ACTION_INPUT_CHARS)}...`
-      : query;
-  }
-  // Fall back to first string value
-  for (const value of Object.values(input)) {
+  // Only expose values from an explicit allowlist of safe (non-secret) fields.
+  // Fields like command/cmd, query/pattern, and arbitrary string values may
+  // contain secrets (API keys, connection strings, env vars) and are redacted.
+  for (const field of SAFE_INPUT_FIELDS) {
+    const value = input[field];
     if (typeof value === "string" && value.trim()) {
-      return value.length > MAX_TOOL_ACTION_INPUT_CHARS
-        ? `${value.slice(0, MAX_TOOL_ACTION_INPUT_CHARS)}...`
-        : value;
+      return truncateField(value, MAX_TOOL_ACTION_INPUT_CHARS);
     }
+  }
+  // Indicate which unsafe fields were present without exposing their values
+  const hasCommand = typeof (input.command ?? input.cmd) === "string";
+  const hasQuery = typeof (input.query ?? input.pattern) === "string";
+  if (hasCommand) {
+    return "(command redacted)";
+  }
+  if (hasQuery) {
+    return "(query redacted)";
   }
   return "(structured input)";
 }

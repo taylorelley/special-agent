@@ -170,6 +170,48 @@ export function extractOversizedMessageNote(msg: AgentMessage): string {
   return `[Large ${role} (~${Math.round(tokens / 1000)}K tokens) — truncated for summary]${preview}`;
 }
 
+type SummarizeParams = {
+  model: NonNullable<ExtensionContext["model"]>;
+  apiKey: string;
+  signal: AbortSignal;
+  reserveTokens: number;
+  customInstructions?: string;
+};
+
+/**
+ * Recursively attempt to summarize a chunk of messages. On failure, splits the
+ * chunk in half and retries each half independently, feeding summaries forward.
+ * Only throws when a single-message chunk fails (can't split further).
+ */
+async function summarizeChunkWithRetries(
+  chunk: AgentMessage[],
+  params: SummarizeParams,
+  previousSummary: string | undefined,
+): Promise<string | undefined> {
+  try {
+    return await generateSummary(
+      chunk,
+      params.model,
+      params.reserveTokens,
+      params.apiKey,
+      params.signal,
+      params.customInstructions,
+      previousSummary,
+    );
+  } catch (err) {
+    if (chunk.length <= 1) {
+      throw err;
+    }
+    const mid = Math.ceil(chunk.length / 2);
+    const firstSummary = await summarizeChunkWithRetries(
+      chunk.slice(0, mid),
+      params,
+      previousSummary,
+    );
+    return summarizeChunkWithRetries(chunk.slice(mid), params, firstSummary);
+  }
+}
+
 async function summarizeChunks(params: {
   messages: AgentMessage[];
   model: NonNullable<ExtensionContext["model"]>;
@@ -188,42 +230,7 @@ async function summarizeChunks(params: {
   let summary = params.previousSummary;
 
   for (const chunk of chunks) {
-    try {
-      summary = await generateSummary(
-        chunk,
-        params.model,
-        params.reserveTokens,
-        params.apiKey,
-        params.signal,
-        params.customInstructions,
-        summary,
-      );
-    } catch (err) {
-      // Retry failed chunk by splitting in half
-      if (chunk.length > 1) {
-        const mid = Math.ceil(chunk.length / 2);
-        summary = await generateSummary(
-          chunk.slice(0, mid),
-          params.model,
-          params.reserveTokens,
-          params.apiKey,
-          params.signal,
-          params.customInstructions,
-          summary,
-        );
-        summary = await generateSummary(
-          chunk.slice(mid),
-          params.model,
-          params.reserveTokens,
-          params.apiKey,
-          params.signal,
-          params.customInstructions,
-          summary,
-        );
-      } else {
-        throw err;
-      }
-    }
+    summary = await summarizeChunkWithRetries(chunk, params, summary);
   }
 
   return summary ?? DEFAULT_SUMMARY_FALLBACK;
