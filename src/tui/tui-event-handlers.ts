@@ -235,6 +235,8 @@ export function createEventHandlers(context: EventHandlerContext) {
       }
       if (phase === "end") {
         setActivityStatus("running");
+        chatLog.addSystem("context compacted");
+        void refreshSessionInfo?.();
       }
       tui.requestRender();
     }

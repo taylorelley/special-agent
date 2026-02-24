@@ -74,6 +74,30 @@ export function resolveMemoryFlushContextWindowTokens(params: {
   );
 }
 
+/**
+ * Build an enriched memory flush prompt that includes scope and compaction
+ * history so the agent can make better decisions about what to persist.
+ */
+export function buildMemoryFlushPrompt(params: {
+  basePrompt: string;
+  compactionCount?: number;
+  modifiedFiles?: string[];
+}): string {
+  const parts = [params.basePrompt];
+  if (typeof params.compactionCount === "number" && params.compactionCount > 0) {
+    parts.push(
+      `This is compaction #${params.compactionCount + 1} — earlier context has already been summarized.`,
+    );
+  }
+  if (params.modifiedFiles && params.modifiedFiles.length > 0) {
+    const fileList = params.modifiedFiles.slice(0, 10).join(", ");
+    const suffix =
+      params.modifiedFiles.length > 10 ? ` and ${params.modifiedFiles.length - 10} more` : "";
+    parts.push(`Files modified in session: ${fileList}${suffix}.`);
+  }
+  return parts.join(" ");
+}
+
 export function shouldRunMemoryFlush(params: {
   entry?: Pick<SessionEntry, "totalTokens" | "compactionCount" | "memoryFlushCompactionCount">;
   contextWindowTokens: number;

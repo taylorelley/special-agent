@@ -6,6 +6,7 @@ import {
   SAFETY_MARGIN,
   computeAdaptiveChunkRatio,
   estimateMessagesTokens,
+  extractOversizedMessageNote,
   isOversizedForSummary,
   pruneHistoryForContextShare,
   resolveContextWindowTokens,
@@ -134,6 +135,97 @@ function formatToolFailuresSection(failures: ToolFailure[]): string {
   return `\n\n## Tool Failures\n${lines.join("\n")}`;
 }
 
+const MAX_TOOL_ACTIONS = 20;
+const MAX_TOOL_ACTION_INPUT_CHARS = 120;
+
+type ToolAction = {
+  toolName: string;
+  summary: string;
+};
+
+function summarizeToolInput(name: string, input: Record<string, unknown> | undefined): string {
+  if (!input) {
+    return "(no input)";
+  }
+  // Extract the most informative parameter for common tools
+  const filePath = input.file_path ?? input.path ?? input.filePath;
+  if (typeof filePath === "string") {
+    return filePath;
+  }
+  const command = input.command ?? input.cmd;
+  if (typeof command === "string") {
+    return command.length > MAX_TOOL_ACTION_INPUT_CHARS
+      ? `${command.slice(0, MAX_TOOL_ACTION_INPUT_CHARS)}...`
+      : command;
+  }
+  const query = input.query ?? input.pattern;
+  if (typeof query === "string") {
+    return query.length > MAX_TOOL_ACTION_INPUT_CHARS
+      ? `${query.slice(0, MAX_TOOL_ACTION_INPUT_CHARS)}...`
+      : query;
+  }
+  // Fall back to first string value
+  for (const value of Object.values(input)) {
+    if (typeof value === "string" && value.trim()) {
+      return value.length > MAX_TOOL_ACTION_INPUT_CHARS
+        ? `${value.slice(0, MAX_TOOL_ACTION_INPUT_CHARS)}...`
+        : value;
+    }
+  }
+  return "(structured input)";
+}
+
+function collectToolActions(messages: AgentMessage[]): ToolAction[] {
+  const actions: ToolAction[] = [];
+
+  for (const message of messages) {
+    if (!message || typeof message !== "object") {
+      continue;
+    }
+    const role = (message as { role?: unknown }).role;
+    if (role !== "assistant") {
+      continue;
+    }
+    const content = (message as { content?: unknown }).content;
+    if (!Array.isArray(content)) {
+      continue;
+    }
+    for (const block of content) {
+      if (!block || typeof block !== "object") {
+        continue;
+      }
+      const rec = block as { type?: unknown; name?: unknown; input?: unknown };
+      if (rec.type !== "toolUse") {
+        continue;
+      }
+      const toolName = typeof rec.name === "string" && rec.name.trim() ? rec.name : "tool";
+      const input =
+        rec.input && typeof rec.input === "object"
+          ? (rec.input as Record<string, unknown>)
+          : undefined;
+      actions.push({
+        toolName,
+        summary: summarizeToolInput(toolName, input),
+      });
+    }
+  }
+
+  return actions;
+}
+
+function formatToolActionsSection(actions: ToolAction[]): string {
+  if (actions.length === 0) {
+    return "";
+  }
+  const lines = actions.slice(0, MAX_TOOL_ACTIONS).map((action) => {
+    return `- ${action.toolName}: ${action.summary}`;
+  });
+  if (actions.length > MAX_TOOL_ACTIONS) {
+    lines.push(`- ...and ${actions.length - MAX_TOOL_ACTIONS} more`);
+  }
+  return `\n\n## Actions Taken\n${lines.join("\n")}`;
+}
+
 function computeFileLists(fileOps: FileOperations): {
   readFiles: string[];
   modifiedFiles: string[];
@@ -163,12 +255,12 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
     const { preparation, customInstructions, signal } = event;
     const { readFiles, modifiedFiles } = computeFileLists(preparation.fileOps);
     const fileOpsSummary = formatFileOperations(readFiles, modifiedFiles);
-    const toolFailures = collectToolFailures([
-      ...preparation.messagesToSummarize,
-      ...preparation.turnPrefixMessages,
-    ]);
+    const allMessages = [...preparation.messagesToSummarize, ...preparation.turnPrefixMessages];
+    const toolFailures = collectToolFailures(allMessages);
     const toolFailureSection = formatToolFailuresSection(toolFailures);
-    const fallbackSummary = `${FALLBACK_SUMMARY}${toolFailureSection}${fileOpsSummary}`;
+    const toolActions = collectToolActions(allMessages);
+    const toolActionsSection = formatToolActionsSection(toolActions);
+    const fallbackSummary = `${FALLBACK_SUMMARY}${toolActionsSection}${toolFailureSection}${fileOpsSummary}`;
 
     const model = ctx.model;
     if (!model) {
@@ -306,6 +398,7 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
         summary = `${historySummary}\n\n---\n\n**Turn Context (split turn):**\n\n${prefixSummary}`;
       }
 
+      summary += toolActionsSection;
       summary += toolFailureSection;
       summary += fileOpsSummary;
 
@@ -338,7 +431,10 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
 export const __testing = {
   collectToolFailures,
   formatToolFailuresSection,
+  collectToolActions,
+  formatToolActionsSection,
   computeAdaptiveChunkRatio,
+  extractOversizedMessageNote,
   isOversizedForSummary,
   BASE_CHUNK_RATIO,
   MIN_CHUNK_RATIO,
