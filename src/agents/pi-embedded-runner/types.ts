@@ -6,6 +6,9 @@ export type EmbeddedPiAgentMeta = {
   provider: string;
   model: string;
   compactionCount?: number;
+  /** Prompt tokens (input + cacheRead + cacheWrite) from the last API call.
+   *  After auto-compaction this reflects the actual context fill level. */
+  lastCallInputTokens?: number;
   usage?: {
     input?: number;
     output?: number;

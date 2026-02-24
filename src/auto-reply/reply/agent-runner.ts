@@ -500,6 +500,7 @@ export async function runReplyAgent(params: {
         sessionStore: activeSessionStore,
         sessionKey,
         storePath,
+        tokensAfter: runResult.meta.agentMeta?.lastCallInputTokens,
       });
       if (verboseEnabled) {
         const suffix = typeof count === "number" ? ` (count ${count})` : "";

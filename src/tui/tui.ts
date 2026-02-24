@@ -329,7 +329,7 @@ export async function runTui(opts: TuiOptions) {
     );
   };
 
-  const busyStates = new Set(["sending", "waiting", "streaming", "running"]);
+  const busyStates = new Set(["sending", "waiting", "streaming", "running", "compacting"]);
   let statusText: Text | null = null;
   let statusLoader: Loader | null = null;
 
