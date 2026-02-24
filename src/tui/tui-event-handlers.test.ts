@@ -357,4 +357,88 @@ describe("tui-event-handlers: handleAgentEvent", () => {
 
     expect(loadHistory).toHaveBeenCalledTimes(1);
   });
+
+  it("skips loadHistory for non-local runs that were already streaming", () => {
+    const state = makeState({ activeChatRunId: null });
+    const { chatLog, tui, setActivityStatus, loadHistory, isLocalRunId, forgetLocalRunId } =
+      makeContext(state);
+    const { handleChatEvent } = createEventHandlers({
+      chatLog,
+      tui,
+      state,
+      setActivityStatus,
+      loadHistory,
+      isLocalRunId,
+      forgetLocalRunId,
+    });
+
+    // Simulate a delta arriving first (as in an agentic loop continuation)
+    handleChatEvent({
+      runId: "agentic-run-2",
+      sessionKey: state.currentSessionKey,
+      state: "delta",
+      message: { content: [{ type: "text", text: "continuing" }] },
+    });
+
+    loadHistory.mockClear();
+
+    // Now the final arrives for the same run — should NOT trigger loadHistory
+    handleChatEvent({
+      runId: "agentic-run-2",
+      sessionKey: state.currentSessionKey,
+      state: "final",
+      message: { content: [{ type: "text", text: "continuing work" }] },
+    });
+
+    expect(loadHistory).not.toHaveBeenCalled();
+  });
+
+  it("does not set activity status to idle when stopReason is tool_use", () => {
+    const state = makeState({ activeChatRunId: null });
+    const { chatLog, tui, setActivityStatus } = makeContext(state);
+    const { handleChatEvent } = createEventHandlers({
+      chatLog,
+      tui,
+      state,
+      setActivityStatus,
+    });
+
+    handleChatEvent({
+      runId: "tool-run",
+      sessionKey: state.currentSessionKey,
+      state: "final",
+      message: {
+        content: [{ type: "text", text: "calling tool" }],
+        stopReason: "tool_use",
+      },
+    });
+
+    // Should NOT have been called with "idle"
+    const statusCalls = setActivityStatus.mock.calls.map((c: unknown[]) => c[0]);
+    expect(statusCalls).not.toContain("idle");
+  });
+
+  it("sets activity status to idle for end_turn stopReason", () => {
+    const state = makeState({ activeChatRunId: null });
+    const { chatLog, tui, setActivityStatus } = makeContext(state);
+    const { handleChatEvent } = createEventHandlers({
+      chatLog,
+      tui,
+      state,
+      setActivityStatus,
+    });
+
+    handleChatEvent({
+      runId: "end-run",
+      sessionKey: state.currentSessionKey,
+      state: "final",
+      message: {
+        content: [{ type: "text", text: "done" }],
+        stopReason: "end_turn",
+      },
+    });
+
+    const statusCalls = setActivityStatus.mock.calls.map((c: unknown[]) => c[0]);
+    expect(statusCalls).toContain("idle");
+  });
 });

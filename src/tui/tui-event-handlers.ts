@@ -96,6 +96,7 @@ export function createEventHandlers(context: EventHandlerContext) {
         return;
       }
     }
+    const wasStreaming = sessionRuns.has(evt.runId);
     noteSessionRun(evt.runId);
     if (!state.activeChatRunId) {
       state.activeChatRunId = evt.runId;
@@ -127,7 +128,7 @@ export function createEventHandlers(context: EventHandlerContext) {
         tui.requestRender();
         return;
       }
-      if (isLocalRunId?.(evt.runId)) {
+      if (isLocalRunId?.(evt.runId) || wasStreaming) {
         forgetLocalRunId?.(evt.runId);
       } else {
         void loadHistory?.();
@@ -143,7 +144,11 @@ export function createEventHandlers(context: EventHandlerContext) {
       chatLog.finalizeAssistant(finalText, evt.runId);
       noteFinalizedRun(evt.runId);
       state.activeChatRunId = null;
-      setActivityStatus(stopReason === "error" ? "error" : "idle");
+      if (stopReason === "error") {
+        setActivityStatus("error");
+      } else if (stopReason !== "tool_use") {
+        setActivityStatus("idle");
+      }
       // Refresh session info to update token counts in footer
       void refreshSessionInfo?.();
     }
