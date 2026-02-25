@@ -152,7 +152,16 @@ export function extractOversizedMessageNote(msg: AgentMessage): string {
 
   const content = narrowed.content;
   let preview = "";
-  if (Array.isArray(content)) {
+  if (typeof content === "string") {
+    const lines = content.split("\n");
+    if (lines.length > OVERSIZED_HEAD_LINES + OVERSIZED_TAIL_LINES) {
+      const head = lines.slice(0, OVERSIZED_HEAD_LINES).join("\n");
+      const tail = lines.slice(-OVERSIZED_TAIL_LINES).join("\n");
+      preview = `\nFirst lines:\n${head}\n...\nLast lines:\n${tail}`;
+    } else if (content.length > 0) {
+      preview = `\nContent: ${content.slice(0, OVERSIZED_INLINE_MAX_CHARS)}`;
+    }
+  } else if (Array.isArray(content)) {
     for (const block of content) {
       if (block && typeof block === "object" && (block as { type?: string }).type === "text") {
         const text = (block as { text?: string }).text ?? "";
@@ -199,7 +208,10 @@ async function summarizeChunkWithRetries(
       params.customInstructions,
       previousSummary,
     );
-  } catch {
+  } catch (err) {
+    if ((err instanceof Error && err.name === "AbortError") || params.signal?.aborted) {
+      throw err;
+    }
     if (chunk.length <= 1) {
       return extractOversizedMessageNote(chunk[0]);
     }
@@ -378,7 +390,8 @@ export async function summarizeInStages(params: {
   // Bound summary length to prevent runaway growth across repeated compactions.
   // Condensation is intentionally one-shot best-effort: the condensed result is
   // not re-checked against maxSummaryTokens to avoid potential infinite
-  // re-condensing loops.
+  // re-condensing loops. A deterministic character-level hard cap below
+  // guarantees the budget is never exceeded.
   const maxSummaryTokens =
     params.maxSummaryTokens ?? Math.floor(params.contextWindow * MAX_SUMMARY_SHARE);
   if (maxSummaryTokens > 0) {
@@ -407,6 +420,19 @@ export async function summarizeInStages(params: {
             condenseErr instanceof Error ? condenseErr.message : String(condenseErr)
           }`,
         );
+      }
+
+      // Deterministic hard cap: if still over budget after condensation (or if
+      // condensation failed / didn't shrink enough), truncate by characters.
+      const finalTokens = estimateTokens({
+        role: "user" as const,
+        content: merged,
+        timestamp: Date.now(),
+      });
+      if (finalTokens > maxSummaryTokens) {
+        const charsPerToken = merged.length / Math.max(1, finalTokens);
+        const targetChars = Math.floor(maxSummaryTokens * charsPerToken);
+        merged = `${merged.slice(0, Math.max(1, targetChars))}\n\n[Summary truncated to fit context budget]`;
       }
     }
   }

@@ -183,13 +183,16 @@ function summarizeToolInput(input: Record<string, unknown> | undefined): string 
   return "(structured input)";
 }
 
-function collectToolActions(messages: AgentMessage[]): ToolAction[] {
+type CollectedToolActions = {
+  actions: ToolAction[];
+  totalFound: number;
+};
+
+function collectToolActions(messages: AgentMessage[]): CollectedToolActions {
   const actions: ToolAction[] = [];
+  let totalFound = 0;
 
   for (const message of messages) {
-    if (actions.length >= MAX_TOOL_ACTIONS) {
-      break;
-    }
     if (!message || typeof message !== "object") {
       continue;
     }
@@ -202,9 +205,6 @@ function collectToolActions(messages: AgentMessage[]): ToolAction[] {
       continue;
     }
     for (const block of content) {
-      if (actions.length >= MAX_TOOL_ACTIONS) {
-        break;
-      }
       if (!block || typeof block !== "object") {
         continue;
       }
@@ -212,30 +212,33 @@ function collectToolActions(messages: AgentMessage[]): ToolAction[] {
       if (rec.type !== "toolUse") {
         continue;
       }
-      const toolName = typeof rec.name === "string" && rec.name.trim() ? rec.name : "tool";
-      const input =
-        rec.input && typeof rec.input === "object"
-          ? (rec.input as Record<string, unknown>)
-          : undefined;
-      actions.push({
-        toolName,
-        summary: summarizeToolInput(input),
-      });
+      totalFound++;
+      if (actions.length < MAX_TOOL_ACTIONS) {
+        const toolName = typeof rec.name === "string" && rec.name.trim() ? rec.name : "tool";
+        const input =
+          rec.input && typeof rec.input === "object"
+            ? (rec.input as Record<string, unknown>)
+            : undefined;
+        actions.push({
+          toolName,
+          summary: summarizeToolInput(input),
+        });
+      }
     }
   }
 
-  return actions;
+  return { actions, totalFound };
 }
 
-function formatToolActionsSection(actions: ToolAction[]): string {
+function formatToolActionsSection({ actions, totalFound }: CollectedToolActions): string {
   if (actions.length === 0) {
     return "";
   }
-  const lines = actions.slice(0, MAX_TOOL_ACTIONS).map((action) => {
+  const lines = actions.map((action) => {
     return `- ${action.toolName}: ${action.summary}`;
   });
-  if (actions.length > MAX_TOOL_ACTIONS) {
-    lines.push(`- ...and ${actions.length - MAX_TOOL_ACTIONS} more`);
+  if (totalFound > MAX_TOOL_ACTIONS) {
+    lines.push(`- ...and ${totalFound - MAX_TOOL_ACTIONS} more`);
   }
   return `\n\n## Actions Taken\n${lines.join("\n")}`;
 }
