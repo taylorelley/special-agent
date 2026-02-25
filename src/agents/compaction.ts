@@ -146,10 +146,11 @@ const OVERSIZED_INLINE_MAX_CHARS = 500;
  * of the text content instead of dropping all information.
  */
 export function extractOversizedMessageNote(msg: AgentMessage): string {
-  const role = (msg as { role?: string }).role ?? "message";
+  const narrowed = msg as { role?: string; content?: unknown };
+  const role = narrowed.role ?? "message";
   const tokens = estimateTokens(msg);
 
-  const content = (msg as { content?: unknown }).content;
+  const content = narrowed.content;
   let preview = "";
   if (Array.isArray(content)) {
     for (const block of content) {
@@ -198,9 +199,9 @@ async function summarizeChunkWithRetries(
       params.customInstructions,
       previousSummary,
     );
-  } catch (err) {
+  } catch {
     if (chunk.length <= 1) {
-      throw err;
+      return extractOversizedMessageNote(chunk[0]);
     }
     const mid = Math.ceil(chunk.length / 2);
     const firstSummary = await summarizeChunkWithRetries(
@@ -374,7 +375,10 @@ export async function summarizeInStages(params: {
     customInstructions: mergeInstructions,
   });
 
-  // Bound summary length to prevent runaway growth across repeated compactions
+  // Bound summary length to prevent runaway growth across repeated compactions.
+  // Condensation is intentionally one-shot best-effort: the condensed result is
+  // not re-checked against maxSummaryTokens to avoid potential infinite
+  // re-condensing loops.
   const maxSummaryTokens =
     params.maxSummaryTokens ?? Math.floor(params.contextWindow * MAX_SUMMARY_SHARE);
   if (maxSummaryTokens > 0) {
@@ -397,8 +401,12 @@ export async function summarizeInStages(params: {
         if (condensed) {
           merged = condensed;
         }
-      } catch {
-        // Keep the original merged summary if condensation fails
+      } catch (condenseErr) {
+        console.warn(
+          `Summary condensation failed, keeping original merged summary: ${
+            condenseErr instanceof Error ? condenseErr.message : String(condenseErr)
+          }`,
+        );
       }
     }
   }

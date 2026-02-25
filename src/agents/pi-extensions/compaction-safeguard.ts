@@ -158,7 +158,7 @@ function truncateField(value: string, max: number): string {
   return value.length > max ? `${value.slice(0, max)}...` : value;
 }
 
-function summarizeToolInput(_name: string, input: Record<string, unknown> | undefined): string {
+function summarizeToolInput(input: Record<string, unknown> | undefined): string {
   if (!input) {
     return "(no input)";
   }
@@ -187,6 +187,9 @@ function collectToolActions(messages: AgentMessage[]): ToolAction[] {
   const actions: ToolAction[] = [];
 
   for (const message of messages) {
+    if (actions.length >= MAX_TOOL_ACTIONS) {
+      break;
+    }
     if (!message || typeof message !== "object") {
       continue;
     }
@@ -199,6 +202,9 @@ function collectToolActions(messages: AgentMessage[]): ToolAction[] {
       continue;
     }
     for (const block of content) {
+      if (actions.length >= MAX_TOOL_ACTIONS) {
+        break;
+      }
       if (!block || typeof block !== "object") {
         continue;
       }
@@ -213,7 +219,7 @@ function collectToolActions(messages: AgentMessage[]): ToolAction[] {
           : undefined;
       actions.push({
         toolName,
-        summary: summarizeToolInput(toolName, input),
+        summary: summarizeToolInput(input),
       });
     }
   }
@@ -369,8 +375,8 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
       }
 
       // Use adaptive chunk ratio based on message sizes
-      const allMessages = [...messagesToSummarize, ...turnPrefixMessages];
-      const adaptiveRatio = computeAdaptiveChunkRatio(allMessages, contextWindowTokens);
+      const postPruneMessages = [...messagesToSummarize, ...turnPrefixMessages];
+      const adaptiveRatio = computeAdaptiveChunkRatio(postPruneMessages, contextWindowTokens);
       const maxChunkTokens = Math.max(1, Math.floor(contextWindowTokens * adaptiveRatio));
       const reserveTokens = Math.max(1, Math.floor(preparation.settings.reserveTokens));
 
