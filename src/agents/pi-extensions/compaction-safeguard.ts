@@ -272,7 +272,10 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
     const { preparation, customInstructions, signal } = event;
     const { readFiles, modifiedFiles } = computeFileLists(preparation.fileOps);
     const fileOpsSummary = formatFileOperations(readFiles, modifiedFiles);
-    const allMessages = [...preparation.messagesToSummarize, ...preparation.turnPrefixMessages];
+    const allMessages = [
+      ...preparation.messagesToSummarize,
+      ...(preparation.turnPrefixMessages ?? []),
+    ];
     const toolFailures = collectToolFailures(allMessages);
     const toolFailureSection = formatToolFailuresSection(toolFailures);
     const toolActions = collectToolActions(allMessages);

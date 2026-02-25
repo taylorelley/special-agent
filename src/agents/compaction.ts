@@ -141,6 +141,19 @@ const OVERSIZED_HEAD_LINES = 5;
 const OVERSIZED_TAIL_LINES = 5;
 const OVERSIZED_INLINE_MAX_CHARS = 500;
 
+function buildPreviewFromText(text: string): string {
+  const lines = text.split("\n");
+  if (lines.length > OVERSIZED_HEAD_LINES + OVERSIZED_TAIL_LINES) {
+    const head = lines.slice(0, OVERSIZED_HEAD_LINES).join("\n");
+    const tail = lines.slice(-OVERSIZED_TAIL_LINES).join("\n");
+    return `\nFirst lines:\n${head}\n...\nLast lines:\n${tail}`;
+  }
+  if (text.length > 0) {
+    return `\nContent: ${text.slice(0, OVERSIZED_INLINE_MAX_CHARS)}`;
+  }
+  return "";
+}
+
 /**
  * Build a note for an oversized message that includes a head/tail preview
  * of the text content instead of dropping all information.
@@ -153,26 +166,11 @@ export function extractOversizedMessageNote(msg: AgentMessage): string {
   const content = narrowed.content;
   let preview = "";
   if (typeof content === "string") {
-    const lines = content.split("\n");
-    if (lines.length > OVERSIZED_HEAD_LINES + OVERSIZED_TAIL_LINES) {
-      const head = lines.slice(0, OVERSIZED_HEAD_LINES).join("\n");
-      const tail = lines.slice(-OVERSIZED_TAIL_LINES).join("\n");
-      preview = `\nFirst lines:\n${head}\n...\nLast lines:\n${tail}`;
-    } else if (content.length > 0) {
-      preview = `\nContent: ${content.slice(0, OVERSIZED_INLINE_MAX_CHARS)}`;
-    }
+    preview = buildPreviewFromText(content);
   } else if (Array.isArray(content)) {
     for (const block of content) {
       if (block && typeof block === "object" && (block as { type?: string }).type === "text") {
-        const text = (block as { text?: string }).text ?? "";
-        const lines = text.split("\n");
-        if (lines.length > OVERSIZED_HEAD_LINES + OVERSIZED_TAIL_LINES) {
-          const head = lines.slice(0, OVERSIZED_HEAD_LINES).join("\n");
-          const tail = lines.slice(-OVERSIZED_TAIL_LINES).join("\n");
-          preview = `\nFirst lines:\n${head}\n...\nLast lines:\n${tail}`;
-        } else if (text.length > 0) {
-          preview = `\nContent: ${text.slice(0, OVERSIZED_INLINE_MAX_CHARS)}`;
-        }
+        preview = buildPreviewFromText((block as { text?: string }).text ?? "");
         break;
       }
     }
@@ -209,10 +207,13 @@ async function summarizeChunkWithRetries(
       previousSummary,
     );
   } catch (err) {
-    if ((err instanceof Error && err.name === "AbortError") || params.signal?.aborted) {
+    if ((err instanceof Error && err.name === "AbortError") || params.signal.aborted) {
       throw err;
     }
-    if (chunk.length <= 1) {
+    if (chunk.length === 0) {
+      return undefined;
+    }
+    if (chunk.length === 1) {
       return extractOversizedMessageNote(chunk[0]);
     }
     const mid = Math.ceil(chunk.length / 2);
