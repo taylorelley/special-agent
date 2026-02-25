@@ -1,12 +1,9 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ExtensionAPI, FileOperations } from "@mariozechner/pi-coding-agent";
 import {
-  BASE_CHUNK_RATIO,
-  MIN_CHUNK_RATIO,
   SAFETY_MARGIN,
   computeAdaptiveChunkRatio,
   estimateMessagesTokens,
-  isOversizedForSummary,
   pruneHistoryForContextShare,
   resolveContextWindowTokens,
   summarizeInStages,
@@ -134,6 +131,114 @@ function formatToolFailuresSection(failures: ToolFailure[]): string {
   return `\n\n## Tool Failures\n${lines.join("\n")}`;
 }
 
+const MAX_TOOL_ACTIONS = 20;
+const MAX_TOOL_ACTION_INPUT_CHARS = 120;
+
+type ToolAction = {
+  toolName: string;
+  summary: string;
+};
+
+/** Fields whose values are safe to persist verbatim in compaction summaries. */
+const SAFE_INPUT_FIELDS = new Set([
+  "file_path",
+  "path",
+  "filePath",
+  "glob",
+  "type",
+  "output_mode",
+  "notebook_path",
+]);
+
+function truncateField(value: string, max: number): string {
+  return value.length > max ? `${value.slice(0, max)}...` : value;
+}
+
+function summarizeToolInput(input: Record<string, unknown> | undefined): string {
+  if (!input) {
+    return "(no input)";
+  }
+  // Only expose values from an explicit allowlist of safe (non-secret) fields.
+  // Fields like command/cmd, query/pattern, and arbitrary string values may
+  // contain secrets (API keys, connection strings, env vars) and are redacted.
+  for (const field of SAFE_INPUT_FIELDS) {
+    const value = input[field];
+    if (typeof value === "string" && value.trim()) {
+      return truncateField(value, MAX_TOOL_ACTION_INPUT_CHARS);
+    }
+  }
+  // Indicate which unsafe fields were present without exposing their values
+  const hasCommand = typeof (input.command ?? input.cmd) === "string";
+  const hasQuery = typeof (input.query ?? input.pattern) === "string";
+  if (hasCommand) {
+    return "(command redacted)";
+  }
+  if (hasQuery) {
+    return "(query redacted)";
+  }
+  return "(structured input)";
+}
+
+type CollectedToolActions = {
+  actions: ToolAction[];
+  totalFound: number;
+};
+
+function collectToolActions(messages: AgentMessage[]): CollectedToolActions {
+  const actions: ToolAction[] = [];
+  let totalFound = 0;
+
+  for (const message of messages) {
+    if (!message || typeof message !== "object") {
+      continue;
+    }
+    const role = (message as { role?: unknown }).role;
+    if (role !== "assistant") {
+      continue;
+    }
+    const content = (message as { content?: unknown }).content;
+    if (!Array.isArray(content)) {
+      continue;
+    }
+    for (const block of content) {
+      if (!block || typeof block !== "object") {
+        continue;
+      }
+      const rec = block as { type?: unknown; name?: unknown; input?: unknown };
+      if (rec.type !== "toolUse") {
+        continue;
+      }
+      totalFound++;
+      if (actions.length < MAX_TOOL_ACTIONS) {
+        const toolName = typeof rec.name === "string" && rec.name.trim() ? rec.name : "tool";
+        const input =
+          rec.input && typeof rec.input === "object"
+            ? (rec.input as Record<string, unknown>)
+            : undefined;
+        actions.push({
+          toolName,
+          summary: summarizeToolInput(input),
+        });
+      }
+    }
+  }
+
+  return { actions, totalFound };
+}
+
+function formatToolActionsSection({ actions, totalFound }: CollectedToolActions): string {
+  if (actions.length === 0) {
+    return "";
+  }
+  const lines = actions.map((action) => {
+    return `- ${action.toolName}: ${action.summary}`;
+  });
+  if (totalFound > MAX_TOOL_ACTIONS) {
+    lines.push(`- ...and ${totalFound - MAX_TOOL_ACTIONS} more`);
+  }
+  return `\n\n## Actions Taken\n${lines.join("\n")}`;
+}
+
 function computeFileLists(fileOps: FileOperations): {
   readFiles: string[];
   modifiedFiles: string[];
@@ -163,12 +268,15 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
     const { preparation, customInstructions, signal } = event;
     const { readFiles, modifiedFiles } = computeFileLists(preparation.fileOps);
     const fileOpsSummary = formatFileOperations(readFiles, modifiedFiles);
-    const toolFailures = collectToolFailures([
+    const allMessages = [
       ...preparation.messagesToSummarize,
-      ...preparation.turnPrefixMessages,
-    ]);
+      ...(preparation.turnPrefixMessages ?? []),
+    ];
+    const toolFailures = collectToolFailures(allMessages);
     const toolFailureSection = formatToolFailuresSection(toolFailures);
-    const fallbackSummary = `${FALLBACK_SUMMARY}${toolFailureSection}${fileOpsSummary}`;
+    const toolActions = collectToolActions(allMessages);
+    const toolActionsSection = formatToolActionsSection(toolActions);
+    const fallbackSummary = `${FALLBACK_SUMMARY}${toolActionsSection}${toolFailureSection}${fileOpsSummary}`;
 
     const model = ctx.model;
     if (!model) {
@@ -269,8 +377,8 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
       }
 
       // Use adaptive chunk ratio based on message sizes
-      const allMessages = [...messagesToSummarize, ...turnPrefixMessages];
-      const adaptiveRatio = computeAdaptiveChunkRatio(allMessages, contextWindowTokens);
+      const postPruneMessages = [...messagesToSummarize, ...turnPrefixMessages];
+      const adaptiveRatio = computeAdaptiveChunkRatio(postPruneMessages, contextWindowTokens);
       const maxChunkTokens = Math.max(1, Math.floor(contextWindowTokens * adaptiveRatio));
       const reserveTokens = Math.max(1, Math.floor(preparation.settings.reserveTokens));
 
@@ -306,6 +414,7 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
         summary = `${historySummary}\n\n---\n\n**Turn Context (split turn):**\n\n${prefixSummary}`;
       }
 
+      summary += toolActionsSection;
       summary += toolFailureSection;
       summary += fileOpsSummary;
 
@@ -338,9 +447,6 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
 export const __testing = {
   collectToolFailures,
   formatToolFailuresSection,
-  computeAdaptiveChunkRatio,
-  isOversizedForSummary,
-  BASE_CHUNK_RATIO,
-  MIN_CHUNK_RATIO,
-  SAFETY_MARGIN,
+  collectToolActions,
+  formatToolActionsSection,
 } as const;

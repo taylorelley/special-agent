@@ -139,7 +139,7 @@ describe("runReplyAgent memory flush", () => {
     const calls: Array<{ prompt?: string }> = [];
     runEmbeddedPiAgentMock.mockImplementation(async (params: EmbeddedRunParams) => {
       calls.push({ prompt: params.prompt });
-      if (params.prompt === DEFAULT_MEMORY_FLUSH_PROMPT) {
+      if (params.prompt?.startsWith("Pre-compaction memory flush.")) {
         return { payloads: [], meta: {} };
       }
       return {
@@ -178,7 +178,12 @@ describe("runReplyAgent memory flush", () => {
       typingMode: "instant",
     });
 
-    expect(calls.map((call) => call.prompt)).toEqual([DEFAULT_MEMORY_FLUSH_PROMPT, "hello"]);
+    // Memory flush prompt is enriched with compaction count when > 0
+    const flushPrompt = calls[0]?.prompt;
+    expect(flushPrompt).toBeDefined();
+    expect(flushPrompt).toContain(DEFAULT_MEMORY_FLUSH_PROMPT);
+    expect(flushPrompt).toContain("compaction #2");
+    expect(calls[1]?.prompt).toBe("hello");
 
     const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
     expect(stored[sessionKey].memoryFlushAt).toBeTypeOf("number");

@@ -4,7 +4,6 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { TemplateContext } from "../templating.js";
 import type { FollowupRun, QueueSettings } from "./queue.js";
-import { DEFAULT_MEMORY_FLUSH_PROMPT } from "./memory-flush.js";
 import { createMockTypingController } from "./test-helpers.js";
 
 const runEmbeddedPiAgentMock = vi.fn();
@@ -137,7 +136,7 @@ describe("runReplyAgent memory flush", () => {
     await seedSessionStore({ storePath, sessionKey, entry: sessionEntry });
 
     runEmbeddedPiAgentMock.mockImplementation(async (params: EmbeddedRunParams) => {
-      if (params.prompt === DEFAULT_MEMORY_FLUSH_PROMPT) {
+      if (params.prompt?.startsWith("Pre-compaction memory flush.")) {
         params.onAgentEvent?.({
           stream: "compaction",
           data: { phase: "end", willRetry: false },
