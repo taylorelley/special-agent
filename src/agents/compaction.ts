@@ -416,6 +416,12 @@ export async function summarizeInStages(params: {
           merged = condensed;
         }
       } catch (condenseErr) {
+        if (
+          (condenseErr instanceof Error && condenseErr.name === "AbortError") ||
+          params.signal.aborted
+        ) {
+          throw condenseErr;
+        }
         console.warn(
           `Summary condensation failed, keeping original merged summary: ${
             condenseErr instanceof Error ? condenseErr.message : String(condenseErr)

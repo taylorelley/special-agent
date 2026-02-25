@@ -1,13 +1,9 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ExtensionAPI, FileOperations } from "@mariozechner/pi-coding-agent";
 import {
-  BASE_CHUNK_RATIO,
-  MIN_CHUNK_RATIO,
   SAFETY_MARGIN,
   computeAdaptiveChunkRatio,
   estimateMessagesTokens,
-  extractOversizedMessageNote,
-  isOversizedForSummary,
   pruneHistoryForContextShare,
   resolveContextWindowTokens,
   summarizeInStages,
@@ -453,10 +449,4 @@ export const __testing = {
   formatToolFailuresSection,
   collectToolActions,
   formatToolActionsSection,
-  computeAdaptiveChunkRatio,
-  extractOversizedMessageNote,
-  isOversizedForSummary,
-  BASE_CHUNK_RATIO,
-  MIN_CHUNK_RATIO,
-  SAFETY_MARGIN,
 } as const;
