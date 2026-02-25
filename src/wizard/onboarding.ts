@@ -43,6 +43,7 @@ import {
 } from "../commands/onboard-ollama.js";
 import { promptRemoteGatewayConfig } from "../commands/onboard-remote.js";
 import { setupSkills } from "../commands/onboard-skills.js";
+import { setupWebTools } from "../commands/onboard-web-tools.js";
 import {
   DEFAULT_GATEWAY_PORT,
   readConfigFileSnapshot,
@@ -683,6 +684,13 @@ export async function runOnboardingWizard(
 
   // Setup hooks (session memory on /new)
   nextConfig = await setupInternalHooks(nextConfig, runtime, prompter);
+
+  // Setup web tools (web_search + web_fetch)
+  if (opts.skipWebTools) {
+    await prompter.note("Skipping web tools setup.", "Web tools");
+  } else {
+    nextConfig = await setupWebTools(nextConfig, runtime, prompter, flow);
+  }
 
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await writeConfigFile(nextConfig);

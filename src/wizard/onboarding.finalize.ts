@@ -401,33 +401,31 @@ export async function finalizeOnboardingWizard(
     );
   }
 
+  const webSearchEnabled = nextConfig.tools?.web?.search?.enabled === true;
   const webSearchKey = (nextConfig.tools?.web?.search?.apiKey ?? "").trim();
   const webSearchEnv = (process.env.BRAVE_API_KEY ?? "").trim();
   const hasWebSearchKey = Boolean(webSearchKey || webSearchEnv);
-  await prompter.note(
-    hasWebSearchKey
-      ? [
-          "Web search is enabled, so your agent can look things up online when needed.",
-          "",
-          webSearchKey
-            ? "API key: stored in config (tools.web.search.apiKey)."
-            : "API key: provided via BRAVE_API_KEY env var (Gateway environment).",
-          "Docs: https://docs.openclaw.ai/tools/web",
-        ].join("\n")
-      : [
-          "If you want your agent to be able to search the web, you’ll need an API key.",
-          "",
-          "SpecialAgent uses Brave Search for the `web_search` tool. Without a Brave Search API key, web search won’t work.",
-          "",
-          "Set it up interactively:",
-          `- Run: ${formatCliCommand("special-agent configure --section web")}`,
-          "- Enable web_search and paste your Brave Search API key",
-          "",
-          "Alternative: set BRAVE_API_KEY in the Gateway environment (no config changes).",
-          "Docs: https://docs.openclaw.ai/tools/web",
-        ].join("\n"),
-    "Web search (optional)",
-  );
+  if (webSearchEnabled && hasWebSearchKey) {
+    await prompter.note(
+      [
+        "Web search is enabled.",
+        webSearchKey
+          ? "API key: stored in config."
+          : "API key: provided via BRAVE_API_KEY env var.",
+        "Docs: https://docs.openclaw.ai/tools/web",
+      ].join("\n"),
+      "Web search",
+    );
+  } else if (!hasWebSearchKey) {
+    await prompter.note(
+      [
+        "Web search is not configured yet.",
+        `Run ${formatCliCommand("special-agent configure --section web")} or set BRAVE_API_KEY.`,
+        "Docs: https://docs.openclaw.ai/tools/web",
+      ].join("\n"),
+      "Web search (optional)",
+    );
+  }
 
   await prompter.outro(
     controlUiOpened

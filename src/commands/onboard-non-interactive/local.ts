@@ -15,10 +15,13 @@ import {
 } from "../onboard-helpers.js";
 import { inferAuthChoiceFromFlags } from "./local/auth-choice-inference.js";
 import { applyNonInteractiveAuthChoice } from "./local/auth-choice.js";
+import { applyNonInteractiveBeadsConfig } from "./local/beads-config.js";
 import { installGatewayDaemonNonInteractive } from "./local/daemon-install.js";
 import { applyNonInteractiveGatewayConfig } from "./local/gateway-config.js";
+import { applyNonInteractiveMemoryConfig } from "./local/memory-config.js";
 import { logNonInteractiveOnboardingJson } from "./local/output.js";
 import { applyNonInteractiveSkillsConfig } from "./local/skills-config.js";
+import { applyNonInteractiveWebToolsConfig } from "./local/web-tools-config.js";
 import { resolveNonInteractiveWorkspaceDir } from "./local/workspace.js";
 
 export async function runNonInteractiveOnboardingLocal(params: {
@@ -88,6 +91,14 @@ export async function runNonInteractiveOnboardingLocal(params: {
   nextConfig = gatewayResult.nextConfig;
 
   nextConfig = applyNonInteractiveSkillsConfig({ nextConfig, opts, runtime });
+  nextConfig = applyNonInteractiveMemoryConfig({ nextConfig, opts, runtime });
+  nextConfig = applyNonInteractiveBeadsConfig({ nextConfig, opts, runtime });
+  nextConfig = applyNonInteractiveWebToolsConfig({ nextConfig, opts, runtime });
+
+  if (!opts.json) {
+    runtime.log("Channels: skipped (requires interactive setup).");
+    runtime.log("Hooks: skipped (requires interactive setup).");
+  }
 
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await writeConfigFile(nextConfig);
@@ -135,11 +146,15 @@ export async function runNonInteractiveOnboardingLocal(params: {
     },
     installDaemon: Boolean(opts.installDaemon),
     daemonRuntime: opts.installDaemon ? daemonRuntimeRaw : undefined,
+    skipChannels: true,
     skipSkills: Boolean(opts.skipSkills),
+    skipMemory: Boolean(opts.skipMemory),
+    skipBeads: Boolean(opts.skipBeads),
+    skipWebTools: Boolean(opts.skipWebTools),
     skipHealth: Boolean(opts.skipHealth),
   });
 
-  if (!opts.json) {
+  if (!opts.json && !opts.skipWebTools && !opts.braveApiKey) {
     runtime.log(
       `Tip: run \`${formatCliCommand("special-agent configure --section web")}\` to store your Brave API key for web_search. Docs: https://docs.openclaw.ai/tools/web`,
     );

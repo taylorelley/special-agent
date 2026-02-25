@@ -51,6 +51,9 @@ export type OnboardOptions = {
   skipSkills?: boolean;
   skipMemory?: boolean;
   skipBeads?: boolean;
+  skipWebTools?: boolean;
+  /** Brave Search API key for web_search (non-interactive). */
+  braveApiKey?: string;
   skipHealth?: boolean;
   skipUi?: boolean;
   nodeManager?: NodeManagerChoice;

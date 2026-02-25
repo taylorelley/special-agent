@@ -9,6 +9,10 @@ import { runOnboardingWizard } from "./onboarding.js";
 
 const setupChannels = vi.hoisted(() => vi.fn(async (cfg) => cfg));
 const setupSkills = vi.hoisted(() => vi.fn(async (cfg) => cfg));
+const setupMemory = vi.hoisted(() => vi.fn(async (cfg) => cfg));
+const setupBeads = vi.hoisted(() => vi.fn(async (cfg) => cfg));
+const setupInternalHooks = vi.hoisted(() => vi.fn(async (cfg) => cfg));
+const setupWebTools = vi.hoisted(() => vi.fn(async (cfg) => cfg));
 const healthCommand = vi.hoisted(() => vi.fn(async () => {}));
 const ensureWorkspaceAndSessions = vi.hoisted(() => vi.fn(async () => {}));
 const writeConfigFile = vi.hoisted(() => vi.fn(async () => {}));
@@ -26,6 +30,24 @@ vi.mock("../commands/onboard-channels.js", () => ({
 
 vi.mock("../commands/onboard-skills.js", () => ({
   setupSkills,
+}));
+
+vi.mock("../commands/onboard-memory.js", () => ({
+  setupMemory,
+  applyMemorySlot: vi.fn((cfg) => cfg),
+}));
+
+vi.mock("../commands/onboard-beads.js", () => ({
+  setupBeads,
+  applyBeadsConfig: vi.fn((cfg) => cfg),
+}));
+
+vi.mock("../commands/onboard-hooks.js", () => ({
+  setupInternalHooks,
+}));
+
+vi.mock("../commands/onboard-web-tools.js", () => ({
+  setupWebTools,
 }));
 
 vi.mock("../commands/health.js", () => ({
@@ -156,6 +178,10 @@ describe("runOnboardingWizard", () => {
       }),
     };
 
+    setupMemory.mockClear();
+    setupBeads.mockClear();
+    setupWebTools.mockClear();
+
     await runOnboardingWizard(
       {
         acceptRisk: true,
@@ -164,6 +190,9 @@ describe("runOnboardingWizard", () => {
         installDaemon: false,
         skipProviders: true,
         skipSkills: true,
+        skipMemory: true,
+        skipBeads: true,
+        skipWebTools: true,
         skipHealth: true,
         skipUi: true,
       },
@@ -173,8 +202,58 @@ describe("runOnboardingWizard", () => {
 
     expect(setupChannels).not.toHaveBeenCalled();
     expect(setupSkills).not.toHaveBeenCalled();
+    expect(setupMemory).not.toHaveBeenCalled();
+    expect(setupBeads).not.toHaveBeenCalled();
+    expect(setupWebTools).not.toHaveBeenCalled();
     expect(healthCommand).not.toHaveBeenCalled();
     expect(runTui).not.toHaveBeenCalled();
+  });
+
+  it("calls setupWebTools when not skipped", async () => {
+    setupWebTools.mockClear();
+
+    const select: WizardPrompter["select"] = vi.fn(async (opts) => {
+      if (opts.message === "Endpoint type") {
+        return "openai";
+      }
+      return "quickstart";
+    });
+    const prompter: WizardPrompter = {
+      intro: vi.fn(async () => {}),
+      outro: vi.fn(async () => {}),
+      note: vi.fn(async () => {}),
+      select,
+      multiselect: vi.fn(async () => []),
+      text: vi.fn(async () => ""),
+      confirm: vi.fn(async () => false),
+      progress: vi.fn(() => ({ update: vi.fn(), stop: vi.fn() })),
+    };
+    const runtime: RuntimeEnv = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn((code: number) => {
+        throw new Error(`exit:${code}`);
+      }),
+    };
+
+    await runOnboardingWizard(
+      {
+        acceptRisk: true,
+        flow: "quickstart",
+        authChoice: "skip",
+        installDaemon: false,
+        skipProviders: true,
+        skipSkills: true,
+        skipMemory: true,
+        skipBeads: true,
+        skipHealth: true,
+        skipUi: true,
+      },
+      runtime,
+      prompter,
+    );
+
+    expect(setupWebTools).toHaveBeenCalled();
   });
 
   it("launches TUI without auto-delivery when hatching", async () => {
