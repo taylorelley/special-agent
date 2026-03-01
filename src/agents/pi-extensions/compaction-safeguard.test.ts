@@ -1,20 +1,19 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import {
+  BASE_CHUNK_RATIO,
+  MIN_CHUNK_RATIO,
+  SAFETY_MARGIN,
+  computeAdaptiveChunkRatio,
+  isOversizedForSummary,
+} from "../compaction.js";
+import {
   getCompactionSafeguardRuntime,
   setCompactionSafeguardRuntime,
 } from "./compaction-safeguard-runtime.js";
 import { __testing } from "./compaction-safeguard.js";
 
-const {
-  collectToolFailures,
-  formatToolFailuresSection,
-  computeAdaptiveChunkRatio,
-  isOversizedForSummary,
-  BASE_CHUNK_RATIO,
-  MIN_CHUNK_RATIO,
-  SAFETY_MARGIN,
-} = __testing;
+const { collectToolFailures, formatToolFailuresSection } = __testing;
 
 describe("compaction-safeguard tool failures", () => {
   it("formats tool failures with meta and summary", () => {

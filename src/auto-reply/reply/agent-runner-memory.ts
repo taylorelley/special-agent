@@ -18,6 +18,7 @@ import { logVerbose } from "../../globals.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
 import { buildThreadingToolContext, resolveEnforceFinalTag } from "./agent-runner-utils.js";
 import {
+  buildMemoryFlushPrompt,
   resolveMemoryFlushContextWindowTokens,
   resolveMemoryFlushSettings,
   shouldRunMemoryFlush,
@@ -133,7 +134,14 @@ export async function runMemoryFlushIfNeeded(params: {
           agentDir: params.followupRun.run.agentDir,
           config: params.followupRun.run.config,
           skillsSnapshot: params.followupRun.run.skillsSnapshot,
-          prompt: memoryFlushSettings.prompt,
+          prompt: buildMemoryFlushPrompt({
+            basePrompt: memoryFlushSettings.prompt,
+            compactionCount:
+              activeSessionEntry?.compactionCount ??
+              (params.sessionKey
+                ? activeSessionStore?.[params.sessionKey]?.compactionCount
+                : undefined),
+          }),
           extraSystemPrompt: flushSystemPrompt,
           ownerNumbers: params.followupRun.run.ownerNumbers,
           enforceFinalTag: resolveEnforceFinalTag(params.followupRun.run, provider),

@@ -137,6 +137,95 @@ export function isOversizedForSummary(msg: AgentMessage, contextWindow: number):
   return tokens > contextWindow * 0.5;
 }
 
+const OVERSIZED_HEAD_LINES = 5;
+const OVERSIZED_TAIL_LINES = 5;
+const OVERSIZED_INLINE_MAX_CHARS = 500;
+
+function buildPreviewFromText(text: string): string {
+  const lines = text.split("\n");
+  if (lines.length > OVERSIZED_HEAD_LINES + OVERSIZED_TAIL_LINES) {
+    const head = lines.slice(0, OVERSIZED_HEAD_LINES).join("\n");
+    const tail = lines.slice(-OVERSIZED_TAIL_LINES).join("\n");
+    return `\nFirst lines:\n${head}\n...\nLast lines:\n${tail}`;
+  }
+  if (text.length > 0) {
+    return `\nContent: ${text.slice(0, OVERSIZED_INLINE_MAX_CHARS)}`;
+  }
+  return "";
+}
+
+/**
+ * Build a note for an oversized message that includes a head/tail preview
+ * of the text content instead of dropping all information.
+ */
+export function extractOversizedMessageNote(msg: AgentMessage): string {
+  const narrowed = msg as { role?: string; content?: unknown };
+  const role = narrowed.role ?? "message";
+  const tokens = estimateTokens(msg);
+
+  const content = narrowed.content;
+  let preview = "";
+  if (typeof content === "string") {
+    preview = buildPreviewFromText(content);
+  } else if (Array.isArray(content)) {
+    for (const block of content) {
+      if (block && typeof block === "object" && (block as { type?: string }).type === "text") {
+        preview = buildPreviewFromText((block as { text?: string }).text ?? "");
+        break;
+      }
+    }
+  }
+  return `[Large ${role} (~${Math.round(tokens / 1000)}K tokens) — truncated for summary]${preview}`;
+}
+
+type SummarizeParams = {
+  model: NonNullable<ExtensionContext["model"]>;
+  apiKey: string;
+  signal: AbortSignal;
+  reserveTokens: number;
+  customInstructions?: string;
+};
+
+/**
+ * Recursively attempt to summarize a chunk of messages. On failure, splits the
+ * chunk in half and retries each half independently, feeding summaries forward.
+ * Only throws when a single-message chunk fails (can't split further).
+ */
+async function summarizeChunkWithRetries(
+  chunk: AgentMessage[],
+  params: SummarizeParams,
+  previousSummary: string | undefined,
+): Promise<string | undefined> {
+  try {
+    return await generateSummary(
+      chunk,
+      params.model,
+      params.reserveTokens,
+      params.apiKey,
+      params.signal,
+      params.customInstructions,
+      previousSummary,
+    );
+  } catch (err) {
+    if ((err instanceof Error && err.name === "AbortError") || params.signal.aborted) {
+      throw err;
+    }
+    if (chunk.length === 0) {
+      return undefined;
+    }
+    if (chunk.length === 1) {
+      return extractOversizedMessageNote(chunk[0]);
+    }
+    const mid = Math.ceil(chunk.length / 2);
+    const firstSummary = await summarizeChunkWithRetries(
+      chunk.slice(0, mid),
+      params,
+      previousSummary,
+    );
+    return summarizeChunkWithRetries(chunk.slice(mid), params, firstSummary);
+  }
+}
+
 async function summarizeChunks(params: {
   messages: AgentMessage[];
   model: NonNullable<ExtensionContext["model"]>;
@@ -155,15 +244,7 @@ async function summarizeChunks(params: {
   let summary = params.previousSummary;
 
   for (const chunk of chunks) {
-    summary = await generateSummary(
-      chunk,
-      params.model,
-      params.reserveTokens,
-      params.apiKey,
-      params.signal,
-      params.customInstructions,
-      summary,
-    );
+    summary = await summarizeChunkWithRetries(chunk, params, summary);
   }
 
   return summary ?? DEFAULT_SUMMARY_FALLBACK;
@@ -207,11 +288,7 @@ export async function summarizeWithFallback(params: {
 
   for (const msg of messages) {
     if (isOversizedForSummary(msg, contextWindow)) {
-      const role = (msg as { role?: string }).role ?? "message";
-      const tokens = estimateTokens(msg);
-      oversizedNotes.push(
-        `[Large ${role} (~${Math.round(tokens / 1000)}K tokens) omitted from summary]`,
-      );
+      oversizedNotes.push(extractOversizedMessageNote(msg));
     } else {
       smallMessages.push(msg);
     }
@@ -241,6 +318,13 @@ export async function summarizeWithFallback(params: {
   );
 }
 
+/** Max share of context window that a summary should occupy. */
+export const MAX_SUMMARY_SHARE = 0.15;
+
+const CONDENSE_INSTRUCTIONS =
+  "Condense this summary. Preserve key decisions, file paths, tool actions," +
+  " open tasks, and errors. Drop verbose details and redundant context.";
+
 export async function summarizeInStages(params: {
   messages: AgentMessage[];
   model: NonNullable<ExtensionContext["model"]>;
@@ -253,6 +337,7 @@ export async function summarizeInStages(params: {
   previousSummary?: string;
   parts?: number;
   minMessagesForSplit?: number;
+  maxSummaryTokens?: number;
 }): Promise<string> {
   const { messages } = params;
   if (messages.length === 0) {
@@ -297,11 +382,69 @@ export async function summarizeInStages(params: {
     ? `${MERGE_SUMMARIES_INSTRUCTIONS}\n\nAdditional focus:\n${params.customInstructions}`
     : MERGE_SUMMARIES_INSTRUCTIONS;
 
-  return summarizeWithFallback({
+  let merged = await summarizeWithFallback({
     ...params,
     messages: summaryMessages,
     customInstructions: mergeInstructions,
   });
+
+  // Bound summary length to prevent runaway growth across repeated compactions.
+  // Condensation is intentionally one-shot best-effort: the condensed result is
+  // not re-checked against maxSummaryTokens to avoid potential infinite
+  // re-condensing loops. A deterministic character-level hard cap below
+  // guarantees the budget is never exceeded.
+  const maxSummaryTokens =
+    params.maxSummaryTokens ?? Math.floor(params.contextWindow * MAX_SUMMARY_SHARE);
+  if (maxSummaryTokens > 0) {
+    const mergedTokens = estimateTokens({
+      role: "user" as const,
+      content: merged,
+      timestamp: Date.now(),
+    });
+    if (mergedTokens > maxSummaryTokens) {
+      try {
+        const condensed = await generateSummary(
+          [{ role: "user" as const, content: merged, timestamp: Date.now() }],
+          params.model,
+          params.reserveTokens,
+          params.apiKey,
+          params.signal,
+          CONDENSE_INSTRUCTIONS,
+          undefined,
+        );
+        if (condensed) {
+          merged = condensed;
+        }
+      } catch (condenseErr) {
+        if (
+          (condenseErr instanceof Error && condenseErr.name === "AbortError") ||
+          params.signal.aborted
+        ) {
+          throw condenseErr;
+        }
+        console.warn(
+          `Summary condensation failed, keeping original merged summary: ${
+            condenseErr instanceof Error ? condenseErr.message : String(condenseErr)
+          }`,
+        );
+      }
+
+      // Deterministic hard cap: if still over budget after condensation (or if
+      // condensation failed / didn't shrink enough), truncate by characters.
+      const finalTokens = estimateTokens({
+        role: "user" as const,
+        content: merged,
+        timestamp: Date.now(),
+      });
+      if (finalTokens > maxSummaryTokens) {
+        const charsPerToken = merged.length / Math.max(1, finalTokens);
+        const targetChars = Math.floor(maxSummaryTokens * charsPerToken);
+        merged = `${merged.slice(0, Math.max(1, targetChars))}\n\n[Summary truncated to fit context budget]`;
+      }
+    }
+  }
+
+  return merged;
 }
 
 export function pruneHistoryForContextShare(params: {
