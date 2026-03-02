@@ -7,6 +7,8 @@ export function resolveCronSession(params: {
   sessionKey: string;
   nowMs: number;
   agentId: string;
+  /** Force a new session (e.g. for isolated cron runs). */
+  forceNew?: boolean;
 }) {
   const sessionCfg = params.cfg.session;
   const storePath = resolveStorePath(sessionCfg?.store, {
@@ -31,6 +33,15 @@ export function resolveCronSession(params: {
     label: entry?.label,
     displayName: entry?.displayName,
     skillsSnapshot: entry?.skillsSnapshot,
+    // When starting a fresh isolated session, clear delivery routing state
+    // inherited from prior sessions. Without this, lastThreadId leaks into
+    // the new session and causes announce-mode cron deliveries to post as
+    // thread replies instead of channel top-level messages.
+    ...(params.forceNew && {
+      lastChannel: undefined,
+      lastTo: undefined,
+      lastAccountId: undefined,
+    }),
   };
   return { storePath, store, sessionEntry, systemSent, isNewSession: true };
 }

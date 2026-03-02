@@ -99,8 +99,25 @@ export type RunCronAgentTurnResult = {
   /** Last non-empty agent text output (not truncated). */
   outputText?: string;
   error?: string;
+  errorKind?: string;
   sessionId?: string;
   sessionKey?: string;
+  /**
+   * `true` when the isolated run already delivered its output to the target
+   * channel (via outbound payloads, the subagent announce flow, or a matching
+   * messaging-tool send). Callers should skip posting a summary to the main
+   * session to avoid duplicate messages.
+   */
+  delivered?: boolean;
+  /**
+   * `true` when cron attempted announce/direct delivery for this run.
+   * This is tracked separately from `delivered` because some announce paths
+   * cannot guarantee a final delivery ack synchronously.
+   */
+  deliveryAttempted?: boolean;
+  model?: string;
+  provider?: string;
+  usage?: { inputTokens?: number; outputTokens?: number };
 };
 
 export async function runCronIsolatedAgentTurn(params: {
@@ -108,10 +125,19 @@ export async function runCronIsolatedAgentTurn(params: {
   deps: CliDeps;
   job: CronJob;
   message: string;
+  abortSignal?: AbortSignal;
   sessionKey: string;
   agentId?: string;
   lane?: string;
 }): Promise<RunCronAgentTurnResult> {
+  const abortSignal = params.abortSignal;
+  const isAborted = () => abortSignal?.aborted === true;
+  const abortReason = () => {
+    const reason = abortSignal?.reason;
+    return typeof reason === "string" && reason.trim()
+      ? reason.trim()
+      : "cron: job execution timed out";
+  };
   const defaultAgentId = resolveDefaultAgentId(params.cfg);
   const requestedAgentId =
     typeof params.agentId === "string" && params.agentId.trim()
@@ -124,7 +150,10 @@ export async function runCronIsolatedAgentTurn(params: {
     ? resolveAgentConfig(params.cfg, normalizedRequested)
     : undefined;
   const { model: overrideModel, ...agentOverrideRest } = agentConfigOverride ?? {};
-  const agentId = agentConfigOverride ? (normalizedRequested ?? defaultAgentId) : defaultAgentId;
+  // Use the requested agentId even when there is no explicit agent config entry.
+  // This ensures auth-profiles, workspace, and agentDir all resolve to the
+  // correct per-agent paths.
+  const agentId = normalizedRequested ?? defaultAgentId;
   const agentCfg: AgentDefaultsConfig = Object.assign(
     {},
     params.cfg.agents?.defaults,
@@ -201,10 +230,17 @@ export async function runCronIsolatedAgentTurn(params: {
       defaultModel: resolvedDefault.model,
     });
     if ("error" in resolvedOverride) {
-      return { status: "error", error: resolvedOverride.error };
+      if (resolvedOverride.error.startsWith("model not allowed:")) {
+        logWarn(
+          `cron: payload.model '${modelOverride}' not allowed, falling back to agent defaults`,
+        );
+      } else {
+        return { status: "error", error: resolvedOverride.error };
+      }
+    } else {
+      provider = resolvedOverride.ref.provider;
+      model = resolvedOverride.ref.model;
     }
-    provider = resolvedOverride.ref.provider;
-    model = resolvedOverride.ref.model;
   }
   const now = Date.now();
   const cronSession = resolveCronSession({
@@ -212,6 +248,8 @@ export async function runCronIsolatedAgentTurn(params: {
     sessionKey: agentSessionKey,
     agentId,
     nowMs: now,
+    // Isolated cron runs must not carry prior turn context across executions.
+    forceNew: params.job.sessionTarget === "isolated",
   });
   const runSessionId = cronSession.sessionEntry.sessionId;
   const runSessionKey = baseSessionKey.startsWith("cron:")
@@ -411,8 +449,11 @@ export async function runCronIsolatedAgentTurn(params: {
           verboseLevel: resolvedVerboseLevel,
           timeoutMs,
           runId: cronSession.sessionEntry.sessionId,
-          requireExplicitMessageTarget: true,
-          disableMessageTool: deliveryRequested,
+          // Only enforce an explicit message target when the cron delivery target
+          // was successfully resolved. When resolution fails the agent should not
+          // be blocked by a target it cannot satisfy.
+          requireExplicitMessageTarget: deliveryRequested && !resolvedDelivery.error,
+          disableMessageTool: deliveryRequested || deliveryPlan.mode === "none",
         });
       },
     });
@@ -422,6 +463,10 @@ export async function runCronIsolatedAgentTurn(params: {
     runEndedAt = Date.now();
   } catch (err) {
     return withRunSession({ status: "error", error: String(err) });
+  }
+
+  if (isAborted()) {
+    return withRunSession({ status: "error", error: abortReason() });
   }
 
   const payloads = runResult.payloads ?? [];
@@ -487,34 +532,46 @@ export async function runCronIsolatedAgentTurn(params: {
       }),
     );
 
+  // Track whether delivery was successfully completed.
+  let delivered = false;
+  let deliveryAttempted = false;
+  if (skipMessagingToolDelivery) {
+    delivered = true;
+    deliveryAttempted = true;
+  }
   if (deliveryRequested && !skipHeartbeatDelivery && !skipMessagingToolDelivery) {
     if (resolvedDelivery.error) {
       if (!deliveryBestEffort) {
         return withRunSession({
           status: "error",
+          errorKind: "delivery-target",
           error: resolvedDelivery.error.message,
           summary,
           outputText,
+          deliveryAttempted: false,
         });
       }
       logWarn(`[cron:${params.job.id}] ${resolvedDelivery.error.message}`);
-      return withRunSession({ status: "ok", summary, outputText });
+      return withRunSession({ status: "ok", summary, outputText, delivered: false });
     }
     if (!resolvedDelivery.to) {
       const message = "cron delivery target is missing";
       if (!deliveryBestEffort) {
         return withRunSession({
           status: "error",
+          errorKind: "delivery-target",
           error: message,
           summary,
           outputText,
+          deliveryAttempted: false,
         });
       }
       logWarn(`[cron:${params.job.id}] ${message}`);
-      return withRunSession({ status: "ok", summary, outputText });
+      return withRunSession({ status: "ok", summary, outputText, delivered: false });
     }
     // Shared subagent announce flow is text-based; keep direct outbound delivery
     // for media/channel payloads so structured content is preserved.
+    deliveryAttempted = true;
     if (deliveryPayloadHasStructuredContent) {
       try {
         await deliverOutboundPayloads({
@@ -527,9 +584,16 @@ export async function runCronIsolatedAgentTurn(params: {
           bestEffort: deliveryBestEffort,
           deps: createOutboundSendDeps(params.deps),
         });
+        delivered = true;
       } catch (err) {
         if (!deliveryBestEffort) {
-          return withRunSession({ status: "error", summary, outputText, error: String(err) });
+          return withRunSession({
+            status: "error",
+            summary,
+            outputText,
+            error: String(err),
+            deliveryAttempted: true,
+          });
         }
       }
     } else if (synthesizedText) {
@@ -563,7 +627,9 @@ export async function runCronIsolatedAgentTurn(params: {
           outcome: { status: "ok" },
           announceType: "cron job",
         });
-        if (!didAnnounce) {
+        if (didAnnounce) {
+          delivered = true;
+        } else {
           const message = "cron announce delivery failed";
           if (!deliveryBestEffort) {
             return withRunSession({
@@ -571,18 +637,25 @@ export async function runCronIsolatedAgentTurn(params: {
               summary,
               outputText,
               error: message,
+              deliveryAttempted: true,
             });
           }
           logWarn(`[cron:${params.job.id}] ${message}`);
         }
       } catch (err) {
         if (!deliveryBestEffort) {
-          return withRunSession({ status: "error", summary, outputText, error: String(err) });
+          return withRunSession({
+            status: "error",
+            summary,
+            outputText,
+            error: String(err),
+            deliveryAttempted: true,
+          });
         }
         logWarn(`[cron:${params.job.id}] ${String(err)}`);
       }
     }
   }
 
-  return withRunSession({ status: "ok", summary, outputText });
+  return withRunSession({ status: "ok", summary, outputText, delivered, deliveryAttempted });
 }

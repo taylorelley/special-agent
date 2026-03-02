@@ -1,20 +1,75 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { estimateTokens, generateSummary } from "@mariozechner/pi-coding-agent";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import { DEFAULT_CONTEXT_TOKENS } from "./defaults.js";
-import { repairToolUseResultPairing } from "./session-transcript-repair.js";
+import { repairToolUseResultPairing, stripToolResultDetails } from "./session-transcript-repair.js";
+
+const log = createSubsystemLogger("compaction");
 
 export const BASE_CHUNK_RATIO = 0.4;
 export const MIN_CHUNK_RATIO = 0.15;
 export const SAFETY_MARGIN = 1.2; // 20% buffer for estimateTokens() inaccuracy
+
+// Overhead reserved for summarization prompt, system prompt, previous summary,
+// and serialization wrappers (<conversation> tags, instructions, etc.).
+// generateSummary uses reasoning: "high" which also consumes context budget.
+export const SUMMARIZATION_OVERHEAD_TOKENS = 4096;
+
 const DEFAULT_SUMMARY_FALLBACK = "No prior history.";
 const DEFAULT_PARTS = 2;
 const MERGE_SUMMARIES_INSTRUCTIONS =
   "Merge these partial summaries into a single cohesive summary. Preserve decisions," +
   " TODOs, open questions, and any constraints.";
+const IDENTIFIER_PRESERVATION_INSTRUCTIONS =
+  "Preserve all opaque identifiers exactly as written (no shortening or reconstruction), " +
+  "including UUIDs, hashes, IDs, tokens, API keys, hostnames, IPs, ports, URLs, and file names.";
+
+export type CompactionSummarizationInstructions = {
+  identifierPolicy?: "strict" | "off" | "custom";
+  identifierInstructions?: string;
+};
+
+function resolveIdentifierPreservationInstructions(
+  instructions?: CompactionSummarizationInstructions,
+): string | undefined {
+  const policy = instructions?.identifierPolicy ?? "strict";
+  if (policy === "off") {
+    return undefined;
+  }
+  if (policy === "custom") {
+    const custom = instructions?.identifierInstructions?.trim();
+    return custom && custom.length > 0 ? custom : IDENTIFIER_PRESERVATION_INSTRUCTIONS;
+  }
+  return IDENTIFIER_PRESERVATION_INSTRUCTIONS;
+}
+
+export function buildCompactionSummarizationInstructions(
+  customInstructions?: string,
+  instructions?: CompactionSummarizationInstructions,
+): string | undefined {
+  const custom = customInstructions?.trim();
+  const identifierPreservation = resolveIdentifierPreservationInstructions(instructions);
+  if (!identifierPreservation && !custom) {
+    return undefined;
+  }
+  if (!custom) {
+    return identifierPreservation;
+  }
+  if (!identifierPreservation) {
+    return `Additional focus:\n${custom}`;
+  }
+  return `${identifierPreservation}\n\nAdditional focus:\n${custom}`;
+}
 
 export function estimateMessagesTokens(messages: AgentMessage[]): number {
-  return messages.reduce((sum, message) => sum + estimateTokens(message), 0);
+  // SECURITY: toolResult.details can contain untrusted/verbose payloads; never include in LLM-facing compaction.
+  const safe = stripToolResultDetails(messages);
+  return safe.reduce((sum, message) => sum + estimateTokens(message), 0);
+}
+
+function estimateCompactionMessageTokens(message: AgentMessage): number {
+  return estimateMessagesTokens([message]);
 }
 
 function normalizeParts(parts: number, messageCount: number): number {
@@ -43,7 +98,7 @@ export function splitMessagesByTokenShare(
   let currentTokens = 0;
 
   for (const message of messages) {
-    const messageTokens = estimateTokens(message);
+    const messageTokens = estimateCompactionMessageTokens(message);
     if (
       chunks.length < normalizedParts - 1 &&
       current.length > 0 &&
@@ -73,13 +128,17 @@ export function chunkMessagesByMaxTokens(
     return [];
   }
 
+  // Apply safety margin to compensate for estimateTokens() underestimation
+  // (chars/4 heuristic misses multi-byte chars, special tokens, code tokens, etc.)
+  const effectiveMax = Math.max(1, Math.floor(maxTokens / SAFETY_MARGIN));
+
   const chunks: AgentMessage[][] = [];
   let currentChunk: AgentMessage[] = [];
   let currentTokens = 0;
 
   for (const message of messages) {
-    const messageTokens = estimateTokens(message);
-    if (currentChunk.length > 0 && currentTokens + messageTokens > maxTokens) {
+    const messageTokens = estimateCompactionMessageTokens(message);
+    if (currentChunk.length > 0 && currentTokens + messageTokens > effectiveMax) {
       chunks.push(currentChunk);
       currentChunk = [];
       currentTokens = 0;
@@ -88,7 +147,7 @@ export function chunkMessagesByMaxTokens(
     currentChunk.push(message);
     currentTokens += messageTokens;
 
-    if (messageTokens > maxTokens) {
+    if (messageTokens > effectiveMax) {
       // Split oversized messages to avoid unbounded chunk growth.
       chunks.push(currentChunk);
       currentChunk = [];
@@ -133,7 +192,7 @@ export function computeAdaptiveChunkRatio(messages: AgentMessage[], contextWindo
  * If single message > 50% of context, it can't be summarized safely.
  */
 export function isOversizedForSummary(msg: AgentMessage, contextWindow: number): boolean {
-  const tokens = estimateTokens(msg) * SAFETY_MARGIN;
+  const tokens = estimateCompactionMessageTokens(msg) * SAFETY_MARGIN;
   return tokens > contextWindow * 0.5;
 }
 
@@ -234,17 +293,28 @@ async function summarizeChunks(params: {
   reserveTokens: number;
   maxChunkTokens: number;
   customInstructions?: string;
+  summarizationInstructions?: CompactionSummarizationInstructions;
   previousSummary?: string;
 }): Promise<string> {
   if (params.messages.length === 0) {
     return params.previousSummary ?? DEFAULT_SUMMARY_FALLBACK;
   }
 
-  const chunks = chunkMessagesByMaxTokens(params.messages, params.maxChunkTokens);
+  // SECURITY: never feed toolResult.details into summarization prompts.
+  const safeMessages = stripToolResultDetails(params.messages);
+  const chunks = chunkMessagesByMaxTokens(safeMessages, params.maxChunkTokens);
   let summary = params.previousSummary;
+  const effectiveInstructions = buildCompactionSummarizationInstructions(
+    params.customInstructions,
+    params.summarizationInstructions,
+  );
 
   for (const chunk of chunks) {
-    summary = await summarizeChunkWithRetries(chunk, params, summary);
+    summary = await summarizeChunkWithRetries(
+      chunk,
+      { ...params, customInstructions: effectiveInstructions },
+      summary,
+    );
   }
 
   return summary ?? DEFAULT_SUMMARY_FALLBACK;
@@ -263,6 +333,7 @@ export async function summarizeWithFallback(params: {
   maxChunkTokens: number;
   contextWindow: number;
   customInstructions?: string;
+  summarizationInstructions?: CompactionSummarizationInstructions;
   previousSummary?: string;
 }): Promise<string> {
   const { messages, contextWindow } = params;
@@ -275,7 +346,7 @@ export async function summarizeWithFallback(params: {
   try {
     return await summarizeChunks(params);
   } catch (fullError) {
-    console.warn(
+    log.warn(
       `Full summarization failed, trying partial: ${
         fullError instanceof Error ? fullError.message : String(fullError)
       }`,
@@ -303,7 +374,7 @@ export async function summarizeWithFallback(params: {
       const notes = oversizedNotes.length > 0 ? `\n\n${oversizedNotes.join("\n")}` : "";
       return partialSummary + notes;
     } catch (partialError) {
-      console.warn(
+      log.warn(
         `Partial summarization also failed: ${
           partialError instanceof Error ? partialError.message : String(partialError)
         }`,
@@ -334,6 +405,7 @@ export async function summarizeInStages(params: {
   maxChunkTokens: number;
   contextWindow: number;
   customInstructions?: string;
+  summarizationInstructions?: CompactionSummarizationInstructions;
   previousSummary?: string;
   parts?: number;
   minMessagesForSplit?: number;
@@ -378,8 +450,9 @@ export async function summarizeInStages(params: {
     timestamp: Date.now(),
   }));
 
-  const mergeInstructions = params.customInstructions
-    ? `${MERGE_SUMMARIES_INSTRUCTIONS}\n\nAdditional focus:\n${params.customInstructions}`
+  const custom = params.customInstructions?.trim();
+  const mergeInstructions = custom
+    ? `${MERGE_SUMMARIES_INSTRUCTIONS}\n\n${custom}`
     : MERGE_SUMMARIES_INSTRUCTIONS;
 
   let merged = await summarizeWithFallback({
@@ -422,7 +495,7 @@ export async function summarizeInStages(params: {
         ) {
           throw condenseErr;
         }
-        console.warn(
+        log.warn(
           `Summary condensation failed, keeping original merged summary: ${
             condenseErr instanceof Error ? condenseErr.message : String(condenseErr)
           }`,

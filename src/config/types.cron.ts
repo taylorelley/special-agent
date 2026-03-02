@@ -1,3 +1,5 @@
+export type CronRetryOn = "rate_limit" | "network" | "timeout" | "server_error";
+
 export type CronConfig = {
   enabled?: boolean;
   store?: string;
@@ -8,4 +10,16 @@ export type CronConfig = {
    * Default: "24h".
    */
   sessionRetention?: string | false;
+  /** Retry policy for one-shot jobs on transient errors. */
+  retry?: {
+    maxAttempts?: number;
+    backoffMs?: number[];
+    retryOn?: CronRetryOn[];
+  };
+  /** Global failure alert config (can be overridden per-job). */
+  failureAlert?: {
+    enabled?: boolean;
+    after?: number;
+    cooldownMs?: number;
+  };
 };

@@ -881,7 +881,8 @@ async function handleInvoke(
   const runId = params.runId?.trim() || crypto.randomUUID();
   const env = sanitizeEnv(params.env ?? undefined);
   const safeBins = resolveSafeBins(agentExec?.safeBins ?? cfg.tools?.exec?.safeBins);
-  const bins = autoAllowSkills ? await skillBins.current() : new Set<string>();
+  const rawBins = autoAllowSkills ? await skillBins.current() : new Set<string>();
+  const bins = [...rawBins].map((p) => ({ name: path.basename(p), resolvedPath: p }));
   let analysisOk = false;
   let allowlistMatches: ExecAllowlistEntry[] = [];
   let allowlistSatisfied = false;

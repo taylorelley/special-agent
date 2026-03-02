@@ -1,11 +1,22 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
+import { enableCompileCache } from "node:module";
 import path from "node:path";
 import process from "node:process";
 import { applyCliProfileEnv, parseCliProfileArgs } from "./cli/profile.js";
 import { isTruthyEnvValue, normalizeEnv } from "./infra/env.js";
 import { installProcessWarningFilter } from "./infra/warning-filter.js";
 import { attachChildProcessBridge } from "./process/child-process-bridge.js";
+
+// Enable Node.js compile cache for faster startup.
+// Respects NODE_COMPILE_CACHE (custom path) and NODE_DISABLE_COMPILE_CACHE (opt-out).
+if (typeof enableCompileCache === "function" && !process.env.NODE_DISABLE_COMPILE_CACHE) {
+  try {
+    enableCompileCache();
+  } catch {
+    // Ignore — non-fatal if the cache directory is unwritable or unsupported.
+  }
+}
 
 process.title = "special-agent";
 installProcessWarningFilter();
@@ -145,6 +156,34 @@ function normalizeWindowsArgv(argv: string[]): string[] {
 
 process.argv = normalizeWindowsArgv(process.argv);
 
+/**
+ * Fast-path: `special-agent --version` or `special-agent -V` prints the version
+ * string and exits without loading the full CLI framework. This shaves ~200ms
+ * off cold-start for the most common check invocation.
+ */
+function isRootVersionInvocation(argv: string[]): boolean {
+  const args = argv.slice(2).filter((a) => a.trim().length > 0);
+  return args.length === 1 && (args[0] === "--version" || args[0] === "-V");
+}
+
+function tryHandleRootVersionFastPath(argv: string[]): boolean {
+  if (!isRootVersionInvocation(argv)) {
+    return false;
+  }
+  import("./version.js")
+    .then(({ VERSION }) => {
+      console.log(VERSION);
+    })
+    .catch((error) => {
+      console.error(
+        "[special-agent] Failed to resolve version:",
+        error instanceof Error ? (error.stack ?? error.message) : error,
+      );
+      process.exitCode = 1;
+    });
+  return true;
+}
+
 if (!ensureExperimentalWarningSuppressed()) {
   const parsed = parseCliProfileArgs(process.argv);
   if (!parsed.ok) {
@@ -159,13 +198,15 @@ if (!ensureExperimentalWarningSuppressed()) {
     process.argv = parsed.argv;
   }
 
-  import("./cli/run-main.js")
-    .then(({ runCli }) => runCli(process.argv))
-    .catch((error) => {
-      console.error(
-        "[special-agent] Failed to start CLI:",
-        error instanceof Error ? (error.stack ?? error.message) : error,
-      );
-      process.exitCode = 1;
-    });
+  if (!tryHandleRootVersionFastPath(process.argv)) {
+    import("./cli/run-main.js")
+      .then(({ runCli }) => runCli(process.argv))
+      .catch((error) => {
+        console.error(
+          "[special-agent] Failed to start CLI:",
+          error instanceof Error ? (error.stack ?? error.message) : error,
+        );
+        process.exitCode = 1;
+      });
+  }
 }

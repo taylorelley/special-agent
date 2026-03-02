@@ -25,7 +25,7 @@ function truncateText(input: string, maxLen: number) {
   if (input.length <= maxLen) {
     return input;
   }
-  return `${truncateUtf16Safe(input, Math.max(0, maxLen - 1)).trimEnd()}…`;
+  return `${truncateUtf16Safe(input, Math.max(0, maxLen - 1)).trimEnd()}\u2026`;
 }
 
 export function normalizeOptionalAgentId(raw: unknown) {
@@ -37,6 +37,14 @@ export function normalizeOptionalAgentId(raw: unknown) {
     return undefined;
   }
   return normalizeAgentId(trimmed);
+}
+
+export function normalizeOptionalSessionKey(raw: unknown) {
+  if (typeof raw !== "string") {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  return trimmed || undefined;
 }
 
 export function inferLegacyName(job: {

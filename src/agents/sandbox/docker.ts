@@ -156,6 +156,25 @@ export async function readDockerContainerLabel(
   }
 }
 
+export async function readDockerContainerEnvVar(
+  containerName: string,
+  envVar: string,
+): Promise<string | null> {
+  const result = await execDocker(
+    ["inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", containerName],
+    { allowFailure: true },
+  );
+  if (result.code !== 0) {
+    return null;
+  }
+  for (const line of result.stdout.split(/\r?\n/)) {
+    if (line.startsWith(`${envVar}=`)) {
+      return line.slice(envVar.length + 1);
+    }
+  }
+  return null;
+}
+
 export async function readDockerPort(containerName: string, port: number) {
   const result = await execDocker(["port", containerName, `${port}/tcp`], {
     allowFailure: true,
@@ -368,7 +387,14 @@ async function createSandboxContainer(params: {
     const reason = getBlockedReasonForSourcePath(normalized);
     if (reason) {
       const verb = reason.kind === "covers" ? "covers" : "targets";
-      const blocked = "blockedPath" in reason ? reason.blockedPath : reason.sourcePath;
+      const blocked =
+        "blockedPath" in reason
+          ? reason.blockedPath
+          : "sourcePath" in reason
+            ? reason.sourcePath
+            : "targetPath" in reason
+              ? reason.targetPath
+              : wsPath;
       throw new Error(
         `Sandbox security: workspace path "${wsPath}" ${verb} blocked path "${blocked}".`,
       );
