@@ -123,7 +123,11 @@ function recordScheduleComputeError(params: {
 }): boolean {
   const { state, job, err } = params;
   const errorCount = (job.state.scheduleErrorCount ?? 0) + 1;
-  const errText = String(err);
+  const rawErr = String(err);
+  const errText =
+    rawErr.length > 500
+      ? rawErr.slice(0, 500).replace(/\n[\s\S]*$/, "") + "…[truncated]"
+      : rawErr.replace(/\n[\s\S]*$/, "");
 
   job.state.scheduleErrorCount = errorCount;
   job.state.nextRunAtMs = undefined;
@@ -352,7 +356,7 @@ export function createJob(state: CronServiceState, input: CronJobCreate): CronJo
     wakeMode: input.wakeMode,
     payload: input.payload,
     delivery: input.delivery,
-    failureAlert: input.failureAlert,
+    failureAlert: mergeCronFailureAlert(undefined, input.failureAlert),
     state: {
       ...input.state,
     },

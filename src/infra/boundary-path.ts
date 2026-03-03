@@ -477,7 +477,7 @@ function relativeInsideRoot(rootPath: string, targetPath: string): string {
   if (!relative || relative === ".") {
     return "";
   }
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+  if (relative === ".." || relative.startsWith(".." + path.sep) || path.isAbsolute(relative)) {
     return "";
   }
   return relative;

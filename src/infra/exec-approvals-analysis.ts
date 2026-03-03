@@ -298,7 +298,9 @@ function splitShellPipeline(command: string): { ok: boolean; reason?: string; se
       return { ok: false, reason: "unsupported shell token: $()", segments: [] };
     }
     buf += ch;
-    emptySegment = false;
+    if (!/\s/.test(ch)) {
+      emptySegment = false;
+    }
   }
 
   if (inHeredocBody && pendingHeredocs.length > 0) {

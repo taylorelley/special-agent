@@ -72,8 +72,10 @@ export function consumeNoVncObserverToken(token: string, nowMs?: number): string
 }
 
 export function buildNoVncObserverTokenUrl(baseUrl: string, token: string) {
-  const query = new URLSearchParams({ token });
-  return `${baseUrl}/sandbox/novnc?${query.toString()}`;
+  const url = new URL(baseUrl);
+  url.pathname = url.pathname.replace(/\/+$/, "") + "/sandbox/novnc";
+  url.searchParams.set("token", token);
+  return url.toString();
 }
 
 export function resetNoVncObserverTokensForTests() {

@@ -113,6 +113,10 @@ function rightsFromTokens(tokens: string[]): { canRead: boolean; canWrite: boole
 }
 
 function isStatusLine(lowerLine: string): boolean {
+  // ACE entries always contain parenthesized permissions like "(F)" — exclude them.
+  if (lowerLine.includes("(")) {
+    return false;
+  }
   return STATUS_PREFIXES.some(
     (prefix) =>
       lowerLine === prefix ||

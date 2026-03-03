@@ -176,7 +176,7 @@ function compareMountsByHostPath(a: SandboxFsMount, b: SandboxFsMount): number {
   return mountSourcePriority(b.source) - mountSourcePriority(a.source);
 }
 
-function mountSourcePriority(source: SandboxFsMount["source"]): number {
+export function mountSourcePriority(source: SandboxFsMount["source"]): number {
   if (source === "bind") {
     return 2;
   }

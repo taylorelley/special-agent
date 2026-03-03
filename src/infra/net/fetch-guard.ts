@@ -77,7 +77,13 @@ function buildAbortSignal(params: { timeoutMs?: number; signal?: AbortSignal }):
   signal?: AbortSignal;
   cleanup: () => void;
 } {
-  const { timeoutMs, signal } = params;
+  const { signal } = params;
+  const timeoutMs =
+    typeof params.timeoutMs === "number" &&
+    Number.isFinite(params.timeoutMs) &&
+    params.timeoutMs > 0
+      ? Math.floor(params.timeoutMs)
+      : undefined;
   if (!timeoutMs && !signal) {
     return { signal: undefined, cleanup: () => {} };
   }
@@ -212,7 +218,7 @@ export async function fetchWithSsrFGuard(params: GuardedFetchOptions): Promise<G
       if (err instanceof SsrFBlockedError) {
         const context = params.auditContext ?? "url-fetch";
         logWarn(
-          `security: blocked URL fetch (${context}) target=${parsedUrl.origin}${parsedUrl.pathname} reason=${err.message}`,
+          `security: blocked URL fetch (${context}) target=${parsedUrl.origin} reason=${err.message}`,
         );
       }
       await release(dispatcher);

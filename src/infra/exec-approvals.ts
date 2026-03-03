@@ -263,8 +263,8 @@ export function mergeExecApprovalsSocketDefaults(params: {
   normalized: ExecApprovalsFile;
   current?: ExecApprovalsFile;
 }): ExecApprovalsFile {
-  const currentSocketPath = params.current?.socket?.path?.trim();
-  const currentToken = params.current?.socket?.token?.trim();
+  const currentSocketPath = params.current?.socket?.path?.trim() || undefined;
+  const currentToken = params.current?.socket?.token?.trim() || undefined;
   const socketPath =
     params.normalized.socket?.path?.trim() ?? currentSocketPath ?? resolveExecApprovalsSocketPath();
   const token = params.normalized.socket?.token?.trim() ?? currentToken ?? "";
@@ -535,7 +535,7 @@ export async function requestExecApprovalViaSocket(params: {
   if (!socketPath || !token) {
     return null;
   }
-  const timeoutMs = params.timeoutMs ?? 15_000;
+  const timeoutMs = params.timeoutMs ?? DEFAULT_EXEC_APPROVAL_TIMEOUT_MS;
   const payload = JSON.stringify({
     type: "request",
     token,

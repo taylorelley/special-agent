@@ -92,7 +92,13 @@ export function getTrustedSafeBinDirs(
 
 export function isTrustedSafeBinPath(params: TrustedSafeBinPathParams): boolean {
   const trustedDirs = params.trustedDirs ?? getTrustedSafeBinDirs();
-  const resolvedDir = path.dirname(path.resolve(params.resolvedPath));
+  let realPath: string;
+  try {
+    realPath = fs.realpathSync(params.resolvedPath);
+  } catch {
+    return false;
+  }
+  const resolvedDir = path.dirname(realPath);
   return trustedDirs.has(resolvedDir);
 }
 

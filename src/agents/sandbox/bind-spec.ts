@@ -1,4 +1,4 @@
-type SplitBindSpec = {
+export type SplitBindSpec = {
   host: string;
   container: string;
   options: string;

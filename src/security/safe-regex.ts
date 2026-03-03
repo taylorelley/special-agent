@@ -60,6 +60,8 @@ export function hasNestedRepetition(source: string): boolean {
     if (ch === ")") {
       if (frames.length > 1) {
         const frame = frames.pop() as ParseFrame;
+        // Alternation inside a quantified group can produce overlapping matches
+        // (e.g. (a|aa)+) causing catastrophic backtracking, so treat it as repetition.
         const groupContainsRepetition = frame.containsRepetition || frame.hasAlternation;
         emitToken({ containsRepetition: groupContainsRepetition });
       }
@@ -133,7 +135,11 @@ export function compileSafeRegex(source: string, flags = ""): RegExp | null {
   }
   const cacheKey = `${flags}::${trimmed}`;
   if (safeRegexCache.has(cacheKey)) {
-    return safeRegexCache.get(cacheKey) ?? null;
+    const cached = safeRegexCache.get(cacheKey) ?? null;
+    if (cached && /[gy]/.test(cached.flags)) {
+      return new RegExp(cached.source, cached.flags);
+    }
+    return cached;
   }
 
   let compiled: RegExp | null = null;

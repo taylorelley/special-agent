@@ -2,11 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { acquireSessionWriteLock } from "../session-write-lock.js";
-import {
-  SANDBOX_BROWSER_REGISTRY_PATH,
-  SANDBOX_REGISTRY_PATH,
-  SANDBOX_STATE_DIR,
-} from "./constants.js";
+import { SANDBOX_BROWSER_REGISTRY_PATH, SANDBOX_REGISTRY_PATH } from "./constants.js";
 
 export type SandboxRegistryEntry = {
   containerName: string;
@@ -62,13 +58,32 @@ function isRegistryEntry(value: unknown): value is RegistryEntry {
   );
 }
 
-function isRegistryFile<T extends RegistryEntry>(value: unknown): value is RegistryFile<T> {
+function isSandboxRegistryEntry(value: unknown): value is SandboxRegistryEntry {
+  return (
+    isRegistryEntry(value) &&
+    typeof (value as Record<string, unknown>).sessionKey === "string" &&
+    typeof (value as Record<string, unknown>).lastUsedAtMs === "number" &&
+    typeof (value as Record<string, unknown>).createdAtMs === "number" &&
+    typeof (value as Record<string, unknown>).image === "string"
+  );
+}
+
+function isBrowserRegistryEntry(value: unknown): value is SandboxBrowserRegistryEntry {
+  return (
+    isSandboxRegistryEntry(value) && typeof (value as Record<string, unknown>).cdpPort === "number"
+  );
+}
+
+function isRegistryFile<T extends RegistryEntry>(
+  value: unknown,
+  entryGuard: (v: unknown) => v is T = isRegistryEntry as (v: unknown) => v is T,
+): value is RegistryFile<T> {
   if (!isRecord(value)) {
     return false;
   }
 
   const maybeEntries = value.entries;
-  return Array.isArray(maybeEntries) && maybeEntries.every(isRegistryEntry);
+  return Array.isArray(maybeEntries) && maybeEntries.every(entryGuard);
 }
 
 async function withRegistryLock<T>(registryPath: string, fn: () => Promise<T>): Promise<T> {
@@ -83,11 +98,12 @@ async function withRegistryLock<T>(registryPath: string, fn: () => Promise<T>): 
 async function readRegistryFromFile<T extends RegistryEntry>(
   registryPath: string,
   mode: RegistryReadMode,
+  entryGuard?: (v: unknown) => v is T,
 ): Promise<RegistryFile<T>> {
   try {
     const raw = await fs.readFile(registryPath, "utf-8");
     const parsed = JSON.parse(raw) as unknown;
-    if (isRegistryFile<T>(parsed)) {
+    if (isRegistryFile<T>(parsed, entryGuard)) {
       return parsed;
     }
     if (mode === "fallback") {
@@ -99,7 +115,7 @@ async function readRegistryFromFile<T extends RegistryEntry>(
     if (code === "ENOENT") {
       return { entries: [] };
     }
-    if (mode === "fallback") {
+    if (mode === "fallback" && (error instanceof SyntaxError || code === "EACCES")) {
       return { entries: [] };
     }
     if (error instanceof Error) {
@@ -113,9 +129,9 @@ async function writeRegistryFile<T extends RegistryEntry>(
   registryPath: string,
   registry: RegistryFile<T>,
 ): Promise<void> {
-  await fs.mkdir(SANDBOX_STATE_DIR, { recursive: true });
-  const payload = `${JSON.stringify(registry, null, 2)}\n`;
   const registryDir = path.dirname(registryPath);
+  await fs.mkdir(registryDir, { recursive: true });
+  const payload = `${JSON.stringify(registry, null, 2)}\n`;
   const tempPath = path.join(
     registryDir,
     `${path.basename(registryPath)}.${crypto.randomUUID()}.tmp`,
@@ -130,7 +146,11 @@ async function writeRegistryFile<T extends RegistryEntry>(
 }
 
 export async function readRegistry(): Promise<SandboxRegistry> {
-  return await readRegistryFromFile<SandboxRegistryEntry>(SANDBOX_REGISTRY_PATH, "fallback");
+  return await readRegistryFromFile<SandboxRegistryEntry>(
+    SANDBOX_REGISTRY_PATH,
+    "fallback",
+    isSandboxRegistryEntry,
+  );
 }
 
 function upsertEntry<T extends UpsertEntry>(entries: T[], entry: T): T[] {
@@ -183,6 +203,7 @@ export async function readBrowserRegistry(): Promise<SandboxBrowserRegistry> {
   return await readRegistryFromFile<SandboxBrowserRegistryEntry>(
     SANDBOX_BROWSER_REGISTRY_PATH,
     "fallback",
+    isBrowserRegistryEntry,
   );
 }
 

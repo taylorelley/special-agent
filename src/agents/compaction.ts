@@ -130,7 +130,8 @@ export function chunkMessagesByMaxTokens(
 
   // Apply safety margin to compensate for estimateTokens() underestimation
   // (chars/4 heuristic misses multi-byte chars, special tokens, code tokens, etc.)
-  const effectiveMax = Math.max(1, Math.floor(maxTokens / SAFETY_MARGIN));
+  const safeMaxTokens = Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1;
+  const effectiveMax = Math.max(1, Math.floor(safeMaxTokens / SAFETY_MARGIN));
 
   const chunks: AgentMessage[][] = [];
   let currentChunk: AgentMessage[] = [];
@@ -476,8 +477,11 @@ export async function summarizeInStages(params: {
     });
     if (mergedTokens > maxSummaryTokens) {
       try {
+        const condenseBase = params.customInstructions?.trim()
+          ? `${CONDENSE_INSTRUCTIONS}\n\n${params.customInstructions.trim()}`
+          : CONDENSE_INSTRUCTIONS;
         const condenseCustom = buildCompactionSummarizationInstructions(
-          CONDENSE_INSTRUCTIONS,
+          condenseBase,
           params.summarizationInstructions,
         );
         const condensed = await generateSummary(

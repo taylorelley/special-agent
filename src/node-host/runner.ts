@@ -69,7 +69,7 @@ export class SkillBinsCache {
     if (force || Date.now() - this.lastRefresh > this.ttlMs) {
       await this.refresh();
     }
-    return this.bins;
+    return new Set(this.bins);
   }
 
   private async refresh() {
@@ -155,7 +155,16 @@ export function resolveExecutable(bin: string, env?: Record<string, string>) {
           .split(";")
           .map((ext) => ext.toLowerCase())
       : [""];
+  const hasExtension =
+    process.platform === "win32" &&
+    extensions.some((ext) => ext && bin.toLowerCase().endsWith(ext));
   for (const dir of resolveEnvPath(env)) {
+    if (hasExtension) {
+      const bare = path.join(dir, bin);
+      if (fs.existsSync(bare)) {
+        return bare;
+      }
+    }
     for (const ext of extensions) {
       const candidate = path.join(dir, bin + ext);
       if (fs.existsSync(candidate)) {

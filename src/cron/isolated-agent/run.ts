@@ -457,6 +457,7 @@ export async function runCronIsolatedAgentTurn(params: {
           // be blocked by a target it cannot satisfy.
           requireExplicitMessageTarget: deliveryRequested && !resolvedDelivery.error,
           disableMessageTool: deliveryRequested || deliveryPlan.mode === "none",
+          abortSignal,
         });
       },
     });
@@ -475,10 +476,11 @@ export async function runCronIsolatedAgentTurn(params: {
   const payloads = runResult.payloads ?? [];
 
   // Update token+model fields in the session store.
+  const runUsage = runResult.meta.agentMeta?.usage;
+  const modelUsed = runResult.meta.agentMeta?.model ?? fallbackModel ?? model;
+  const providerUsed = runResult.meta.agentMeta?.provider ?? fallbackProvider ?? provider;
   {
-    const usage = runResult.meta.agentMeta?.usage;
-    const modelUsed = runResult.meta.agentMeta?.model ?? fallbackModel ?? model;
-    const providerUsed = runResult.meta.agentMeta?.provider ?? fallbackProvider ?? provider;
+    const usage = runUsage;
     const contextTokens =
       agentCfg?.contextTokens ?? lookupContextTokens(modelUsed) ?? DEFAULT_CONTEXT_TOKENS;
 
@@ -555,7 +557,13 @@ export async function runCronIsolatedAgentTurn(params: {
         });
       }
       logWarn(`[cron:${params.job.id}] ${resolvedDelivery.error.message}`);
-      return withRunSession({ status: "ok", summary, outputText, delivered: false });
+      return withRunSession({
+        status: "ok",
+        summary,
+        outputText,
+        delivered: false,
+        deliveryAttempted: false,
+      });
     }
     if (!resolvedDelivery.to) {
       const message = "cron delivery target is missing";
@@ -570,7 +578,13 @@ export async function runCronIsolatedAgentTurn(params: {
         });
       }
       logWarn(`[cron:${params.job.id}] ${message}`);
-      return withRunSession({ status: "ok", summary, outputText, delivered: false });
+      return withRunSession({
+        status: "ok",
+        summary,
+        outputText,
+        delivered: false,
+        deliveryAttempted: false,
+      });
     }
     // Shared subagent announce flow is text-based; keep direct outbound delivery
     // for media/channel payloads so structured content is preserved.
@@ -660,5 +674,16 @@ export async function runCronIsolatedAgentTurn(params: {
     }
   }
 
-  return withRunSession({ status: "ok", summary, outputText, delivered, deliveryAttempted });
+  return withRunSession({
+    status: "ok",
+    summary,
+    outputText,
+    delivered,
+    deliveryAttempted,
+    model: modelUsed,
+    provider: providerUsed,
+    usage: runUsage
+      ? { inputTokens: runUsage.input ?? 0, outputTokens: runUsage.output ?? 0 }
+      : undefined,
+  });
 }

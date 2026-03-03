@@ -9,6 +9,7 @@ import {
   resolveSandboxFsPathWithMounts,
   type SandboxResolvedFsPath,
   type SandboxFsMount,
+  mountSourcePriority,
 } from "./fs-paths.js";
 import { isPathInsideContainerRoot, normalizeContainerPath } from "./path-utils.js";
 
@@ -80,6 +81,7 @@ class SandboxFsBridgeImpl implements SandboxFsBridge {
     this.mountsByContainer = [...this.mounts].toSorted(
       (a, b) =>
         b.containerRoot.length - a.containerRoot.length ||
+        mountSourcePriority(b.source) - mountSourcePriority(a.source) ||
         a.containerRoot.localeCompare(b.containerRoot),
     );
   }

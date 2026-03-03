@@ -114,7 +114,7 @@ function consumeShortOptionClusterToken(params: {
     }
     return isInvalidValueToken(params.args[params.index + 1]) ? -1 : params.index + 2;
   }
-  return -1;
+  return params.index + 1;
 }
 
 function consumePositionalToken(token: string, positional: string[]): boolean {
