@@ -79,7 +79,7 @@ export function getTrustedSafeBinDirs(
   const key = buildTrustedSafeBinCacheKey([...baseDirs, ...extraDirs]);
 
   if (!params.refresh && trustedSafeBinCache?.key === key) {
-    return trustedSafeBinCache.dirs;
+    return new Set(trustedSafeBinCache.dirs);
   }
 
   const dirs = buildTrustedSafeBinDirs({
@@ -87,7 +87,7 @@ export function getTrustedSafeBinDirs(
     extraDirs,
   });
   trustedSafeBinCache = { key, dirs };
-  return dirs;
+  return new Set(dirs);
 }
 
 export function isTrustedSafeBinPath(params: TrustedSafeBinPathParams): boolean {

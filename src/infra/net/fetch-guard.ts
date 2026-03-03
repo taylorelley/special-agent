@@ -158,6 +158,10 @@ export async function fetchWithSsrFGuard(params: GuardedFetchOptions): Promise<G
         policy: params.policy,
       });
       if (params.proxy === "env" && hasEnvProxyConfigured()) {
+        // EnvHttpProxyAgent handles DNS itself; the pinned resolution above
+        // serves only as a pre-flight SSRF check.  When NO_PROXY bypasses the
+        // proxy, the agent still performs a direct connection — the pre-flight
+        // resolvePinnedHostnameWithPolicy already validated the resolved IP.
         dispatcher = new EnvHttpProxyAgent();
       } else if (params.pinDns !== false) {
         dispatcher = createPinnedDispatcher(pinned);

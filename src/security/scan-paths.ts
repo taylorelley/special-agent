@@ -8,11 +8,23 @@ export function isPathInside(basePath: string, candidatePath: string): boolean {
   return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel));
 }
 
+function hasErrnoCode(err: unknown, code: string): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code: unknown }).code === code
+  );
+}
+
 function safeRealpathSync(filePath: string): string | null {
   try {
     return fs.realpathSync(filePath);
-  } catch {
-    return null;
+  } catch (err) {
+    if (hasErrnoCode(err, "ENOENT") || hasErrnoCode(err, "ENOTDIR") || hasErrnoCode(err, "ELOOP")) {
+      return null;
+    }
+    throw err;
   }
 }
 

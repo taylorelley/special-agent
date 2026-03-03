@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import fsp from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
+import { shortPath } from "../utils/short-path.js";
 import { isNotFoundPathError, isPathInside } from "./path-guards.js";
 
 export type BoundaryPathIntent = "read" | "write" | "create" | "delete" | "stat";
@@ -515,14 +515,6 @@ function symlinkEscapeError(params: {
   return new Error(
     `Symlink escapes ${params.boundaryLabel} (${shortPath(params.rootCanonicalPath)}): ${shortPath(params.symlinkPath)}`,
   );
-}
-
-function shortPath(value: string): string {
-  const home = os.homedir();
-  if (value.startsWith(home)) {
-    return `~${value.slice(home.length)}`;
-  }
-  return value;
 }
 
 function isFilesystemRoot(candidate: string): boolean {

@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import os from "node:os";
+import { shortPath } from "../utils/short-path.js";
 import { isNotFoundPathError } from "./path-guards.js";
 
 export async function assertNoHardlinkedFinalPath(params: {
@@ -28,11 +28,4 @@ export async function assertNoHardlinkedFinalPath(params: {
       `Hardlinked path is not allowed under ${params.boundaryLabel} (${shortPath(params.root)}): ${shortPath(params.filePath)}`,
     );
   }
-}
-
-function shortPath(value: string) {
-  if (value.startsWith(os.homedir())) {
-    return `~${value.slice(os.homedir().length)}`;
-  }
-  return value;
 }

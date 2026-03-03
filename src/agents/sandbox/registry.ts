@@ -57,7 +57,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isRegistryEntry(value: unknown): value is RegistryEntry {
-  return isRecord(value) && typeof value.containerName === "string";
+  return (
+    isRecord(value) && typeof value.containerName === "string" && value.containerName.length > 0
+  );
 }
 
 function isRegistryFile<T extends RegistryEntry>(value: unknown): value is RegistryFile<T> {

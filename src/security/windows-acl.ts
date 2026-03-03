@@ -113,7 +113,11 @@ function rightsFromTokens(tokens: string[]): { canRead: boolean; canWrite: boole
 }
 
 function isStatusLine(lowerLine: string): boolean {
-  return STATUS_PREFIXES.some((prefix) => lowerLine.startsWith(prefix));
+  return STATUS_PREFIXES.some(
+    (prefix) =>
+      lowerLine === prefix ||
+      (lowerLine.startsWith(prefix) && /[\s:]/.test(lowerLine[prefix.length] ?? "")),
+  );
 }
 
 function stripTargetPrefix(params: {

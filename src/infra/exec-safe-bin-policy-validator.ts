@@ -19,6 +19,9 @@ function isPathLikeToken(value: string): boolean {
   if (trimmed.startsWith("/")) {
     return true;
   }
+  if (trimmed.includes("/") || trimmed.includes("\\")) {
+    return true;
+  }
   return /^[A-Za-z]:[\\/]/.test(trimmed);
 }
 

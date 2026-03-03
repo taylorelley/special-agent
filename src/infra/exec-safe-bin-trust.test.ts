@@ -44,8 +44,8 @@ describe("exec safe bin trust", () => {
       extraDirs: ["/second/bin"],
     });
 
-    expect(a).toBe(b);
-    expect(c).not.toBe(b);
+    expect(a).toStrictEqual(b);
+    expect(c).not.toStrictEqual(b);
   });
 
   it("validates resolved paths using injected trusted dirs", () => {

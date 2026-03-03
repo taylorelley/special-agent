@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { hasErrnoCode } from "../infra/errors.js";
-import { isPathInside } from "./scan-paths.js";
+import { isPathInsideWithRealpath } from "./scan-paths.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -298,7 +298,7 @@ async function resolveForcedFiles(params: {
 
   for (const rawIncludePath of params.includeFiles) {
     const includePath = path.resolve(params.rootDir, rawIncludePath);
-    if (!isPathInside(params.rootDir, includePath)) {
+    if (!isPathInsideWithRealpath(params.rootDir, includePath, { requireRealpath: true })) {
       continue;
     }
     if (!isScannable(includePath)) {

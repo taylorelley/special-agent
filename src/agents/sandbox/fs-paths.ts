@@ -190,7 +190,7 @@ function dedupeMounts(mounts: SandboxFsMount[]): SandboxFsMount[] {
   const seen = new Set<string>();
   const deduped: SandboxFsMount[] = [];
   for (const mount of mounts) {
-    const key = `${mount.hostRoot}=>${mount.containerRoot}`;
+    const key = `${mount.hostRoot}=>${mount.containerRoot}:${mount.source ?? ""}:${mount.writable ?? false}`;
     if (seen.has(key)) {
       continue;
     }

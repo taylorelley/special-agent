@@ -12,13 +12,20 @@ export function splitSandboxBindSpec(spec: string): SplitBindSpec | null {
 
   const host = spec.slice(0, separator);
   const rest = spec.slice(separator + 1);
+  if (!host || !rest) {
+    return null;
+  }
   const optionsStart = rest.indexOf(":");
   if (optionsStart === -1) {
     return { host, container: rest, options: "" };
   }
+  const container = rest.slice(0, optionsStart);
+  if (!container) {
+    return null;
+  }
   return {
     host,
-    container: rest.slice(0, optionsStart),
+    container,
     options: rest.slice(optionsStart + 1),
   };
 }

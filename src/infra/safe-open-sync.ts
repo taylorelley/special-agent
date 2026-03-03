@@ -20,10 +20,6 @@ function isExpectedPathError(error: unknown): boolean {
   return code === "ENOENT" || code === "ENOTDIR" || code === "ELOOP";
 }
 
-export function sameFileIdentity(left: fs.Stats, right: fs.Stats): boolean {
-  return hasSameFileIdentity(left, right);
-}
-
 export function openVerifiedFileSync(params: {
   filePath: string;
   resolvedPath?: string;
@@ -74,7 +70,7 @@ export function openVerifiedFileSync(params: {
     if (params.maxBytes !== undefined && openedStat.isFile() && openedStat.size > params.maxBytes) {
       return { ok: false, reason: "validation" };
     }
-    if (!sameFileIdentity(preOpenStat, openedStat)) {
+    if (!hasSameFileIdentity(preOpenStat, openedStat)) {
       return { ok: false, reason: "validation" };
     }
 

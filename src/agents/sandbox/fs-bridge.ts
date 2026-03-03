@@ -78,7 +78,9 @@ class SandboxFsBridgeImpl implements SandboxFsBridge {
     this.sandbox = sandbox;
     this.mounts = buildSandboxFsMounts(sandbox);
     this.mountsByContainer = [...this.mounts].toSorted(
-      (a, b) => b.containerRoot.length - a.containerRoot.length,
+      (a, b) =>
+        b.containerRoot.length - a.containerRoot.length ||
+        a.containerRoot.localeCompare(b.containerRoot),
     );
   }
 

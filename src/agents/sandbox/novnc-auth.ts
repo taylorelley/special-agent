@@ -27,13 +27,13 @@ export function generateNoVncPassword() {
   return crypto.randomBytes(4).toString("hex");
 }
 
-export function buildNoVncDirectUrl(port: number, password?: string) {
+export function buildNoVncDirectUrl(port: number, token?: string) {
   const query = new URLSearchParams({
     autoconnect: "1",
     resize: "remote",
   });
-  if (password?.trim()) {
-    query.set("password", password);
+  if (token?.trim()) {
+    query.set("token", token);
   }
   return `http://127.0.0.1:${port}/vnc.html?${query.toString()}`;
 }

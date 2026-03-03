@@ -548,9 +548,10 @@ export async function requestExecApprovalViaSocket(params: {
     payload,
     timeoutMs,
     accept: (value) => {
-      const msg = value as { type?: string; decision?: ExecApprovalDecision };
-      if (msg?.type === "decision" && msg.decision) {
-        return msg.decision;
+      const validDecisions = new Set<string>(["allow-once", "allow-always", "deny"]);
+      const msg = value as { type?: string; decision?: string };
+      if (msg?.type === "decision" && validDecisions.has(msg.decision ?? "")) {
+        return msg.decision as ExecApprovalDecision;
       }
       return undefined;
     },

@@ -405,7 +405,7 @@ function analyzeWindowsShellCommand(params: {
 }
 
 export function isWindowsPlatform(platform?: string | null): boolean {
-  const normalized = String(platform ?? "")
+  const normalized = String(platform ?? process.platform)
     .trim()
     .toLowerCase();
   return normalized.startsWith("win");
@@ -785,8 +785,8 @@ export function analyzeArgvCommand(params: {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
 }): ExecCommandAnalysis {
-  const argv = params.argv.filter((entry) => entry.trim().length > 0);
-  if (argv.length === 0) {
+  const argv = params.argv;
+  if (argv.every((entry) => entry.trim().length === 0)) {
     return { ok: false, reason: "empty argv", segments: [] };
   }
   return {

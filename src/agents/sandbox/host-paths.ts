@@ -1,4 +1,4 @@
-import { posix } from "node:path";
+import nodePath, { posix } from "node:path";
 import { resolvePathViaExistingAncestorSync } from "../../infra/boundary-path.js";
 
 function stripWindowsNamespacePrefix(input: string): string {
@@ -36,7 +36,7 @@ export function normalizeSandboxHostPath(raw: string): string {
  * even when the final source leaf does not exist yet.
  */
 export function resolveSandboxHostPathViaExistingAncestor(sourcePath: string): string {
-  if (!sourcePath.startsWith("/")) {
+  if (!nodePath.isAbsolute(sourcePath)) {
     return sourcePath;
   }
   return normalizeSandboxHostPath(resolvePathViaExistingAncestorSync(sourcePath));

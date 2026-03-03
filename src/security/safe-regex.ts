@@ -9,6 +9,7 @@ type TokenState = {
 type ParseFrame = {
   lastToken: TokenState | null;
   containsRepetition: boolean;
+  hasAlternation: boolean;
 };
 
 const SAFE_REGEX_CACHE_MAX = 256;
@@ -16,7 +17,9 @@ const safeRegexCache = new Map<string, RegExp | null>();
 
 export function hasNestedRepetition(source: string): boolean {
   // Conservative parser: reject patterns where a repeated token/group is repeated again.
-  const frames: ParseFrame[] = [{ lastToken: null, containsRepetition: false }];
+  const frames: ParseFrame[] = [
+    { lastToken: null, containsRepetition: false, hasAlternation: false },
+  ];
   let inCharClass = false;
 
   const emitToken = (token: TokenState) => {
@@ -50,14 +53,15 @@ export function hasNestedRepetition(source: string): boolean {
     }
 
     if (ch === "(") {
-      frames.push({ lastToken: null, containsRepetition: false });
+      frames.push({ lastToken: null, containsRepetition: false, hasAlternation: false });
       continue;
     }
 
     if (ch === ")") {
       if (frames.length > 1) {
         const frame = frames.pop() as ParseFrame;
-        emitToken({ containsRepetition: frame.containsRepetition });
+        const groupContainsRepetition = frame.containsRepetition || frame.hasAlternation;
+        emitToken({ containsRepetition: groupContainsRepetition });
       }
       continue;
     }
@@ -65,6 +69,7 @@ export function hasNestedRepetition(source: string): boolean {
     if (ch === "|") {
       const frame = frames[frames.length - 1];
       frame.lastToken = null;
+      frame.hasAlternation = true;
       continue;
     }
 

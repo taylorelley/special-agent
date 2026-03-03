@@ -138,16 +138,30 @@ function recordScheduleComputeError(params: {
 
     // Notify the user so the auto-disable is not silent.
     const notifyText = `Cron job "${job.name}" has been auto-disabled after ${errorCount} consecutive schedule errors. Last error: ${errText}`;
-    state.deps.enqueueSystemEvent(notifyText, {
-      agentId: job.agentId,
-      sessionKey: job.sessionKey,
-      contextKey: `cron:${job.id}:auto-disabled`,
-    });
-    state.deps.requestHeartbeatNow({
-      reason: `cron:${job.id}:auto-disabled`,
-      agentId: job.agentId,
-      sessionKey: job.sessionKey,
-    });
+    try {
+      state.deps.enqueueSystemEvent(notifyText, {
+        agentId: job.agentId,
+        sessionKey: job.sessionKey,
+        contextKey: `cron:${job.id}:auto-disabled`,
+      });
+    } catch (notifyErr) {
+      state.deps.log.warn(
+        { jobId: job.id, err: notifyErr },
+        "cron: failed to send auto-disable notification",
+      );
+    }
+    try {
+      state.deps.requestHeartbeatNow({
+        reason: `cron:${job.id}:auto-disabled`,
+        agentId: job.agentId,
+        sessionKey: job.sessionKey,
+      });
+    } catch (hbErr) {
+      state.deps.log.warn(
+        { jobId: job.id, err: hbErr },
+        "cron: failed to request heartbeat for auto-disable",
+      );
+    }
   } else {
     state.deps.log.warn(
       { jobId: job.id, name: job.name, errorCount, err: errText },
@@ -188,7 +202,10 @@ function normalizeJobTickState(params: { state: CronServiceState; job: CronJob; 
   }
 
   const runningAt = job.state.runningAtMs;
-  if (typeof runningAt === "number" && nowMs - runningAt > STUCK_RUN_MS) {
+  if (
+    runningAt !== undefined &&
+    (!isFiniteTimestamp(runningAt) || nowMs - runningAt > STUCK_RUN_MS)
+  ) {
     state.deps.log.warn(
       { jobId: job.id, runningAtMs: runningAt },
       "cron: clearing stuck running marker",

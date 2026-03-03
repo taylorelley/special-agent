@@ -476,13 +476,17 @@ export async function summarizeInStages(params: {
     });
     if (mergedTokens > maxSummaryTokens) {
       try {
+        const condenseCustom = buildCompactionSummarizationInstructions(
+          CONDENSE_INSTRUCTIONS,
+          params.summarizationInstructions,
+        );
         const condensed = await generateSummary(
           [{ role: "user" as const, content: merged, timestamp: Date.now() }],
           params.model,
           params.reserveTokens,
           params.apiKey,
           params.signal,
-          CONDENSE_INSTRUCTIONS,
+          condenseCustom,
           undefined,
         );
         if (condensed) {
