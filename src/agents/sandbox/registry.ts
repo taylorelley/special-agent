@@ -144,6 +144,31 @@ async function readRegistryFromFile<T extends RegistryEntry>(
   }
 }
 
+/**
+ * On Windows, antivirus or file indexer processes can briefly hold handles on
+ * files, causing `fs.rename` to fail with EPERM.  Retry a few times with a
+ * short back-off to work around this.
+ */
+async function renameWithRetry(src: string, dest: string): Promise<void> {
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await fs.rename(src, dest);
+      return;
+    } catch (err: unknown) {
+      const isRetryable =
+        err instanceof Error &&
+        "code" in err &&
+        (err as NodeJS.ErrnoException).code === "EPERM" &&
+        process.platform === "win32";
+      if (!isRetryable || attempt >= MAX_RETRIES) {
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, 50 * 2 ** attempt));
+    }
+  }
+}
+
 async function writeRegistryFile<T extends RegistryEntry>(
   registryPath: string,
   registry: RegistryFile<T>,
@@ -157,7 +182,7 @@ async function writeRegistryFile<T extends RegistryEntry>(
   );
   await fs.writeFile(tempPath, payload, "utf-8");
   try {
-    await fs.rename(tempPath, registryPath);
+    await renameWithRetry(tempPath, registryPath);
   } catch (error) {
     await fs.rm(tempPath, { force: true });
     throw error;

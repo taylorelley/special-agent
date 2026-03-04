@@ -554,6 +554,7 @@ describe("exec approvals shell allowlist (chained commands)", () => {
         allowlist,
         safeBins: new Set(),
         cwd: "/tmp",
+        platform: "linux",
       });
       expect(result.analysisOk).toBe(true);
       expect(result.allowlistSatisfied).toBe(true);
