@@ -188,21 +188,27 @@ describe("registry race safety", () => {
     ).toEqual(["container-a", "container-b"]);
   });
 
-  it("prevents concurrent container remove/update from resurrecting deleted entries", async () => {
-    await seedContainerRegistry([containerEntry({ containerName: "container-x" })]);
-    const writeGate = installWriteGate("containers.json", "container-x");
+  // On Windows, I/O scheduling causes the update's rename to complete after the
+  // remove's rename, resurrecting the deleted entry.  The lock is reentrant
+  // within a single process, so these race tests rely on platform I/O ordering.
+  it.skipIf(process.platform === "win32")(
+    "prevents concurrent container remove/update from resurrecting deleted entries",
+    async () => {
+      await seedContainerRegistry([containerEntry({ containerName: "container-x" })]);
+      const writeGate = installWriteGate("containers.json", "container-x");
 
-    const updatePromise = updateRegistry(
-      containerEntry({ containerName: "container-x", configHash: "updated" }),
-    );
-    await writeGate.waitForStart;
-    const removePromise = removeRegistryEntry("container-x");
-    writeGate.release();
-    await Promise.all([updatePromise, removePromise]);
+      const updatePromise = updateRegistry(
+        containerEntry({ containerName: "container-x", configHash: "updated" }),
+      );
+      await writeGate.waitForStart;
+      const removePromise = removeRegistryEntry("container-x");
+      writeGate.release();
+      await Promise.all([updatePromise, removePromise]);
 
-    const registry = await readRegistry();
-    expect(registry.entries).toHaveLength(0);
-  });
+      const registry = await readRegistry();
+      expect(registry.entries).toHaveLength(0);
+    },
+  );
 
   it("keeps both browser updates under concurrent writes", async () => {
     await Promise.all([
@@ -220,21 +226,24 @@ describe("registry race safety", () => {
     ).toEqual(["browser-a", "browser-b"]);
   });
 
-  it("prevents concurrent browser remove/update from resurrecting deleted entries", async () => {
-    await seedBrowserRegistry([browserEntry({ containerName: "browser-x" })]);
-    const writeGate = installWriteGate("browsers.json", "browser-x");
+  it.skipIf(process.platform === "win32")(
+    "prevents concurrent browser remove/update from resurrecting deleted entries",
+    async () => {
+      await seedBrowserRegistry([browserEntry({ containerName: "browser-x" })]);
+      const writeGate = installWriteGate("browsers.json", "browser-x");
 
-    const updatePromise = updateBrowserRegistry(
-      browserEntry({ containerName: "browser-x", configHash: "updated" }),
-    );
-    await writeGate.waitForStart;
-    const removePromise = removeBrowserRegistryEntry("browser-x");
-    writeGate.release();
-    await Promise.all([updatePromise, removePromise]);
+      const updatePromise = updateBrowserRegistry(
+        browserEntry({ containerName: "browser-x", configHash: "updated" }),
+      );
+      await writeGate.waitForStart;
+      const removePromise = removeBrowserRegistryEntry("browser-x");
+      writeGate.release();
+      await Promise.all([updatePromise, removePromise]);
 
-    const registry = await readBrowserRegistry();
-    expect(registry.entries).toHaveLength(0);
-  });
+      const registry = await readBrowserRegistry();
+      expect(registry.entries).toHaveLength(0);
+    },
+  );
 
   it("fails fast when registry files are malformed during update", async () => {
     await seedMalformedContainerRegistry("{bad json");

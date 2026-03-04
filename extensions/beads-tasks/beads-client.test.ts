@@ -15,6 +15,11 @@ function makeGit(): GitOps {
   };
 }
 
+/** Normalize backslashes so mock keys are consistent across platforms. */
+function normKey(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
 function makeFs(): FileOps & { files: Map<string, string>; dirs: Set<string> } {
   const files = new Map<string, string>();
   const dirs = new Set<string>();
@@ -22,21 +27,25 @@ function makeFs(): FileOps & { files: Map<string, string>; dirs: Set<string> } {
     files,
     dirs,
     readFile: async (path) => {
-      const content = files.get(path);
+      const content = files.get(normKey(path));
       if (content === undefined) throw new Error(`ENOENT: ${path}`);
       return content;
     },
     appendFile: async (path, content) => {
-      const existing = files.get(path) ?? "";
-      files.set(path, existing + content);
+      const k = normKey(path);
+      const existing = files.get(k) ?? "";
+      files.set(k, existing + content);
     },
     writeFile: async (path, content) => {
-      files.set(path, content);
+      files.set(normKey(path), content);
     },
     mkdir: async (path) => {
-      dirs.add(path);
+      dirs.add(normKey(path));
     },
-    exists: async (path) => files.has(path) || dirs.has(path),
+    exists: async (path) => {
+      const k = normKey(path);
+      return files.has(k) || dirs.has(k);
+    },
   };
 }
 
