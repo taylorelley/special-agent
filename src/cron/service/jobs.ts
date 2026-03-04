@@ -21,6 +21,7 @@ import {
 } from "./normalize.js";
 
 const STUCK_RUN_MS = 2 * 60 * 60 * 1000;
+const CLOCK_SKEW_MS = 60_000;
 
 function isFiniteTimestamp(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -208,7 +209,9 @@ function normalizeJobTickState(params: { state: CronServiceState; job: CronJob; 
   const runningAt = job.state.runningAtMs;
   if (
     runningAt !== undefined &&
-    (!isFiniteTimestamp(runningAt) || nowMs - runningAt > STUCK_RUN_MS || runningAt > nowMs)
+    (!isFiniteTimestamp(runningAt) ||
+      nowMs - runningAt > STUCK_RUN_MS ||
+      runningAt - nowMs > CLOCK_SKEW_MS)
   ) {
     state.deps.log.warn(
       { jobId: job.id, runningAtMs: runningAt },

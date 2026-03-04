@@ -60,72 +60,12 @@ function isEscapedLineContinuation(next: string | undefined): next is string {
 }
 
 function splitShellPipeline(command: string): { ok: boolean; reason?: string; segments: string[] } {
-  type HeredocSpec = {
-    delimiter: string;
-    stripTabs: boolean;
-    quoted: boolean;
-  };
-
-  const parseHeredocDelimiter = (
-    source: string,
-    start: number,
-  ): { delimiter: string; end: number; quoted: boolean } | null => {
-    let i = start;
-    while (i < source.length && (source[i] === " " || source[i] === "\t")) {
-      i += 1;
-    }
-    if (i >= source.length) {
-      return null;
-    }
-
-    const first = source[i];
-    if (first === "'" || first === '"') {
-      const quote = first;
-      i += 1;
-      let delimiter = "";
-      while (i < source.length) {
-        const ch = source[i];
-        if (ch === "\n" || ch === "\r") {
-          return null;
-        }
-        if (quote === '"' && ch === "\\" && i + 1 < source.length) {
-          delimiter += source[i + 1];
-          i += 2;
-          continue;
-        }
-        if (ch === quote) {
-          return { delimiter, end: i + 1, quoted: true };
-        }
-        delimiter += ch;
-        i += 1;
-      }
-      return null;
-    }
-
-    let delimiter = "";
-    while (i < source.length) {
-      const ch = source[i];
-      if (/\s/.test(ch) || ch === "|" || ch === "&" || ch === ";" || ch === "<" || ch === ">") {
-        break;
-      }
-      delimiter += ch;
-      i += 1;
-    }
-    if (!delimiter) {
-      return null;
-    }
-    return { delimiter, end: i, quoted: false };
-  };
-
   const segments: string[] = [];
   let buf = "";
   let inSingle = false;
   let inDouble = false;
   let escaped = false;
   let emptySegment = false;
-  const pendingHeredocs: HeredocSpec[] = [];
-  let inHeredocBody = false;
-  let heredocLine = "";
 
   const pushPart = () => {
     const trimmed = buf.trim();
@@ -135,57 +75,9 @@ function splitShellPipeline(command: string): { ok: boolean; reason?: string; se
     buf = "";
   };
 
-  const isEscapedInHeredocLine = (line: string, index: number): boolean => {
-    let slashes = 0;
-    for (let i = index - 1; i >= 0 && line[i] === "\\"; i -= 1) {
-      slashes += 1;
-    }
-    return slashes % 2 === 1;
-  };
-
-  const hasUnquotedHeredocExpansionToken = (line: string): boolean => {
-    for (let i = 0; i < line.length; i += 1) {
-      const ch = line[i];
-      if (ch === "`" && !isEscapedInHeredocLine(line, i)) {
-        return true;
-      }
-      if (ch === "$" && !isEscapedInHeredocLine(line, i)) {
-        const next = line[i + 1];
-        if (next === "(" || next === "{") {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-
   for (let i = 0; i < command.length; i += 1) {
     const ch = command[i];
     const next = command[i + 1];
-
-    if (inHeredocBody) {
-      if (ch === "\n" || ch === "\r") {
-        const current = pendingHeredocs[0];
-        if (current) {
-          const line = current.stripTabs ? heredocLine.replace(/^\t+/, "") : heredocLine;
-          if (line === current.delimiter) {
-            pendingHeredocs.shift();
-          } else if (!current.quoted && hasUnquotedHeredocExpansionToken(heredocLine)) {
-            return { ok: false, reason: "command substitution in unquoted heredoc", segments: [] };
-          }
-        }
-        heredocLine = "";
-        if (pendingHeredocs.length === 0) {
-          inHeredocBody = false;
-        }
-        if (ch === "\r" && next === "\n") {
-          i += 1;
-        }
-      } else {
-        heredocLine += ch;
-      }
-      continue;
-    }
 
     if (escaped) {
       buf += ch;
@@ -247,15 +139,6 @@ function splitShellPipeline(command: string): { ok: boolean; reason?: string; se
       continue;
     }
 
-    if ((ch === "\n" || ch === "\r") && pendingHeredocs.length > 0) {
-      inHeredocBody = true;
-      heredocLine = "";
-      if (ch === "\r" && next === "\n") {
-        i += 1;
-      }
-      continue;
-    }
-
     if (ch === "|" && next === "|") {
       return { ok: false, reason: "unsupported shell token: ||", segments: [] };
     }
@@ -274,25 +157,7 @@ function splitShellPipeline(command: string): { ok: boolean; reason?: string; se
       return { ok: false, reason: `unsupported shell token: ${ch}`, segments: [] };
     }
     if (ch === "<" && next === "<") {
-      buf += "<<";
-      emptySegment = false;
-      i += 1;
-
-      let scanIndex = i + 1;
-      let stripTabs = false;
-      if (command[scanIndex] === "-") {
-        stripTabs = true;
-        buf += "-";
-        scanIndex += 1;
-      }
-
-      const parsed = parseHeredocDelimiter(command, scanIndex);
-      if (parsed) {
-        pendingHeredocs.push({ delimiter: parsed.delimiter, stripTabs, quoted: parsed.quoted });
-        buf += command.slice(scanIndex, parsed.end);
-        i = parsed.end - 1;
-      }
-      continue;
+      return { ok: false, reason: "heredoc not supported", segments: [] };
     }
     if (DISALLOWED_PIPELINE_TOKENS.has(ch)) {
       return { ok: false, reason: `unsupported shell token: ${ch}`, segments: [] };
@@ -304,21 +169,6 @@ function splitShellPipeline(command: string): { ok: boolean; reason?: string; se
     if (!/\s/.test(ch)) {
       emptySegment = false;
     }
-  }
-
-  if (inHeredocBody && pendingHeredocs.length > 0) {
-    const current = pendingHeredocs[0];
-    const line = current.stripTabs ? heredocLine.replace(/^\t+/, "") : heredocLine;
-    if (line === current.delimiter) {
-      pendingHeredocs.shift();
-      if (pendingHeredocs.length === 0) {
-        inHeredocBody = false;
-      }
-    }
-  }
-
-  if (pendingHeredocs.length > 0 || inHeredocBody) {
-    return { ok: false, reason: "unterminated heredoc", segments: [] };
   }
 
   if (escaped || inSingle || inDouble) {

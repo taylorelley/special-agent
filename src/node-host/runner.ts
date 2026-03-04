@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import type { NodeInvokeRequestPayload } from "./runner-invoke-handlers.js";
 import { resolveBrowserConfig } from "../browser/config.js";
 import { loadConfig } from "../config/config.js";
 import { GatewayClient } from "../gateway/client.js";
@@ -16,7 +17,6 @@ import {
   handleSystemWhichCommand,
   handleBrowserProxy,
   handleSystemRun,
-  type NodeInvokeRequestPayload,
   buildNodeInvokeResultParams,
 } from "./runner-invoke-handlers.js";
 
@@ -140,12 +140,13 @@ function resolveEnvPath(env?: Record<string, string>): string[] {
 }
 
 function ensureNodePathEnv(): string {
-  ensureSpecialAgentCliOnPath({ pathEnv: process.env.PATH ?? "" });
-  const current = process.env.PATH ?? "";
+  const envKey = process.env.PATH !== undefined ? "PATH" : "Path";
+  const current = process.env[envKey] ?? "";
+  ensureSpecialAgentCliOnPath({ pathEnv: current });
   if (current.trim()) {
     return current;
   }
-  process.env.PATH = DEFAULT_NODE_PATH;
+  process.env[envKey] = DEFAULT_NODE_PATH;
   return DEFAULT_NODE_PATH;
 }
 
@@ -256,7 +257,7 @@ export async function runCommand(
     child.on("error", (err) => {
       finalize(undefined, err.message);
     });
-    child.on("exit", (code) => {
+    child.on("close", (code) => {
       finalize(code === null ? undefined : code, null);
     });
   });
@@ -407,7 +408,12 @@ export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {
       if (!payload) {
         return;
       }
-      void handleInvoke(payload, client, skillBins);
+      handleInvoke(payload, client, skillBins).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          `node host invoke error: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
     },
     onConnectError: (err) => {
       // eslint-disable-next-line no-console

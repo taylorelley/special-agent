@@ -117,6 +117,8 @@ function consumeShortOptionClusterToken(params: {
     }
     return isInvalidValueToken(params.args[params.index + 1]) ? -1 : params.index + 2;
   }
+  // All flags in the cluster are boolean (no value expected): advance past the
+  // single token containing the entire cluster (e.g. "-abc" consumes index once).
   return params.index + 1;
 }
 
@@ -155,6 +157,9 @@ export function validateSafeBinArgv(args: string[], profile: SafeBinProfile): bo
       continue;
     }
 
+    // "--" switches to positional-only mode: all remaining tokens are treated
+    // as positional arguments regardless of leading dashes, preventing flag
+    // injection via user-supplied values.
     if (token.kind === "terminator") {
       for (let j = i + 1; j < args.length; j += 1) {
         const rest = args[j];

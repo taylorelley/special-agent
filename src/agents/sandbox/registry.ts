@@ -90,7 +90,7 @@ function isBrowserRegistryEntry(value: unknown): value is SandboxBrowserRegistry
 
 function isRegistryFile<T extends RegistryEntry>(
   value: unknown,
-  entryGuard: (v: unknown) => v is T = isRegistryEntry as (v: unknown) => v is T,
+  entryGuard: (v: unknown) => v is T,
 ): value is RegistryFile<T> {
   if (!isRecord(value)) {
     return false;
@@ -112,7 +112,7 @@ async function withRegistryLock<T>(registryPath: string, fn: () => Promise<T>): 
 async function readRegistryFromFile<T extends RegistryEntry>(
   registryPath: string,
   mode: RegistryReadMode,
-  entryGuard?: (v: unknown) => v is T,
+  entryGuard: (v: unknown) => v is T,
 ): Promise<RegistryFile<T>> {
   try {
     const raw = await fs.readFile(registryPath, "utf-8");
@@ -120,6 +120,9 @@ async function readRegistryFromFile<T extends RegistryEntry>(
     if (isRegistryFile<T>(parsed, entryGuard)) {
       return parsed;
     }
+    // Fallback mode: silently recover to empty entries when the file exists but
+    // has an unexpected shape (e.g. migration in progress). Strict mode throws
+    // so callers doing mutations see the validation failure.
     if (mode === "fallback") {
       return { entries: [] };
     }
@@ -129,6 +132,8 @@ async function readRegistryFromFile<T extends RegistryEntry>(
     if (code === "ENOENT") {
       return { entries: [] };
     }
+    // Fallback mode: recover from corrupt JSON (SyntaxError) but NOT from
+    // permission errors (EACCES) which indicate a real system problem.
     if (mode === "fallback" && error instanceof SyntaxError) {
       return { entries: [] };
     }
@@ -170,11 +175,14 @@ export async function readRegistry(): Promise<SandboxRegistry> {
 function upsertEntry<T extends UpsertEntry>(entries: T[], entry: T): T[] {
   const existing = entries.find((item) => item.containerName === entry.containerName);
   const next = entries.filter((item) => item.containerName !== entry.containerName);
+  const configHash = Object.prototype.hasOwnProperty.call(entry, "configHash")
+    ? entry.configHash
+    : existing?.configHash;
   next.push({
     ...entry,
     createdAtMs: existing?.createdAtMs ?? entry.createdAtMs,
     image: existing?.image ?? entry.image,
-    configHash: entry.configHash ?? existing?.configHash,
+    configHash,
   });
   return next;
 }
@@ -186,7 +194,7 @@ function removeEntry<T extends RegistryEntry>(entries: T[], containerName: strin
 async function withRegistryMutation<T extends RegistryEntry>(
   registryPath: string,
   mutate: (entries: T[]) => T[] | null,
-  entryGuard?: (v: unknown) => v is T,
+  entryGuard: (v: unknown) => v is T,
 ): Promise<void> {
   await withRegistryLock(registryPath, async () => {
     const registry = await readRegistryFromFile<T>(registryPath, "strict", entryGuard);
