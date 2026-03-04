@@ -43,6 +43,8 @@ const TRUSTED_SIDS = new Set([
   "s-1-5-32-544",
   "s-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464",
 ]);
+// Well-known world/everyone SIDs that should map to "world" classification.
+const WORLD_SIDS = new Set(["s-1-1-0", "s-1-5-11"]);
 const STATUS_PREFIXES = [
   "successfully processed",
   "processed",
@@ -86,7 +88,13 @@ function classifyPrincipal(
   const normalized = normalize(principal);
 
   if (SID_RE.test(normalized)) {
-    return TRUSTED_SIDS.has(normalized) || trustedPrincipals.has(normalized) ? "trusted" : "group";
+    if (TRUSTED_SIDS.has(normalized) || trustedPrincipals.has(normalized)) {
+      return "trusted";
+    }
+    if (WORLD_SIDS.has(normalized)) {
+      return "world";
+    }
+    return "group";
   }
 
   if (

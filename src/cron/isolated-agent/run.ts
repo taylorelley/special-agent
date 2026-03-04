@@ -682,8 +682,6 @@ export async function runCronIsolatedAgentTurn(params: {
     deliveryAttempted,
     model: modelUsed,
     provider: providerUsed,
-    usage: runUsage
-      ? { inputTokens: runUsage.input ?? 0, outputTokens: runUsage.output ?? 0 }
-      : undefined,
+    usage: runUsage ? { inputTokens: runUsage.input, outputTokens: runUsage.output } : undefined,
   });
 }

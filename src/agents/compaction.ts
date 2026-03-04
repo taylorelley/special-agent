@@ -23,7 +23,8 @@ const MERGE_SUMMARIES_INSTRUCTIONS =
   " TODOs, open questions, and any constraints.";
 const IDENTIFIER_PRESERVATION_INSTRUCTIONS =
   "Preserve all opaque identifiers exactly as written (no shortening or reconstruction), " +
-  "including UUIDs, hashes, IDs, tokens, API keys, hostnames, IPs, ports, URLs, and file names.";
+  "including UUIDs, hashes, IDs, hostnames, IPs, ports, URLs, and file names. " +
+  "Redact sensitive credentials (API keys, tokens, secrets) with a stable placeholder like <REDACTED_KEY>.";
 
 export type CompactionSummarizationInstructions = {
   identifierPolicy?: "strict" | "off" | "custom";
@@ -63,13 +64,17 @@ export function buildCompactionSummarizationInstructions(
 }
 
 export function estimateMessagesTokens(messages: AgentMessage[]): number {
+  return messages.reduce((sum, message) => sum + estimateTokens(message), 0);
+}
+
+export function estimateCompactionMessagesTokens(messages: AgentMessage[]): number {
   // SECURITY: toolResult.details can contain untrusted/verbose payloads; never include in LLM-facing compaction.
   const safe = stripToolResultDetails(messages);
   return safe.reduce((sum, message) => sum + estimateTokens(message), 0);
 }
 
 function estimateCompactionMessageTokens(message: AgentMessage): number {
-  return estimateMessagesTokens([message]);
+  return estimateCompactionMessagesTokens([message]);
 }
 
 function normalizeParts(parts: number, messageCount: number): number {
@@ -91,7 +96,7 @@ export function splitMessagesByTokenShare(
     return [messages];
   }
 
-  const totalTokens = estimateMessagesTokens(messages);
+  const totalTokens = estimateCompactionMessagesTokens(messages);
   const targetTokens = totalTokens / normalizedParts;
   const chunks: AgentMessage[][] = [];
   let current: AgentMessage[] = [];
@@ -172,7 +177,7 @@ export function computeAdaptiveChunkRatio(messages: AgentMessage[], contextWindo
     return BASE_CHUNK_RATIO;
   }
 
-  const totalTokens = estimateMessagesTokens(messages);
+  const totalTokens = estimateCompactionMessagesTokens(messages);
   const avgTokens = totalTokens / messages.length;
 
   // Apply safety margin to account for estimation inaccuracy
@@ -347,11 +352,9 @@ export async function summarizeWithFallback(params: {
   try {
     return await summarizeChunks(params);
   } catch (fullError) {
-    log.warn(
-      `Full summarization failed, trying partial: ${
-        fullError instanceof Error ? fullError.message : String(fullError)
-      }`,
-    );
+    log.warn("Full summarization failed, trying partial", {
+      err: fullError instanceof Error ? fullError.message : "<unknown>",
+    });
   }
 
   // Fallback 1: Summarize only small messages, note oversized ones
@@ -375,11 +378,9 @@ export async function summarizeWithFallback(params: {
       const notes = oversizedNotes.length > 0 ? `\n\n${oversizedNotes.join("\n")}` : "";
       return partialSummary + notes;
     } catch (partialError) {
-      log.warn(
-        `Partial summarization also failed: ${
-          partialError instanceof Error ? partialError.message : String(partialError)
-        }`,
-      );
+      log.warn("Partial summarization also failed", {
+        err: partialError instanceof Error ? partialError.message : "<unknown>",
+      });
     }
   }
 
@@ -419,7 +420,7 @@ export async function summarizeInStages(params: {
 
   const minMessagesForSplit = Math.max(2, params.minMessagesForSplit ?? 4);
   const parts = normalizeParts(params.parts ?? DEFAULT_PARTS, messages.length);
-  const totalTokens = estimateMessagesTokens(messages);
+  const totalTokens = estimateCompactionMessagesTokens(messages);
 
   if (parts <= 1 || messages.length < minMessagesForSplit || totalTokens <= params.maxChunkTokens) {
     return summarizeWithFallback(params);
@@ -552,7 +553,7 @@ export function pruneHistoryForContextShare(params: {
 
   const parts = normalizeParts(params.parts ?? DEFAULT_PARTS, keptMessages.length);
 
-  while (keptMessages.length > 0 && estimateMessagesTokens(keptMessages) > budgetTokens) {
+  while (keptMessages.length > 0 && estimateCompactionMessagesTokens(keptMessages) > budgetTokens) {
     const chunks = splitMessagesByTokenShare(keptMessages, parts);
     if (chunks.length <= 1) {
       break;
@@ -572,7 +573,7 @@ export function pruneHistoryForContextShare(params: {
 
     droppedChunks += 1;
     droppedMessages += dropped.length + orphanedCount;
-    droppedTokens += estimateMessagesTokens(dropped);
+    droppedTokens += estimateCompactionMessagesTokens(dropped);
     // Note: We don't have the actual orphaned messages to add to droppedMessagesList
     // since repairToolUseResultPairing doesn't return them. This is acceptable since
     // the dropped messages are used for summarization, and orphaned tool_results
@@ -587,7 +588,7 @@ export function pruneHistoryForContextShare(params: {
     droppedChunks,
     droppedMessages,
     droppedTokens,
-    keptTokens: estimateMessagesTokens(keptMessages),
+    keptTokens: estimateCompactionMessagesTokens(keptMessages),
     budgetTokens,
   };
 }

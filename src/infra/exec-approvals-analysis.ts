@@ -263,8 +263,11 @@ function splitShellPipeline(command: string): { ok: boolean; reason?: string; se
       return { ok: false, reason: "unsupported shell token: |&", segments: [] };
     }
     if (ch === "|") {
-      emptySegment = true;
       pushPart();
+      if (segments.length === 0 || emptySegment) {
+        return { ok: false, reason: "empty pipeline segment", segments: [] };
+      }
+      emptySegment = true;
       continue;
     }
     if (ch === "&" || ch === ";") {

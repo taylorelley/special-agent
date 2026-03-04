@@ -3,7 +3,7 @@ import type { ExtensionAPI, FileOperations } from "@mariozechner/pi-coding-agent
 import {
   SAFETY_MARGIN,
   computeAdaptiveChunkRatio,
-  estimateMessagesTokens,
+  estimateCompactionMessagesTokens,
   pruneHistoryForContextShare,
   resolveContextWindowTokens,
   summarizeInStages,
@@ -320,7 +320,8 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
 
       if (tokensBefore !== undefined) {
         const summarizableTokens =
-          estimateMessagesTokens(messagesToSummarize) + estimateMessagesTokens(turnPrefixMessages);
+          estimateCompactionMessagesTokens(messagesToSummarize) +
+          estimateCompactionMessagesTokens(turnPrefixMessages);
         const newContentTokens = Math.max(0, Math.floor(tokensBefore - summarizableTokens));
         // Apply SAFETY_MARGIN so token underestimates don't trigger unnecessary pruning
         const maxHistoryTokens = Math.floor(contextWindowTokens * maxHistoryShare * SAFETY_MARGIN);

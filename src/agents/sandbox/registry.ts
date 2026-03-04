@@ -58,20 +58,34 @@ function isRegistryEntry(value: unknown): value is RegistryEntry {
   );
 }
 
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === "string";
+}
+
+function isOptionalNumber(value: unknown): boolean {
+  return value === undefined || typeof value === "number";
+}
+
 function isSandboxRegistryEntry(value: unknown): value is SandboxRegistryEntry {
+  if (!isRegistryEntry(value)) {
+    return false;
+  }
+  const r = value as Record<string, unknown>;
   return (
-    isRegistryEntry(value) &&
-    typeof (value as Record<string, unknown>).sessionKey === "string" &&
-    typeof (value as Record<string, unknown>).lastUsedAtMs === "number" &&
-    typeof (value as Record<string, unknown>).createdAtMs === "number" &&
-    typeof (value as Record<string, unknown>).image === "string"
+    typeof r.sessionKey === "string" &&
+    typeof r.lastUsedAtMs === "number" &&
+    typeof r.createdAtMs === "number" &&
+    typeof r.image === "string" &&
+    isOptionalString(r.configHash)
   );
 }
 
 function isBrowserRegistryEntry(value: unknown): value is SandboxBrowserRegistryEntry {
-  return (
-    isSandboxRegistryEntry(value) && typeof (value as Record<string, unknown>).cdpPort === "number"
-  );
+  if (!isSandboxRegistryEntry(value)) {
+    return false;
+  }
+  const r = value as Record<string, unknown>;
+  return typeof r.cdpPort === "number" && isOptionalNumber(r.noVncPort);
 }
 
 function isRegistryFile<T extends RegistryEntry>(
@@ -115,7 +129,7 @@ async function readRegistryFromFile<T extends RegistryEntry>(
     if (code === "ENOENT") {
       return { entries: [] };
     }
-    if (mode === "fallback" && (error instanceof SyntaxError || code === "EACCES")) {
+    if (mode === "fallback" && error instanceof SyntaxError) {
       return { entries: [] };
     }
     if (error instanceof Error) {
@@ -172,9 +186,10 @@ function removeEntry<T extends RegistryEntry>(entries: T[], containerName: strin
 async function withRegistryMutation<T extends RegistryEntry>(
   registryPath: string,
   mutate: (entries: T[]) => T[] | null,
+  entryGuard?: (v: unknown) => v is T,
 ): Promise<void> {
   await withRegistryLock(registryPath, async () => {
-    const registry = await readRegistryFromFile<T>(registryPath, "strict");
+    const registry = await readRegistryFromFile<T>(registryPath, "strict", entryGuard);
     const next = mutate(registry.entries);
     if (next === null) {
       return;
@@ -184,19 +199,25 @@ async function withRegistryMutation<T extends RegistryEntry>(
 }
 
 export async function updateRegistry(entry: SandboxRegistryEntry) {
-  await withRegistryMutation<SandboxRegistryEntry>(SANDBOX_REGISTRY_PATH, (entries) =>
-    upsertEntry(entries, entry),
+  await withRegistryMutation<SandboxRegistryEntry>(
+    SANDBOX_REGISTRY_PATH,
+    (entries) => upsertEntry(entries, entry),
+    isSandboxRegistryEntry,
   );
 }
 
 export async function removeRegistryEntry(containerName: string) {
-  await withRegistryMutation<SandboxRegistryEntry>(SANDBOX_REGISTRY_PATH, (entries) => {
-    const next = removeEntry(entries, containerName);
-    if (next.length === entries.length) {
-      return null;
-    }
-    return next;
-  });
+  await withRegistryMutation<SandboxRegistryEntry>(
+    SANDBOX_REGISTRY_PATH,
+    (entries) => {
+      const next = removeEntry(entries, containerName);
+      if (next.length === entries.length) {
+        return null;
+      }
+      return next;
+    },
+    isSandboxRegistryEntry,
+  );
 }
 
 export async function readBrowserRegistry(): Promise<SandboxBrowserRegistry> {
@@ -211,6 +232,7 @@ export async function updateBrowserRegistry(entry: SandboxBrowserRegistryEntry) 
   await withRegistryMutation<SandboxBrowserRegistryEntry>(
     SANDBOX_BROWSER_REGISTRY_PATH,
     (entries) => upsertEntry(entries, entry),
+    isBrowserRegistryEntry,
   );
 }
 
@@ -224,5 +246,6 @@ export async function removeBrowserRegistryEntry(containerName: string) {
       }
       return next;
     },
+    isBrowserRegistryEntry,
   );
 }

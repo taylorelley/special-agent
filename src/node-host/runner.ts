@@ -94,13 +94,17 @@ export function sanitizeEnv(
   const merged = { ...process.env } as Record<string, string>;
   const basePath = process.env.PATH ?? DEFAULT_NODE_PATH;
   for (const [rawKey, value] of Object.entries(overrides)) {
+    if (value == null) {
+      continue;
+    }
+    const valStr = String(value);
     const key = rawKey.trim();
     if (!key) {
       continue;
     }
     const upper = key.toUpperCase();
     if (upper === "PATH") {
-      const trimmed = value.trim();
+      const trimmed = valStr.trim();
       if (!trimmed) {
         continue;
       }
@@ -120,7 +124,7 @@ export function sanitizeEnv(
     if (blockedEnvPrefixes.some((prefix) => upper.startsWith(prefix))) {
       continue;
     }
-    merged[key] = value;
+    merged[key] = valStr;
   }
   return merged;
 }

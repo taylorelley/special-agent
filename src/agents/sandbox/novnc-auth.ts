@@ -23,8 +23,8 @@ export function isNoVncEnabled(params: { enableNoVnc: boolean; headless: boolean
 }
 
 export function generateNoVncPassword() {
-  // VNC auth uses an 8-char password max.
-  return crypto.randomBytes(4).toString("hex");
+  // VNC auth uses an 8-char password max. Use base64url for higher entropy per char.
+  return crypto.randomBytes(8).toString("base64url").slice(0, 8);
 }
 
 export function buildNoVncDirectUrl(port: number, token?: string) {
@@ -32,8 +32,9 @@ export function buildNoVncDirectUrl(port: number, token?: string) {
     autoconnect: "1",
     resize: "remote",
   });
-  if (token?.trim()) {
-    query.set("token", token);
+  const trimmedToken = token?.trim();
+  if (trimmedToken) {
+    query.set("token", trimmedToken);
   }
   return `http://127.0.0.1:${port}/vnc.html?${query.toString()}`;
 }
@@ -46,9 +47,10 @@ export function issueNoVncObserverToken(params: {
   const now = params.nowMs ?? Date.now();
   pruneExpiredNoVncObserverTokens(now);
   const token = crypto.randomBytes(24).toString("hex");
+  const ttl = Number.isFinite(params.ttlMs) ? params.ttlMs! : NOVNC_TOKEN_TTL_MS;
   NO_VNC_OBSERVER_TOKENS.set(token, {
     url: params.url,
-    expiresAt: now + Math.max(1, params.ttlMs ?? NOVNC_TOKEN_TTL_MS),
+    expiresAt: now + Math.max(1, ttl),
   });
   return token;
 }

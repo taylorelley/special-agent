@@ -208,7 +208,7 @@ function normalizeJobTickState(params: { state: CronServiceState; job: CronJob; 
   const runningAt = job.state.runningAtMs;
   if (
     runningAt !== undefined &&
-    (!isFiniteTimestamp(runningAt) || nowMs - runningAt > STUCK_RUN_MS)
+    (!isFiniteTimestamp(runningAt) || nowMs - runningAt > STUCK_RUN_MS || runningAt > nowMs)
   ) {
     state.deps.log.warn(
       { jobId: job.id, runningAtMs: runningAt },

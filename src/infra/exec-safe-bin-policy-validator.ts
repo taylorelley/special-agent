@@ -84,6 +84,9 @@ function consumeLongOptionToken(params: {
     if (!expectsValue) {
       return -1;
     }
+    if (params.inlineValue === "") {
+      return -1;
+    }
     return isSafeLiteralToken(params.inlineValue) ? params.index + 1 : -1;
   }
   if (!expectsValue) {

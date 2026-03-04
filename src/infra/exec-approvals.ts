@@ -115,6 +115,8 @@ export type ExecApprovalsResolved = {
 // Keep CLI + gateway defaults in sync.
 export const DEFAULT_EXEC_APPROVAL_TIMEOUT_MS = 120_000;
 
+const VALID_EXEC_APPROVAL_DECISIONS = new Set<string>(["allow-once", "allow-always", "deny"]);
+
 const DEFAULT_SECURITY: ExecSecurity = "deny";
 const DEFAULT_ASK: ExecAsk = "on-miss";
 const DEFAULT_ASK_FALLBACK: ExecSecurity = "deny";
@@ -548,9 +550,8 @@ export async function requestExecApprovalViaSocket(params: {
     payload,
     timeoutMs,
     accept: (value) => {
-      const validDecisions = new Set<string>(["allow-once", "allow-always", "deny"]);
       const msg = value as { type?: string; decision?: string };
-      if (msg?.type === "decision" && validDecisions.has(msg.decision ?? "")) {
+      if (msg?.type === "decision" && VALID_EXEC_APPROVAL_DECISIONS.has(msg.decision ?? "")) {
         return msg.decision as ExecApprovalDecision;
       }
       return undefined;
