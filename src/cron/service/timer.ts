@@ -9,7 +9,7 @@ import type {
 } from "../types.js";
 import type { CronEvent, CronServiceState } from "./state.js";
 import { DEFAULT_AGENT_ID } from "../../routing/session-key.js";
-import { resolveCronDeliveryPlan } from "../delivery.js";
+import { normalizeTo, resolveCronDeliveryPlan } from "../delivery.js";
 import { sweepCronRunSessions } from "../session-reaper.js";
 import {
   computeJobNextRunAtMs,
@@ -68,7 +68,7 @@ function timeoutErrorMessage(): string {
   return "cron: job execution timed out";
 }
 
-function isAbortError(err: unknown): boolean {
+function isCronAbortError(err: unknown): boolean {
   if (!(err instanceof Error)) {
     return false;
   }
@@ -113,7 +113,7 @@ function isTransientCronError(error: string | undefined, retryOn?: CronRetryOn[]
   return keys.some((k) => TRANSIENT_PATTERNS[k]?.test(error));
 }
 
-function resolveRetryConfig(cronConfig?: {
+function resolveCronRetryConfig(cronConfig?: {
   retry?: { maxAttempts?: number; backoffMs?: number[]; retryOn?: CronRetryOn[] };
 }) {
   const retry = cronConfig?.retry;
@@ -146,14 +146,6 @@ function normalizeCronMessageChannel(input: unknown): CronMessageChannel | undef
   }
   const channel = input.trim().toLowerCase();
   return channel ? (channel as CronMessageChannel) : undefined;
-}
-
-function normalizeTo(input: unknown): string | undefined {
-  if (typeof input !== "string") {
-    return undefined;
-  }
-  const to = input.trim();
-  return to ? to : undefined;
 }
 
 function clampPositiveInt(value: unknown, fallback: number): number {
@@ -303,7 +295,7 @@ export function applyJobResult(
         job.enabled = false;
         job.state.nextRunAtMs = undefined;
       } else if (result.status === "error") {
-        const retryConfig = resolveRetryConfig(state.deps.cronConfig);
+        const retryConfig = resolveCronRetryConfig(state.deps.cronConfig);
         const transient = isTransientCronError(result.error, retryConfig.retryOn);
         const consecutive = job.state.consecutiveErrors;
         if (transient && consecutive <= retryConfig.maxAttempts) {
@@ -532,7 +524,7 @@ export async function onTimer(state: CronServiceState) {
         });
         return { jobId: id, ...result, startedAt, endedAt: state.deps.nowMs() };
       } catch (err) {
-        const errorText = isAbortError(err) ? timeoutErrorMessage() : String(err);
+        const errorText = isCronAbortError(err) ? timeoutErrorMessage() : String(err);
         state.deps.log.warn(
           { jobId: id, jobName: job.name, timeoutMs: jobTimeoutMs },
           `cron: job failed: ${errorText}`,

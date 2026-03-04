@@ -216,11 +216,11 @@ async function runViaMacAppExecHost(params: {
   });
 }
 
-function normalizeProfileAllowlist(raw?: string[]): string[] {
+export function normalizeProfileAllowlist(raw?: string[]): string[] {
   return Array.isArray(raw) ? raw.map((entry) => entry.trim()).filter(Boolean) : [];
 }
 
-function resolveBrowserProxyConfig() {
+export function resolveBrowserProxyConfig() {
   const cfg = loadConfig();
   const proxy = cfg.nodeHost?.browserProxy;
   const allowProfiles = normalizeProfileAllowlist(proxy?.allowProfiles);

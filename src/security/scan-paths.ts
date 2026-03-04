@@ -1,20 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
+import { hasErrnoCode } from "../infra/errors.js";
 
 export function isPathInside(basePath: string, candidatePath: string): boolean {
   const base = path.resolve(basePath);
   const candidate = path.resolve(candidatePath);
   const rel = path.relative(base, candidate);
   return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel));
-}
-
-function hasErrnoCode(err: unknown, code: string): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code: unknown }).code === code
-  );
 }
 
 function safeRealpathSync(filePath: string): string | null {

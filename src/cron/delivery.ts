@@ -21,7 +21,7 @@ function normalizeChannel(value: unknown): CronMessageChannel | undefined {
   return trimmed as CronMessageChannel;
 }
 
-function normalizeTo(value: unknown): string | undefined {
+export function normalizeTo(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
   }

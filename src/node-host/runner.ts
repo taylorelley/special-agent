@@ -18,6 +18,7 @@ import {
   handleBrowserProxy,
   handleSystemRun,
   buildNodeInvokeResultParams,
+  resolveBrowserProxyConfig,
 } from "./runner-invoke-handlers.js";
 
 export { buildNodeInvokeResultParams };
@@ -324,18 +325,6 @@ async function handleInvoke(
   } catch {
     // ignore: node invoke responses are best-effort
   }
-}
-
-function normalizeProfileAllowlist(raw?: string[]): string[] {
-  return Array.isArray(raw) ? raw.map((entry) => entry.trim()).filter(Boolean) : [];
-}
-
-function resolveBrowserProxyConfig() {
-  const cfg = loadConfig();
-  const proxy = cfg.nodeHost?.browserProxy;
-  const allowProfiles = normalizeProfileAllowlist(proxy?.allowProfiles);
-  const enabled = proxy?.enabled !== false;
-  return { enabled, allowProfiles };
 }
 
 export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {

@@ -3,6 +3,7 @@ import type { FileHandle } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { isSymlinkOpenError } from "./path-guards.js";
 
 export type SafeOpenErrorCode = "invalid-path" | "not-found";
 
@@ -31,9 +32,6 @@ const isNodeError = (err: unknown): err is NodeJS.ErrnoException =>
 
 const isNotFoundError = (err: unknown) =>
   isNodeError(err) && typeof err.code === "string" && NOT_FOUND_CODES.has(err.code);
-
-const isSymlinkOpenError = (err: unknown) =>
-  isNodeError(err) && (err.code === "ELOOP" || err.code === "EINVAL" || err.code === "ENOTSUP");
 
 export async function openFileWithinRoot(params: {
   rootDir: string;

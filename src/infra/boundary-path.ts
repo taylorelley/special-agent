@@ -372,7 +372,7 @@ export async function resolvePathViaExistingAncestor(targetPath: string): Promis
   let cursor = normalized;
   const missingSuffix: string[] = [];
 
-  while (!isFilesystemRoot(cursor) && !(await pathExists(cursor))) {
+  while (!isFilesystemRoot(cursor) && !(await pathExistsStrict(cursor))) {
     missingSuffix.unshift(path.basename(cursor));
     const parent = path.dirname(cursor);
     if (parent === cursor) {
@@ -381,7 +381,7 @@ export async function resolvePathViaExistingAncestor(targetPath: string): Promis
     cursor = parent;
   }
 
-  if (!(await pathExists(cursor))) {
+  if (!(await pathExistsStrict(cursor))) {
     return normalized;
   }
 
@@ -521,7 +521,7 @@ function isFilesystemRoot(candidate: string): boolean {
   return path.parse(candidate).root === candidate;
 }
 
-async function pathExists(targetPath: string): Promise<boolean> {
+async function pathExistsStrict(targetPath: string): Promise<boolean> {
   try {
     await fsp.lstat(targetPath);
     return true;
