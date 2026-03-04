@@ -92,7 +92,7 @@ export function sanitizeEnv(
     return undefined;
   }
   const merged = { ...process.env } as Record<string, string>;
-  const basePath = process.env.PATH ?? DEFAULT_NODE_PATH;
+  const basePath = process.env.PATH ?? process.env.Path ?? DEFAULT_NODE_PATH;
   for (const [rawKey, value] of Object.entries(overrides)) {
     if (value == null) {
       continue;

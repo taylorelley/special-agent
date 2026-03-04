@@ -93,7 +93,6 @@ export type CronJobState = {
   nextRunAtMs?: number;
   runningAtMs?: number;
   lastRunAtMs?: number;
-  lastRunStatus?: CronRunStatus;
   lastStatus?: CronRunStatus;
   lastError?: string;
   lastDurationMs?: number;
