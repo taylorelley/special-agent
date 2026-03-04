@@ -374,7 +374,7 @@ describe("exec approvals shell parsing", () => {
       },
     ] as const;
     for (const testCase of cases) {
-      const res = analyzeShellCommand({ command: testCase.command });
+      const res = analyzeShellCommand({ command: testCase.command, platform: "linux" });
       expect(res.ok, testCase.name).toBe(true);
       if ("expectedSegments" in testCase) {
         expect(
@@ -398,22 +398,29 @@ describe("exec approvals shell parsing", () => {
 
   it("rejects unsupported shell constructs", () => {
     const cases: Array<{ command: string; reason: string; platform?: NodeJS.Platform }> = [
-      { command: 'echo "output: $(whoami)"', reason: "unsupported shell token: $()" },
-      { command: 'echo "output: `id`"', reason: "unsupported shell token: `" },
-      { command: "echo $(whoami)", reason: "unsupported shell token: $()" },
-      { command: "cat < input.txt", reason: "unsupported shell token: <" },
-      { command: "echo ok > output.txt", reason: "unsupported shell token: >" },
+      {
+        command: 'echo "output: $(whoami)"',
+        reason: "unsupported shell token: $()",
+        platform: "linux",
+      },
+      { command: 'echo "output: `id`"', reason: "unsupported shell token: `", platform: "linux" },
+      { command: "echo $(whoami)", reason: "unsupported shell token: $()", platform: "linux" },
+      { command: "cat < input.txt", reason: "unsupported shell token: <", platform: "linux" },
+      { command: "echo ok > output.txt", reason: "unsupported shell token: >", platform: "linux" },
       {
         command: "/usr/bin/echo first line\n/usr/bin/echo second line",
         reason: "unsupported shell token: \n",
+        platform: "linux",
       },
       {
         command: 'echo "ok $\\\n(id -u)"',
         reason: "unsupported shell token: newline",
+        platform: "linux",
       },
       {
         command: 'echo "ok $\\\r\n(id -u)"',
         reason: "unsupported shell token: newline",
+        platform: "linux",
       },
       {
         command: "ping 127.0.0.1 -n 1 & whoami",
@@ -431,7 +438,7 @@ describe("exec approvals shell parsing", () => {
   it("accepts inert substitution-like syntax", () => {
     const cases = ['echo "output: \\$(whoami)"', "echo 'output: $(whoami)'"];
     for (const command of cases) {
-      const res = analyzeShellCommand({ command });
+      const res = analyzeShellCommand({ command, platform: "linux" });
       expect(res.ok).toBe(true);
       expect(res.segments[0]?.argv[0]).toBe("echo");
     }
@@ -450,7 +457,7 @@ describe("exec approvals shell parsing", () => {
       "/usr/bin/cat <<EOF\nline one",
     ];
     for (const command of cases) {
-      const res = analyzeShellCommand({ command });
+      const res = analyzeShellCommand({ command, platform: "linux" });
       expect(res.ok).toBe(false);
       expect(res.reason).toBe("heredoc not supported");
     }
@@ -501,18 +508,21 @@ describe("exec approvals shell allowlist (chained commands)", () => {
           "/usr/bin/obsidian-cli print-default && /usr/bin/obsidian-cli search foo | /usr/bin/head",
         expectedAnalysisOk: true,
         expectedAllowlistSatisfied: true,
+        platform: "linux",
       },
       {
         allowlist: [{ pattern: "/usr/bin/obsidian-cli" }],
         command: "/usr/bin/obsidian-cli print-default && /usr/bin/rm -rf /",
         expectedAnalysisOk: true,
         expectedAllowlistSatisfied: false,
+        platform: "linux",
       },
       {
         allowlist: [{ pattern: "/usr/bin/echo" }],
         command: "/usr/bin/echo ok &&",
         expectedAnalysisOk: false,
         expectedAllowlistSatisfied: false,
+        platform: "linux",
       },
       {
         allowlist: [{ pattern: "/usr/bin/ping" }],
