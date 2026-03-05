@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { hasErrnoCode } from "../infra/errors.js";
+import { isPathInsideWithRealpath } from "./scan-paths.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -252,13 +253,6 @@ function normalizeScanOptions(opts?: SkillScanOptions): Required<SkillScanOption
   };
 }
 
-function isPathInside(basePath: string, candidatePath: string): boolean {
-  const base = path.resolve(basePath);
-  const candidate = path.resolve(candidatePath);
-  const rel = path.relative(base, candidate);
-  return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel));
-}
-
 async function walkDirWithLimit(dirPath: string, maxFiles: number): Promise<string[]> {
   const files: string[] = [];
   const stack: string[] = [dirPath];
@@ -304,7 +298,7 @@ async function resolveForcedFiles(params: {
 
   for (const rawIncludePath of params.includeFiles) {
     const includePath = path.resolve(params.rootDir, rawIncludePath);
-    if (!isPathInside(params.rootDir, includePath)) {
+    if (!isPathInsideWithRealpath(params.rootDir, includePath, { requireRealpath: true })) {
       continue;
     }
     if (!isScannable(includePath)) {

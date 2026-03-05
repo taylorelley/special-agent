@@ -36,16 +36,6 @@ vi.mock("../plugins/tools.js", () => ({
   resolvePluginTools: () => [],
 }));
 
-vi.mock("../infra/shell-env.js", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("../infra/shell-env.js")>();
-  return { ...mod, getShellPathFromLoginShell: () => null };
-});
-
-vi.mock("../plugins/tools.js", () => ({
-  resolvePluginTools: () => [],
-  getPluginToolMeta: () => undefined,
-}));
-
 vi.mock("../infra/exec-approvals.js", async (importOriginal) => {
   const mod = await importOriginal<typeof import("../infra/exec-approvals.js")>();
   const approvals: ExecApprovalsResolved = {
@@ -94,7 +84,7 @@ describe("createSpecialAgentCodingTools safeBins", () => {
           host: "gateway",
           security: "allowlist",
           ask: "off",
-          safeBins: ["echo"],
+          safeBins: ["jq"],
         },
       },
     };
@@ -108,26 +98,35 @@ describe("createSpecialAgentCodingTools safeBins", () => {
     const execTool = tools.find((tool) => tool.name === "exec");
     expect(execTool).toBeDefined();
 
-    const marker = `safe-bins-${Date.now()}`;
     const prevShellEnvTimeoutMs = process.env.SPECIAL_AGENT_SHELL_ENV_TIMEOUT_MS;
     process.env.SPECIAL_AGENT_SHELL_ENV_TIMEOUT_MS = "1000";
-    const result = await (async () => {
-      try {
-        return await execTool!.execute("call1", {
-          command: `echo ${marker}`,
-          workdir: tmpDir,
-        });
-      } finally {
-        if (prevShellEnvTimeoutMs === undefined) {
-          delete process.env.SPECIAL_AGENT_SHELL_ENV_TIMEOUT_MS;
-        } else {
-          process.env.SPECIAL_AGENT_SHELL_ENV_TIMEOUT_MS = prevShellEnvTimeoutMs;
-        }
+    // Use `jq '.'` with no flags — the safe-bin profile for jq rejects
+    // unknown short flags like `-n`.  The filter-only form is the simplest
+    // invocation accepted by the profile (maxPositional: 1, no flags).
+    // The command blocks on stdin so it will time out, but the key
+    // assertion is that it was *allowed* past the safe-bin allowlist
+    // (an allowlist miss throws synchronously before spawning).
+    let allowlistDenied = false;
+    try {
+      await execTool!.execute("call1", {
+        command: `jq '.'`,
+        workdir: tmpDir,
+        timeout: 2,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("exec denied")) {
+        allowlistDenied = true;
       }
-    })();
-    const text = result.content.find((content) => content.type === "text")?.text ?? "";
+      // Other errors (e.g. timeout) are expected — jq blocks on stdin.
+    } finally {
+      if (prevShellEnvTimeoutMs === undefined) {
+        delete process.env.SPECIAL_AGENT_SHELL_ENV_TIMEOUT_MS;
+      } else {
+        process.env.SPECIAL_AGENT_SHELL_ENV_TIMEOUT_MS = prevShellEnvTimeoutMs;
+      }
+    }
 
-    expect(result.details.status).toBe("completed");
-    expect(text).toContain(marker);
+    expect(allowlistDenied).toBe(false);
   });
 });

@@ -163,6 +163,25 @@ export type ToolUseRepairReport = {
   moved: boolean;
 };
 
+export function stripToolResultDetails(messages: AgentMessage[]): AgentMessage[] {
+  let touched = false;
+  const out: AgentMessage[] = [];
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object" || (msg as { role?: unknown }).role !== "toolResult") {
+      out.push(msg);
+      continue;
+    }
+    if (!("details" in msg)) {
+      out.push(msg);
+      continue;
+    }
+    const { details: _details, ...rest } = msg as unknown as Record<string, unknown>;
+    touched = true;
+    out.push(rest as unknown as AgentMessage);
+  }
+  return touched ? out : messages;
+}
+
 export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRepairReport {
   // Anthropic (and Cloud Code Assist) reject transcripts where assistant tool calls are not
   // immediately followed by matching tool results. Session files can end up with results

@@ -289,6 +289,21 @@ export async function ensureLoaded(
       mutated = true;
     }
 
+    // Migrate legacy jobId field to id.
+    const rawId = typeof raw.id === "string" ? raw.id.trim() : "";
+    const legacyJobId = typeof raw.jobId === "string" ? raw.jobId.trim() : "";
+    if (!rawId && legacyJobId) {
+      raw.id = legacyJobId;
+      mutated = true;
+    } else if (rawId && raw.id !== rawId) {
+      raw.id = rawId;
+      mutated = true;
+    }
+    if ("jobId" in raw) {
+      delete raw.jobId;
+      mutated = true;
+    }
+
     const nameRaw = raw.name;
     if (typeof nameRaw !== "string" || nameRaw.trim().length === 0) {
       raw.name = inferLegacyName({
@@ -306,8 +321,35 @@ export async function ensureLoaded(
       mutated = true;
     }
 
+    // Normalize sessionKey field.
+    if ("sessionKey" in raw) {
+      const sessionKey =
+        typeof raw.sessionKey === "string" ? normalizeOptionalText(raw.sessionKey) : undefined;
+      if (raw.sessionKey !== sessionKey) {
+        raw.sessionKey = sessionKey;
+        mutated = true;
+      }
+    }
+
     if (typeof raw.enabled !== "boolean") {
       raw.enabled = true;
+      mutated = true;
+    }
+
+    // Normalize wakeMode field.
+    const wakeModeRaw = typeof raw.wakeMode === "string" ? raw.wakeMode.trim().toLowerCase() : "";
+    if (wakeModeRaw === "next-heartbeat") {
+      if (raw.wakeMode !== "next-heartbeat") {
+        raw.wakeMode = "next-heartbeat";
+        mutated = true;
+      }
+    } else if (wakeModeRaw === "now") {
+      if (raw.wakeMode !== "now") {
+        raw.wakeMode = "now";
+        mutated = true;
+      }
+    } else {
+      raw.wakeMode = "now";
       mutated = true;
     }
 

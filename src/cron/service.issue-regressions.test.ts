@@ -113,7 +113,10 @@ describe("Cron issue regressions", () => {
     const result = await cron.run(created.id, "force");
 
     expect(result).toEqual({ ok: true, ran: true });
-    expect(enqueueSystemEvent).toHaveBeenCalledWith("force", { agentId: undefined });
+    expect(enqueueSystemEvent).toHaveBeenCalledWith(
+      "force",
+      expect.objectContaining({ agentId: undefined }),
+    );
 
     cron.stop();
     await store.cleanup();
@@ -233,8 +236,16 @@ describe("Cron issue regressions", () => {
 
     await onTimer(state);
 
-    expect(timeoutSpy).not.toHaveBeenCalled();
-    expect(state.timer).toBeNull();
+    // Phase 6 change: onTimer now arms a recheck timer (at MAX_TIMER_DELAY_MS)
+    // even while a run is in progress, to prevent the scheduler from dying
+    // if a long-running job outlasts the clamped timer interval.
+    // The key assertion is that the delay is 60_000 ms (MAX_TIMER_DELAY_MS),
+    // NOT zero (which would be a hot-loop).
+    const delays = timeoutSpy.mock.calls
+      .map(([, delay]) => delay)
+      .filter((delay): delay is number => typeof delay === "number");
+    expect(delays.every((d) => d >= 60_000)).toBe(true);
+    expect(state.timer).not.toBeNull();
     timeoutSpy.mockRestore();
     await store.cleanup();
   });

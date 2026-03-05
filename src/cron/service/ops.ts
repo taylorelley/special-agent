@@ -1,4 +1,4 @@
-import type { CronJobCreate, CronJobPatch } from "../types.js";
+import type { CronJob, CronJobCreate, CronJobPatch } from "../types.js";
 import type { CronServiceState } from "./state.js";
 import {
   applyJobPatch,
@@ -8,17 +8,56 @@ import {
   isJobDue,
   nextWakeAtMs,
   recomputeNextRuns,
+  recomputeNextRunsForMaintenance,
 } from "./jobs.js";
 import { locked } from "./locked.js";
 import { ensureLoaded, persist, warnIfDisabled } from "./store.js";
 import { armTimer, emit, executeJob, runMissedJobs, stopTimer, wake } from "./timer.js";
 
+type CronJobsEnabledFilter = "all" | "enabled" | "disabled";
+type CronJobsSortBy = "nextRunAtMs" | "updatedAtMs" | "name";
+type CronSortDir = "asc" | "desc";
+
+export type CronListPageOptions = {
+  includeDisabled?: boolean;
+  limit?: number;
+  offset?: number;
+  query?: string;
+  enabled?: CronJobsEnabledFilter;
+  sortBy?: CronJobsSortBy;
+  sortDir?: CronSortDir;
+};
+
+export type CronListPageResult = {
+  jobs: ReturnType<typeof sortJobs>;
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+  nextOffset: number | null;
+};
+
+async function ensureLoadedForRead(state: CronServiceState) {
+  await ensureLoaded(state, { skipRecompute: true });
+  if (!state.store) {
+    return;
+  }
+  // Use the maintenance-only version so that read-only operations never
+  // advance a past-due nextRunAtMs without executing the job.
+  const changed = recomputeNextRunsForMaintenance(state);
+  if (changed) {
+    await persist(state);
+  }
+}
+
 export async function start(state: CronServiceState) {
+  if (!state.deps.cronEnabled) {
+    state.deps.log.info({ enabled: false }, "cron: disabled");
+    return;
+  }
+
+  const startupInterruptedJobIds = new Set<string>();
   await locked(state, async () => {
-    if (!state.deps.cronEnabled) {
-      state.deps.log.info({ enabled: false }, "cron: disabled");
-      return;
-    }
     await ensureLoaded(state, { skipRecompute: true });
     const jobs = state.store?.jobs ?? [];
     for (const job of jobs) {
@@ -28,9 +67,16 @@ export async function start(state: CronServiceState) {
           "cron: clearing stale running marker on startup",
         );
         job.state.runningAtMs = undefined;
+        startupInterruptedJobIds.add(job.id);
       }
     }
-    await runMissedJobs(state);
+    await persist(state);
+  });
+
+  await runMissedJobs(state);
+
+  await locked(state, async () => {
+    await ensureLoaded(state, { forceReload: true, skipRecompute: true });
     recomputeNextRuns(state);
     await persist(state);
     armTimer(state);
@@ -51,13 +97,7 @@ export function stop(state: CronServiceState) {
 
 export async function status(state: CronServiceState) {
   return await locked(state, async () => {
-    await ensureLoaded(state, { skipRecompute: true });
-    if (state.store) {
-      const changed = recomputeNextRuns(state);
-      if (changed) {
-        await persist(state);
-      }
-    }
+    await ensureLoadedForRead(state);
     return {
       enabled: state.deps.cronEnabled,
       storePath: state.deps.storePath,
@@ -69,16 +109,88 @@ export async function status(state: CronServiceState) {
 
 export async function list(state: CronServiceState, opts?: { includeDisabled?: boolean }) {
   return await locked(state, async () => {
-    await ensureLoaded(state, { skipRecompute: true });
-    if (state.store) {
-      const changed = recomputeNextRuns(state);
-      if (changed) {
-        await persist(state);
-      }
-    }
+    await ensureLoadedForRead(state);
     const includeDisabled = opts?.includeDisabled === true;
     const jobs = (state.store?.jobs ?? []).filter((j) => includeDisabled || j.enabled);
     return jobs.toSorted((a, b) => (a.state.nextRunAtMs ?? 0) - (b.state.nextRunAtMs ?? 0));
+  });
+}
+
+function resolveEnabledFilter(opts?: CronListPageOptions): CronJobsEnabledFilter {
+  if (opts?.enabled === "all" || opts?.enabled === "enabled" || opts?.enabled === "disabled") {
+    return opts.enabled;
+  }
+  return opts?.includeDisabled ? "all" : "enabled";
+}
+
+function sortJobs(jobs: CronJob[], sortBy: CronJobsSortBy, sortDir: CronSortDir) {
+  const dir = sortDir === "desc" ? -1 : 1;
+  return jobs.toSorted((a, b) => {
+    let cmp = 0;
+    if (sortBy === "name") {
+      const aName = typeof a.name === "string" ? a.name : "";
+      const bName = typeof b.name === "string" ? b.name : "";
+      cmp = aName.localeCompare(bName, undefined, { sensitivity: "base" });
+    } else if (sortBy === "updatedAtMs") {
+      cmp = a.updatedAtMs - b.updatedAtMs;
+    } else {
+      const aNext = a.state.nextRunAtMs;
+      const bNext = b.state.nextRunAtMs;
+      if (typeof aNext === "number" && typeof bNext === "number") {
+        cmp = aNext - bNext;
+      } else if (typeof aNext === "number") {
+        cmp = -1;
+      } else if (typeof bNext === "number") {
+        cmp = 1;
+      } else {
+        cmp = 0;
+      }
+    }
+    if (cmp !== 0) {
+      return cmp * dir;
+    }
+    const aId = typeof a.id === "string" ? a.id : "";
+    const bId = typeof b.id === "string" ? b.id : "";
+    return aId.localeCompare(bId);
+  });
+}
+
+export async function listPage(state: CronServiceState, opts?: CronListPageOptions) {
+  return await locked(state, async () => {
+    await ensureLoadedForRead(state);
+    const query = opts?.query?.trim().toLowerCase() ?? "";
+    const enabledFilter = resolveEnabledFilter(opts);
+    const sortBy = opts?.sortBy ?? "nextRunAtMs";
+    const sortDir = opts?.sortDir ?? "asc";
+    const source = state.store?.jobs ?? [];
+    const filtered = source.filter((job) => {
+      if (enabledFilter === "enabled" && !job.enabled) {
+        return false;
+      }
+      if (enabledFilter === "disabled" && job.enabled) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      const haystack = [job.name, job.description ?? "", job.agentId ?? ""].join(" ").toLowerCase();
+      return haystack.includes(query);
+    });
+    const sorted = sortJobs(filtered, sortBy, sortDir);
+    const total = sorted.length;
+    const offset = Math.max(0, Math.min(total, Math.floor(opts?.offset ?? 0)));
+    const defaultLimit = total === 0 ? 50 : total;
+    const limit = Math.max(1, Math.min(200, Math.floor(opts?.limit ?? defaultLimit)));
+    const jobs = sorted.slice(offset, offset + limit);
+    const nextOffset = offset + jobs.length;
+    return {
+      jobs,
+      total,
+      offset,
+      limit,
+      hasMore: nextOffset < total,
+      nextOffset: nextOffset < total ? nextOffset : null,
+    } satisfies CronListPageResult;
   });
 }
 
@@ -119,7 +231,7 @@ export async function add(state: CronServiceState, input: CronJobCreate) {
 export async function update(state: CronServiceState, id: string, patch: CronJobPatch) {
   return await locked(state, async () => {
     warnIfDisabled(state, "update");
-    await ensureLoaded(state);
+    await ensureLoaded(state, { skipRecompute: true });
     const job = findJobOrThrow(state, id);
     const now = state.deps.nowMs();
     applyJobPatch(job, patch);
@@ -149,6 +261,13 @@ export async function update(state: CronServiceState, id: string, patch: CronJob
       } else {
         job.state.nextRunAtMs = undefined;
         job.state.runningAtMs = undefined;
+      }
+    } else if (job.enabled) {
+      // Non-schedule edits should not mutate other jobs, but still repair a
+      // missing/corrupt nextRunAtMs for the updated job.
+      const nextRun = job.state.nextRunAtMs;
+      if (typeof nextRun !== "number" || !Number.isFinite(nextRun)) {
+        job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
       }
     }
 
@@ -188,18 +307,18 @@ export async function run(state: CronServiceState, id: string, mode?: "due" | "f
     await ensureLoaded(state, { skipRecompute: true });
     const job = findJobOrThrow(state, id);
     if (typeof job.state.runningAtMs === "number") {
-      return { ok: true, ran: false, reason: "already-running" as const };
+      return { ok: true as const, ran: false as const, reason: "already-running" as const };
     }
     const now = state.deps.nowMs();
     const due = isJobDue(job, now, { forced: mode === "force" });
     if (!due) {
-      return { ok: true, ran: false, reason: "not-due" as const };
+      return { ok: true as const, ran: false as const, reason: "not-due" as const };
     }
     await executeJob(state, job, now, { forced: mode === "force" });
     recomputeNextRuns(state);
     await persist(state);
     armTimer(state);
-    return { ok: true, ran: true } as const;
+    return { ok: true as const, ran: true as const };
   });
 }
 

@@ -205,9 +205,11 @@ describe("QmdMemoryManager", () => {
 
     const resolved = resolveMemoryBackendConfig({ cfg, agentId });
     const createPromise = QmdMemoryManager.create({ cfg, agentId, resolved });
+    // Wait long enough for the spawn to fire on slow CI runners (Windows), but
+    // create still blocks because the update child has autoClose: false.
     const race = await Promise.race([
       createPromise.then(() => "created" as const),
-      new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 80)),
+      new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 500)),
     ]);
     expect(race).toBe("timeout");
 

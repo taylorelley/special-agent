@@ -42,13 +42,32 @@ export type SandboxDockerSettings = {
   extraHosts?: string[];
   /** Additional bind mounts (host:container:mode format, e.g. ["/host/path:/container/path:rw"]). */
   binds?: string[];
+  /**
+   * Allow bind mounts whose container target is /workspace or /agent.
+   * Default: false.
+   */
+  dangerouslyAllowReservedContainerTargets?: boolean;
+  /**
+   * Allow bind mount source paths outside the workspace and agent dirs.
+   * Default: false.
+   */
+  dangerouslyAllowExternalBindSources?: boolean;
+  /**
+   * Allow network mode "container:*" (namespace join).
+   * Default: false.
+   */
+  dangerouslyAllowContainerNamespaceJoin?: boolean;
 };
 
 export type SandboxBrowserSettings = {
   enabled?: boolean;
   image?: string;
   containerPrefix?: string;
+  /** Docker network for sandbox browser containers (default: special-agent-sandbox-browser). */
+  network?: string;
   cdpPort?: number;
+  /** Optional CIDR allowlist for CDP ingress at the container edge (for example: 172.21.0.1/32). */
+  cdpSourceRange?: string;
   vncPort?: number;
   noVncPort?: number;
   headless?: boolean;
@@ -65,6 +84,8 @@ export type SandboxBrowserSettings = {
   autoStart?: boolean;
   /** Max time to wait for CDP to become reachable after auto-start (ms). */
   autoStartTimeoutMs?: number;
+  /** Additional bind mounts for the browser container only. When set, replaces docker.binds for the browser container. */
+  binds?: string[];
 };
 
 export type SandboxPruneSettings = {

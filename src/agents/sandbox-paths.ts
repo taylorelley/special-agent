@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { shortPath } from "../utils/short-path.js";
 
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 const HTTP_URL_RE = /^https?:\/\//i;
@@ -28,6 +29,10 @@ function resolveToCwd(filePath: string, cwd: string): string {
     return expanded;
   }
   return path.resolve(cwd, expanded);
+}
+
+export function resolveSandboxInputPath(filePath: string, cwd: string): string {
+  return resolveToCwd(filePath, cwd);
 }
 
 export function resolveSandboxPath(params: { filePath: string; cwd: string; root: string }): {
@@ -107,11 +112,4 @@ async function assertNoSymlink(relative: string, root: string) {
       throw err;
     }
   }
-}
-
-function shortPath(value: string) {
-  if (value.startsWith(os.homedir())) {
-    return `~${value.slice(os.homedir().length)}`;
-  }
-  return value;
 }

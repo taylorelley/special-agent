@@ -37,7 +37,7 @@ afterEach(async () => {
 
 describe("web media loading", () => {
   beforeEach(() => {
-    vi.spyOn(ssrf, "resolvePinnedHostname").mockImplementation(async (hostname) => {
+    const fakePinned = async (hostname: string) => {
       const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
       const addresses = ["93.184.216.34"];
       return {
@@ -45,7 +45,11 @@ describe("web media loading", () => {
         addresses,
         lookup: ssrf.createPinnedLookup({ hostname: normalized, addresses }),
       };
-    });
+    };
+    vi.spyOn(ssrf, "resolvePinnedHostname").mockImplementation(fakePinned);
+    vi.spyOn(ssrf, "resolvePinnedHostnameWithPolicy").mockImplementation((hostname, _params) =>
+      fakePinned(hostname),
+    );
   });
 
   it("compresses large local images under the provided cap", async () => {

@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fixSecurityFootguns } from "./fix.js";
 
 const isWindows = process.platform === "win32";
@@ -15,36 +15,64 @@ const expectPerms = (actual: number, expected: number) => {
 };
 
 describe("security fix", () => {
+  let fixtureRoot = "";
+  let fixtureCount = 0;
+
+  const createStateDir = async (prefix: string) => {
+    const dir = path.join(fixtureRoot, `${prefix}-${fixtureCount++}`);
+    await fs.mkdir(dir, { recursive: true });
+    return dir;
+  };
+
+  const createFixEnv = (stateDir: string, configPath: string) => ({
+    ...process.env,
+    SPECIAL_AGENT_STATE_DIR: stateDir,
+    SPECIAL_AGENT_CONFIG_PATH: configPath,
+  });
+
+  const writeJsonConfig = async (configPath: string, config: Record<string, unknown>) => {
+    await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf-8");
+  };
+
+  const readParsedConfig = async (configPath: string) =>
+    JSON.parse(await fs.readFile(configPath, "utf-8")) as Record<string, unknown>;
+
+  const runFixAndReadChannels = async (stateDir: string, configPath: string) => {
+    const env = createFixEnv(stateDir, configPath);
+    const res = await fixSecurityFootguns({ env, stateDir, configPath });
+    const parsed = await readParsedConfig(configPath);
+    return {
+      res,
+      channels: parsed.channels as Record<string, Record<string, unknown>>,
+    };
+  };
+
+  beforeAll(async () => {
+    fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-security-fix-suite-"));
+  });
+
+  afterAll(async () => {
+    if (fixtureRoot) {
+      await fs.rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("tightens groupPolicy + filesystem perms", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-security-fix-"));
-    const stateDir = path.join(tmp, "state");
-    await fs.mkdir(stateDir, { recursive: true });
+    const stateDir = await createStateDir("tightens");
     await fs.chmod(stateDir, 0o755);
 
     const configPath = path.join(stateDir, "special-agent.json");
-    await fs.writeFile(
-      configPath,
-      `${JSON.stringify(
-        {
-          channels: {
-            msteams: { groupPolicy: "open" },
-          },
-          logging: { redactSensitive: "off" },
-        },
-        null,
-        2,
-      )}\n`,
-      "utf-8",
-    );
+    await writeJsonConfig(configPath, {
+      channels: {
+        msteams: { groupPolicy: "open" },
+      },
+      logging: { redactSensitive: "off" },
+    });
     await fs.chmod(configPath, 0o644);
 
-    const env = {
-      ...process.env,
-      SPECIAL_AGENT_STATE_DIR: stateDir,
-      SPECIAL_AGENT_CONFIG_PATH: "",
-    };
+    const env = createFixEnv(stateDir, configPath);
 
-    const res = await fixSecurityFootguns({ env });
+    const res = await fixSecurityFootguns({ env, stateDir, configPath });
     expect(res.ok).toBe(true);
     expect(res.configWritten).toBe(true);
     expect(res.changes).toEqual(
@@ -60,68 +88,39 @@ describe("security fix", () => {
     const configMode = (await fs.stat(configPath)).mode & 0o777;
     expectPerms(configMode, 0o600);
 
-    const parsed = JSON.parse(await fs.readFile(configPath, "utf-8")) as Record<string, unknown>;
+    const parsed = await readParsedConfig(configPath);
     const channels = parsed.channels as Record<string, Record<string, unknown>>;
     expect(channels.msteams.groupPolicy).toBe("allowlist");
   });
 
-  // Per-account allowlist test removed: the original tested WhatsApp-specific
-  // per-account groupPolicy, but WhatsApp was stripped and MSTeams schema
-  // (strict) does not support an `accounts` sub-key. The generic per-account
-  // code path in fix.ts still exists for future extension channels.
-
   it("does not modify msteams groupAllowFrom if allowFrom is set", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-security-fix-"));
-    const stateDir = path.join(tmp, "state");
-    await fs.mkdir(stateDir, { recursive: true });
+    const stateDir = await createStateDir("no-seed");
 
     const configPath = path.join(stateDir, "special-agent.json");
-    await fs.writeFile(
-      configPath,
-      `${JSON.stringify(
-        {
-          channels: {
-            msteams: { groupPolicy: "open", allowFrom: ["+15552223333"] },
-          },
-        },
-        null,
-        2,
-      )}\n`,
-      "utf-8",
-    );
+    await writeJsonConfig(configPath, {
+      channels: {
+        msteams: { groupPolicy: "open", allowFrom: ["+15552223333"] },
+      },
+    });
 
-    const env = {
-      ...process.env,
-      SPECIAL_AGENT_STATE_DIR: stateDir,
-      SPECIAL_AGENT_CONFIG_PATH: "",
-    };
-
-    const res = await fixSecurityFootguns({ env });
+    const { res, channels } = await runFixAndReadChannels(stateDir, configPath);
     expect(res.ok).toBe(true);
 
-    const parsed = JSON.parse(await fs.readFile(configPath, "utf-8")) as Record<string, unknown>;
-    const channels = parsed.channels as Record<string, Record<string, unknown>>;
     expect(channels.msteams.groupPolicy).toBe("allowlist");
     expect(channels.msteams.groupAllowFrom).toBeUndefined();
   });
 
   it("returns ok=false for invalid config but still tightens perms", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-security-fix-"));
-    const stateDir = path.join(tmp, "state");
-    await fs.mkdir(stateDir, { recursive: true });
+    const stateDir = await createStateDir("invalid-config");
     await fs.chmod(stateDir, 0o755);
 
     const configPath = path.join(stateDir, "special-agent.json");
     await fs.writeFile(configPath, "{ this is not json }\n", "utf-8");
     await fs.chmod(configPath, 0o644);
 
-    const env = {
-      ...process.env,
-      SPECIAL_AGENT_STATE_DIR: stateDir,
-      SPECIAL_AGENT_CONFIG_PATH: "",
-    };
+    const env = createFixEnv(stateDir, configPath);
 
-    const res = await fixSecurityFootguns({ env });
+    const res = await fixSecurityFootguns({ env, stateDir, configPath });
     expect(res.ok).toBe(false);
 
     const stateMode = (await fs.stat(stateDir)).mode & 0o777;
@@ -132,9 +131,7 @@ describe("security fix", () => {
   });
 
   it("tightens perms for credentials + agent auth/sessions + include files", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "special-agent-security-fix-"));
-    const stateDir = path.join(tmp, "state");
-    await fs.mkdir(stateDir, { recursive: true });
+    const stateDir = await createStateDir("includes");
 
     const includesDir = path.join(stateDir, "includes");
     await fs.mkdir(includesDir, { recursive: true });
@@ -171,14 +168,13 @@ describe("security fix", () => {
     const sessionsStorePath = path.join(sessionsDir, "sessions.json");
     await fs.writeFile(sessionsStorePath, "{}\n", "utf-8");
     await fs.chmod(sessionsStorePath, 0o644);
-
     const env = {
       ...process.env,
       SPECIAL_AGENT_STATE_DIR: stateDir,
-      SPECIAL_AGENT_CONFIG_PATH: "",
+      SPECIAL_AGENT_CONFIG_PATH: configPath,
     };
 
-    const res = await fixSecurityFootguns({ env });
+    const res = await fixSecurityFootguns({ env, stateDir, configPath });
     expect(res.ok).toBe(true);
 
     expectPerms((await fs.stat(credsDir)).mode & 0o777, 0o700);

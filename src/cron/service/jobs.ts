@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import type {
   CronDelivery,
   CronDeliveryPatch,
+  CronFailureAlert,
   CronJob,
   CronJobCreate,
   CronJobPatch,
@@ -13,22 +14,31 @@ import { parseAbsoluteTimeMs } from "../parse.js";
 import { computeNextRunAtMs } from "../schedule.js";
 import {
   normalizeOptionalAgentId,
+  normalizeOptionalSessionKey,
   normalizeOptionalText,
   normalizePayloadToSystemText,
   normalizeRequiredName,
 } from "./normalize.js";
 
 const STUCK_RUN_MS = 2 * 60 * 60 * 1000;
+const CLOCK_SKEW_MS = 60_000;
+
+function isFiniteTimestamp(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
 
 function resolveEveryAnchorMs(params: {
   schedule: { everyMs: number; anchorMs?: number };
   fallbackAnchorMs: number;
 }) {
   const raw = params.schedule.anchorMs;
-  if (typeof raw === "number" && Number.isFinite(raw)) {
+  if (isFiniteTimestamp(raw)) {
     return Math.max(0, Math.floor(raw));
   }
-  return Math.max(0, Math.floor(params.fallbackAnchorMs));
+  if (isFiniteTimestamp(params.fallbackAnchorMs)) {
+    return Math.max(0, Math.floor(params.fallbackAnchorMs));
+  }
+  return 0;
 }
 
 export function assertSupportedJobSpec(job: Pick<CronJob, "sessionTarget" | "payload">) {
@@ -59,11 +69,21 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
     return undefined;
   }
   if (job.schedule.kind === "every") {
+    const everyMs = Math.max(1, Math.floor(job.schedule.everyMs));
+    const lastRunAtMs = job.state.lastRunAtMs;
+    if (typeof lastRunAtMs === "number" && Number.isFinite(lastRunAtMs)) {
+      const nextFromLastRun = Math.floor(lastRunAtMs) + everyMs;
+      if (nextFromLastRun > nowMs) {
+        return nextFromLastRun;
+      }
+    }
+    const fallbackAnchorMs = isFiniteTimestamp(job.createdAtMs) ? job.createdAtMs : nowMs;
     const anchorMs = resolveEveryAnchorMs({
       schedule: job.schedule,
-      fallbackAnchorMs: job.createdAtMs,
+      fallbackAnchorMs,
     });
-    return computeNextRunAtMs({ ...job.schedule, anchorMs }, nowMs);
+    const next = computeNextRunAtMs({ ...job.schedule, everyMs, anchorMs }, nowMs);
+    return isFiniteTimestamp(next) ? next : undefined;
   }
   if (job.schedule.kind === "at") {
     // One-shot jobs stay due until they successfully finish.
@@ -71,7 +91,7 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
       return undefined;
     }
     // Handle both canonical `at` (string) and legacy `atMs` (number) fields.
-    // The store migration should convert atMs→at, but be defensive in case
+    // The store migration should convert atMs->at, but be defensive in case
     // the migration hasn't run yet or was bypassed.
     const schedule = job.schedule as { at?: string; atMs?: number | string };
     const atMs =
@@ -82,7 +102,7 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
           : typeof schedule.at === "string"
             ? parseAbsoluteTimeMs(schedule.at)
             : null;
-    return atMs !== null ? atMs : undefined;
+    return atMs !== null && Number.isFinite(atMs) ? atMs : undefined;
   }
   const next = computeNextRunAtMs(job.schedule, nowMs);
   // Defensive: the "every" and "at" branches return early, so schedule.kind is
@@ -91,66 +111,217 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
     const nextSecondMs = Math.floor(nowMs / 1000) * 1000 + 1000;
     return computeNextRunAtMs(job.schedule, nextSecondMs);
   }
-  return next;
+  return isFiniteTimestamp(next) ? next : undefined;
 }
 
-export function recomputeNextRuns(state: CronServiceState): boolean {
+/** Maximum consecutive schedule errors before auto-disabling a job. */
+const MAX_SCHEDULE_ERRORS = 3;
+
+function recordScheduleComputeError(params: {
+  state: CronServiceState;
+  job: CronJob;
+  err: unknown;
+}): boolean {
+  const { state, job, err } = params;
+  const errorCount = (job.state.scheduleErrorCount ?? 0) + 1;
+  const rawErr = String(err);
+  const errText =
+    rawErr.length > 500
+      ? rawErr.slice(0, 500).replace(/\n[\s\S]*$/, "") + "…[truncated]"
+      : rawErr.replace(/\n[\s\S]*$/, "");
+
+  job.state.scheduleErrorCount = errorCount;
+  job.state.nextRunAtMs = undefined;
+  job.state.lastError = `schedule error: ${errText}`;
+
+  if (errorCount >= MAX_SCHEDULE_ERRORS) {
+    job.enabled = false;
+    state.deps.log.error(
+      { jobId: job.id, name: job.name, errorCount, err: errText },
+      "cron: auto-disabled job after repeated schedule errors",
+    );
+
+    // Notify the user so the auto-disable is not silent.
+    const notifyText = `Cron job "${job.name}" has been auto-disabled after ${errorCount} consecutive schedule errors. Last error: ${errText}`;
+    try {
+      state.deps.enqueueSystemEvent(notifyText, {
+        agentId: job.agentId,
+        sessionKey: job.sessionKey,
+        contextKey: `cron:${job.id}:auto-disabled`,
+      });
+    } catch (notifyErr) {
+      state.deps.log.warn(
+        { jobId: job.id, err: notifyErr },
+        "cron: failed to send auto-disable notification",
+      );
+    }
+    try {
+      state.deps.requestHeartbeatNow({
+        reason: `cron:${job.id}:auto-disabled`,
+        agentId: job.agentId,
+        sessionKey: job.sessionKey,
+      });
+    } catch (hbErr) {
+      state.deps.log.warn(
+        { jobId: job.id, err: hbErr },
+        "cron: failed to request heartbeat for auto-disable",
+      );
+    }
+  } else {
+    state.deps.log.warn(
+      { jobId: job.id, name: job.name, errorCount, err: errText },
+      "cron: failed to compute next run for job (skipping)",
+    );
+  }
+
+  return true;
+}
+
+function normalizeJobTickState(params: { state: CronServiceState; job: CronJob; nowMs: number }): {
+  changed: boolean;
+  skip: boolean;
+} {
+  const { state, job, nowMs } = params;
+  let changed = false;
+
+  if (!job.state) {
+    job.state = {};
+    changed = true;
+  }
+
+  if (!job.enabled) {
+    if (job.state.nextRunAtMs !== undefined) {
+      job.state.nextRunAtMs = undefined;
+      changed = true;
+    }
+    if (job.state.runningAtMs !== undefined) {
+      job.state.runningAtMs = undefined;
+      changed = true;
+    }
+    return { changed, skip: true };
+  }
+
+  if (!isFiniteTimestamp(job.state.nextRunAtMs) && job.state.nextRunAtMs !== undefined) {
+    job.state.nextRunAtMs = undefined;
+    changed = true;
+  }
+
+  const runningAt = job.state.runningAtMs;
+  if (
+    runningAt !== undefined &&
+    (!isFiniteTimestamp(runningAt) ||
+      nowMs - runningAt > STUCK_RUN_MS ||
+      runningAt - nowMs > CLOCK_SKEW_MS)
+  ) {
+    state.deps.log.warn(
+      { jobId: job.id, runningAtMs: runningAt },
+      "cron: clearing stuck running marker",
+    );
+    job.state.runningAtMs = undefined;
+    changed = true;
+  }
+
+  return { changed, skip: false };
+}
+
+function walkSchedulableJobs(
+  state: CronServiceState,
+  fn: (params: { job: CronJob; nowMs: number }) => boolean,
+): boolean {
   if (!state.store) {
     return false;
   }
   let changed = false;
   const now = state.deps.nowMs();
   for (const job of state.store.jobs) {
-    if (!job.state) {
-      job.state = {};
+    const tick = normalizeJobTickState({ state, job, nowMs: now });
+    if (tick.changed) {
       changed = true;
     }
-    if (!job.enabled) {
-      if (job.state.nextRunAtMs !== undefined) {
-        job.state.nextRunAtMs = undefined;
-        changed = true;
-      }
-      if (job.state.runningAtMs !== undefined) {
-        job.state.runningAtMs = undefined;
-        changed = true;
-      }
+    if (tick.skip) {
       continue;
     }
-    const runningAt = job.state.runningAtMs;
-    if (typeof runningAt === "number" && now - runningAt > STUCK_RUN_MS) {
-      state.deps.log.warn(
-        { jobId: job.id, runningAtMs: runningAt },
-        "cron: clearing stuck running marker",
-      );
-      job.state.runningAtMs = undefined;
+    if (fn({ job, nowMs: now })) {
       changed = true;
-    }
-    // Only recompute if nextRunAtMs is missing or already past-due.
-    // Preserving a still-future nextRunAtMs avoids accidentally advancing
-    // a job that hasn't fired yet (e.g. during restart recovery).
-    const nextRun = job.state.nextRunAtMs;
-    const isDueOrMissing = nextRun === undefined || now >= nextRun;
-    if (isDueOrMissing) {
-      const newNext = computeJobNextRunAtMs(job, now);
-      if (job.state.nextRunAtMs !== newNext) {
-        job.state.nextRunAtMs = newNext;
-        changed = true;
-      }
     }
   }
   return changed;
 }
 
+function recomputeJobNextRunAtMs(params: { state: CronServiceState; job: CronJob; nowMs: number }) {
+  let changed = false;
+  try {
+    const newNext = computeJobNextRunAtMs(params.job, params.nowMs);
+    if (params.job.state.nextRunAtMs !== newNext) {
+      params.job.state.nextRunAtMs = newNext;
+      changed = true;
+    }
+    // Clear schedule error count on successful computation.
+    if (params.job.state.scheduleErrorCount) {
+      params.job.state.scheduleErrorCount = undefined;
+      changed = true;
+    }
+  } catch (err) {
+    if (recordScheduleComputeError({ state: params.state, job: params.job, err })) {
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+export function recomputeNextRuns(state: CronServiceState): boolean {
+  return walkSchedulableJobs(state, ({ job, nowMs: now }) => {
+    let changed = false;
+    // Only recompute if nextRunAtMs is missing or already past-due.
+    // Preserving a still-future nextRunAtMs avoids accidentally advancing
+    // a job that hasn't fired yet (e.g. during restart recovery).
+    const nextRun = job.state.nextRunAtMs;
+    const isDueOrMissing = !isFiniteTimestamp(nextRun) || now >= nextRun;
+    if (isDueOrMissing) {
+      if (recomputeJobNextRunAtMs({ state, job, nowMs: now })) {
+        changed = true;
+      }
+    }
+    return changed;
+  });
+}
+
+/**
+ * Maintenance-only version of recomputeNextRuns that handles disabled jobs
+ * and stuck markers, but does NOT recompute nextRunAtMs for enabled jobs
+ * with existing values. Used during timer ticks when no due jobs were found
+ * to prevent silently advancing past-due nextRunAtMs values without execution
+ * (see openclaw#13992).
+ */
+export function recomputeNextRunsForMaintenance(state: CronServiceState): boolean {
+  return walkSchedulableJobs(state, ({ job, nowMs: now }) => {
+    let changed = false;
+    // Only compute missing nextRunAtMs, do NOT recompute existing ones.
+    // If a job was past-due but not found by findDueJobs, recomputing would
+    // cause it to be silently skipped.
+    if (!isFiniteTimestamp(job.state.nextRunAtMs)) {
+      if (recomputeJobNextRunAtMs({ state, job, nowMs: now })) {
+        changed = true;
+      }
+    }
+    return changed;
+  });
+}
+
 export function nextWakeAtMs(state: CronServiceState) {
   const jobs = state.store?.jobs ?? [];
-  const enabled = jobs.filter((j) => j.enabled && typeof j.state.nextRunAtMs === "number");
+  const enabled = jobs.filter((j) => j.enabled && isFiniteTimestamp(j.state.nextRunAtMs));
   if (enabled.length === 0) {
     return undefined;
   }
-  return enabled.reduce(
-    (min, j) => Math.min(min, j.state.nextRunAtMs as number),
-    enabled[0].state.nextRunAtMs as number,
-  );
+  const first = enabled[0]?.state.nextRunAtMs;
+  if (!isFiniteTimestamp(first)) {
+    return undefined;
+  }
+  return enabled.reduce((min, j) => {
+    const next = j.state.nextRunAtMs;
+    return isFiniteTimestamp(next) ? Math.min(min, next) : min;
+  }, first);
 }
 
 export function createJob(state: CronServiceState, input: CronJobCreate): CronJob {
@@ -176,6 +347,7 @@ export function createJob(state: CronServiceState, input: CronJobCreate): CronJo
   const job: CronJob = {
     id,
     agentId: normalizeOptionalAgentId(input.agentId),
+    sessionKey: normalizeOptionalSessionKey((input as { sessionKey?: unknown }).sessionKey),
     name: normalizeRequiredName(input.name),
     description: normalizeOptionalText(input.description),
     enabled,
@@ -187,6 +359,7 @@ export function createJob(state: CronServiceState, input: CronJobCreate): CronJo
     wakeMode: input.wakeMode,
     payload: input.payload,
     delivery: input.delivery,
+    failureAlert: mergeCronFailureAlert(undefined, input.failureAlert),
     state: {
       ...input.state,
     },
@@ -236,6 +409,9 @@ export function applyJobPatch(job: CronJob, patch: CronJobPatch) {
   if (patch.delivery) {
     job.delivery = mergeCronDelivery(job.delivery, patch.delivery);
   }
+  if ("failureAlert" in patch) {
+    job.failureAlert = mergeCronFailureAlert(job.failureAlert, patch.failureAlert);
+  }
   if (job.sessionTarget === "main" && job.delivery) {
     job.delivery = undefined;
   }
@@ -244,6 +420,9 @@ export function applyJobPatch(job: CronJob, patch: CronJobPatch) {
   }
   if ("agentId" in patch) {
     job.agentId = normalizeOptionalAgentId((patch as { agentId?: unknown }).agentId);
+  }
+  if ("sessionKey" in patch) {
+    job.sessionKey = normalizeOptionalSessionKey((patch as { sessionKey?: unknown }).sessionKey);
   }
   assertSupportedJobSpec(job);
   assertDeliverySupport(job);
@@ -372,6 +551,7 @@ function mergeCronDelivery(
     mode: existing?.mode ?? "none",
     channel: existing?.channel,
     to: existing?.to,
+    accountId: existing?.accountId,
     bestEffort: existing?.bestEffort,
   };
 
@@ -386,8 +566,48 @@ function mergeCronDelivery(
     const to = typeof patch.to === "string" ? patch.to.trim() : "";
     next.to = to ? to : undefined;
   }
+  if ("accountId" in patch) {
+    const accountId = typeof patch.accountId === "string" ? patch.accountId.trim() : "";
+    next.accountId = accountId ? accountId : undefined;
+  }
   if (typeof patch.bestEffort === "boolean") {
     next.bestEffort = patch.bestEffort;
+  }
+
+  return next;
+}
+
+function mergeCronFailureAlert(
+  existing: CronFailureAlert | false | undefined,
+  patch: CronFailureAlert | false | undefined,
+): CronFailureAlert | false | undefined {
+  if (patch === false) {
+    return false;
+  }
+  if (patch === undefined) {
+    return existing;
+  }
+  const base = existing === false || existing === undefined ? {} : existing;
+  const next: CronFailureAlert = { ...base };
+
+  if ("after" in patch) {
+    const after = typeof patch.after === "number" && Number.isFinite(patch.after) ? patch.after : 0;
+    next.after = after > 0 ? Math.floor(after) : undefined;
+  }
+  if ("channel" in patch) {
+    const channel = typeof patch.channel === "string" ? patch.channel.trim() : "";
+    next.channel = channel ? channel : undefined;
+  }
+  if ("to" in patch) {
+    const to = typeof patch.to === "string" ? patch.to.trim() : "";
+    next.to = to ? to : undefined;
+  }
+  if ("cooldownMs" in patch) {
+    const cooldownMs =
+      typeof patch.cooldownMs === "number" && Number.isFinite(patch.cooldownMs)
+        ? patch.cooldownMs
+        : -1;
+    next.cooldownMs = cooldownMs >= 0 ? Math.floor(cooldownMs) : undefined;
   }
 
   return next;

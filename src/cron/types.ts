@@ -10,12 +10,49 @@ export type CronWakeMode = "next-heartbeat" | "now";
 
 export type CronMessageChannel = ChannelId;
 
-export type CronDeliveryMode = "none" | "announce";
+export type CronDeliveryMode = "none" | "announce" | "webhook";
+
+export type CronDeliveryStatus = "delivered" | "not-delivered" | "unknown" | "not-requested";
+
+export type CronRunStatus = "ok" | "error" | "skipped";
+
+export type CronUsageSummary = {
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheReadInputTokens?: number;
+  cacheCreationInputTokens?: number;
+  serverToolUseInputTokens?: number;
+};
+
+export type CronRunTelemetry = {
+  model?: string;
+  provider?: string;
+  usage?: CronUsageSummary;
+};
+
+export type CronRunOutcome = {
+  status: CronRunStatus;
+  error?: string;
+  errorKind?: string;
+  summary?: string;
+  sessionId?: string;
+  sessionKey?: string;
+};
+
+export type CronFailureAlert = {
+  /** Fire after this many consecutive failures (default 2). */
+  after?: number;
+  channel?: CronMessageChannel;
+  to?: string;
+  /** Minimum ms between alerts for the same job (default 1 hour). */
+  cooldownMs?: number;
+};
 
 export type CronDelivery = {
   mode: CronDeliveryMode;
   channel?: CronMessageChannel;
   to?: string;
+  accountId?: string;
   bestEffort?: boolean;
 };
 
@@ -56,16 +93,24 @@ export type CronJobState = {
   nextRunAtMs?: number;
   runningAtMs?: number;
   lastRunAtMs?: number;
-  lastStatus?: "ok" | "error" | "skipped";
+  lastStatus?: CronRunStatus;
   lastError?: string;
   lastDurationMs?: number;
+  lastDelivered?: boolean;
+  lastDeliveryStatus?: CronDeliveryStatus;
+  lastDeliveryError?: string;
   /** Number of consecutive execution errors (reset on success). Used for backoff. */
   consecutiveErrors?: number;
+  /** Number of consecutive schedule computation errors. */
+  scheduleErrorCount?: number;
+  /** Timestamp of last failure alert sent for this job. */
+  lastFailureAlertAtMs?: number;
 };
 
 export type CronJob = {
   id: string;
   agentId?: string;
+  sessionKey?: string;
   name: string;
   description?: string;
   enabled: boolean;
@@ -77,6 +122,7 @@ export type CronJob = {
   wakeMode: CronWakeMode;
   payload: CronPayload;
   delivery?: CronDelivery;
+  failureAlert?: CronFailureAlert | false;
   state: CronJobState;
 };
 

@@ -19,8 +19,11 @@ export async function resolveDeliveryTarget(
   jobPayload: {
     channel?: ChannelId;
     to?: string;
+    accountId?: string;
+    sessionKey?: string;
   },
 ): Promise<{
+  ok: boolean;
   channel: Exclude<OutboundChannel, "none">;
   to?: string;
   accountId?: string;
@@ -36,7 +39,12 @@ export async function resolveDeliveryTarget(
   const mainSessionKey = resolveAgentMainSessionKey({ cfg, agentId });
   const storePath = resolveStorePath(sessionCfg?.store, { agentId });
   const store = loadSessionStore(storePath);
-  const main = store[mainSessionKey];
+
+  // Look up thread-specific session first (e.g. agent:main:main:thread:1234),
+  // then fall back to the main session entry.
+  const threadSessionKey = jobPayload.sessionKey?.trim();
+  const threadEntry = threadSessionKey ? store[threadSessionKey] : undefined;
+  const main = threadEntry ?? store[mainSessionKey];
 
   const preliminary = resolveSessionDeliveryTarget({
     entry: main,
@@ -47,12 +55,15 @@ export async function resolveDeliveryTarget(
 
   let fallbackChannel: Exclude<OutboundChannel, "none"> | undefined;
   if (!preliminary.channel) {
-    try {
-      const selection = await resolveMessageChannelSelection({ cfg });
-      fallbackChannel = selection.channel;
-    } catch {
-      fallbackChannel =
-        preliminary.lastChannel ?? resolveDefaultChatChannel() ?? DEFAULT_CHAT_CHANNEL;
+    if (preliminary.lastChannel) {
+      fallbackChannel = preliminary.lastChannel;
+    } else {
+      try {
+        const selection = await resolveMessageChannelSelection({ cfg });
+        fallbackChannel = selection.channel;
+      } catch {
+        fallbackChannel = resolveDefaultChatChannel() ?? DEFAULT_CHAT_CHANNEL;
+      }
     }
   }
 
@@ -72,6 +83,14 @@ export async function resolveDeliveryTarget(
   const mode = resolved.mode as "explicit" | "implicit";
   const toCandidate = resolved.to;
 
+  // Prefer an explicit accountId from the job's delivery config.
+  // Fall back to the session's lastAccountId.
+  const explicitAccountId =
+    typeof jobPayload.accountId === "string" && jobPayload.accountId.trim()
+      ? jobPayload.accountId.trim()
+      : undefined;
+  const accountIdResolved = explicitAccountId ?? resolved.accountId;
+
   // Only carry threadId when delivering to the same recipient as the session's
   // last conversation. This prevents stale thread IDs (e.g. from a Telegram
   // supergroup topic) from being sent to a different target (e.g. a private
@@ -83,11 +102,13 @@ export async function resolveDeliveryTarget(
 
   if (!toCandidate) {
     return {
+      ok: false,
       channel,
       to: undefined,
-      accountId: resolved.accountId,
+      accountId: accountIdResolved,
       threadId,
       mode,
+      error: new Error(`No delivery target resolved for channel "${channel}". Set delivery.to.`),
     };
   }
 
@@ -95,15 +116,26 @@ export async function resolveDeliveryTarget(
     channel,
     to: toCandidate,
     cfg,
-    accountId: resolved.accountId,
+    accountId: accountIdResolved,
     mode,
   });
+  if (!docked.ok) {
+    return {
+      ok: false,
+      channel,
+      to: undefined,
+      accountId: accountIdResolved,
+      threadId,
+      mode,
+      error: docked.error,
+    };
+  }
   return {
+    ok: true,
     channel,
-    to: docked.ok ? docked.to : undefined,
-    accountId: resolved.accountId,
+    to: docked.to,
+    accountId: accountIdResolved,
     threadId,
     mode,
-    error: docked.ok ? undefined : docked.error,
   };
 }
